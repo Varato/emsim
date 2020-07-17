@@ -1,12 +1,20 @@
 import numpy as np
+import math
 from pathlib2 import Path
-from collections import namedtuple
-from typing import List
+from typing import List, Tuple
+
+
+water_num_dens = 0.031    # number of molecules per A3
+e = 14.39964              # electron charge in Volts * Angstrom
+a0 = 0.529177             # Bohr radius in Angstrom
+hbar_c = 1975.9086        # hbar*c in eV * Angstrom
+hc = 12415                # h*c in eV * Angstrom
+m0c2 = 510.9989461        # electron mass in keV
 
 
 def atom_params(atom_numbers: List[int]) -> np.ndarray:
     """
-    looks up potential parameters for queries by atom numbers.
+    looks up potential parameters for queries by element numbers.
 
     Parameters
     ----------
@@ -17,12 +25,44 @@ def atom_params(atom_numbers: List[int]) -> np.ndarray:
     ndarray with shape [num_queries, 13]. 13 = [chisqr, a1-3, b1-3, c1-3, d1-3]
     """
 
-    if not all([1<=z<=103 for z in atom_numbers]):
+    if not all([1 <= z <= 103 for z in atom_numbers]):
         raise ValueError("z must be a interger in range [1, 92]")
     return np.array([_atom_params[z-1] for z in atom_numbers])
 
-def atom_potentials(atom_numbers: List[int]) -> np.ndarray:
-    pass
+def atom_potentials(atom_numbers: List[int], voxel_size:float, radius=3.0) -> np.ndarray:
+
+    # construct 3D meshgrid for the potential
+    r0, r1, n = _potential_rspace_params(radius, voxel_size)
+    xyz_range = np.linspace(r0, r1, n)
+    xx, yy, zz = np.meshgrid(xyz_range, xyz_range, xyz_range, indexing="ij")
+    r = np.sqrt(xx*xx + yy*yy + zz*zz)
+
+    # find the singular point (the one that is nearest to the origin)
+    singular_point_idx, displacement = _find_singular_point(r0, voxel_size, 0)
+    # if the displacement from the origin is maller than half a voxel, consider it's singular. Cut it off.
+    if displacement < 0.5:
+        r[singular_point_idx, singular_point_idx, singular_point_idx] = 0.5 * voxel_size
+
+    r2 = r**2
+
+    c1 = 2 * np.pi**2 * a0 * e
+    c2 = 2 * pow(np.pi, 5/2) * a0 * e
+
+    n_atoms = len(atom_numbers)
+    pms = atom_params(atom_numbers)
+    v = np.empty(shape=(n_atoms, *r2.shape))
+    for k in range(n_atoms):
+        pm = pms[k]  # the 13 parameters
+        a = pm[1:4]
+        b = pm[4:7]
+        c = pm[7:10]
+        d = pm[10:]
+
+        s1 = c1 * sum([a[i]/r * np.exp(-2*np.pi*r*np.sqrt(b[i])) for i in range(3)])
+        s2 = c2 * sum([c[i]*pow(d[i], -3/2) * np.exp(-(np.pi**2) * r2/d[i]) for i in range(3)])
+
+        v[k] = s1 + s2
+    return v
 
 
 def _read_atom_parameters(asset_path: Path=None):
@@ -75,6 +115,76 @@ def _read_atom_mass(asset_path: Path=None):
         return np.array([float(line.split()[1]) for line in f])
 
 
+def _potential_rspace_params(r: float, dx: float) -> Tuple[float, float, int]:
+    """
+    This function slves the following problem.
+
+    We want to sample atom potential (a 3D scalar field) up to a radius `r` at a certain sampling rate `dx`,
+    while we want the sampling voxel box to have odd number of dimensions so that it can be properly place it
+    in to a molecule's potential sampled space.
+
+    If the number of samples from -r to r at dx is odd, then keep as it is.
+    If the number of samples from -r to r at dx is even, 
+        add one more sample by extending -r to -r-dx/2 and r to r+dx/2.
+
+    Parameters
+    ----------
+    r: float
+        the maximum radius to the potential center to sample within
+    dx: float
+        the sampling rate (voxel size)
+
+    Returns
+    -------
+    start: float
+        the coordinate of the starting point
+    end: float
+        the end point
+    num: int
+        the number of samples, which is designed to be odd
+    """
+
+    start = -r
+    end = r
+    num = math.floor((end - start)/dx) + 1
+    if num % 2 == 0:
+        start -= dx/2
+        end += dx/2
+        num += 1
+    return start, end, num
+
+
+def _find_singular_point(start: float, dx: float, x: float = 0):
+
+    """
+    Suppose `x` is singular point, this function finds the voxel that is nearest to origin, 
+    and its displacement measured in framction of voxel size.
+    
+    Parameters
+    ----------
+    start: float
+        the starting coordinate of the sampling linspace
+    dx: float
+        the sampling rate
+    x: float
+        the coordinate of the singular point
+
+    Returns
+    -------
+    idx: int
+        the index of the voxel that is nearest to the origin
+    displacement: float
+        the difference between the pixel that is closest to origin in fraction of voxel size.
+
+    """
+
+    # find the index that is nearest to origin, and its difference from real origin
+    idx = int(round((x-start)/dx))
+    displacement = abs((x-start)/dx - idx)
+
+    return idx, displacement
+
+
 _atom_params = _read_atom_parameters()
 
 _element_symbol = [
@@ -89,4 +199,8 @@ _element_symbol = [
 
 
 if __name__ == "__main__":
-    print(atom_params([1,2]))
+    import matplotlib.pyplot as plt
+    v = atom_potentials([10], voxel_size=1.0)
+    print(v.shape)
+    plt.imshow(v[0].sum(0))
+    plt.show()
