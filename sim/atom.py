@@ -1,7 +1,7 @@
 import numpy as np
 import math
 from pathlib2 import Path
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 
 water_num_dens = 0.031    # number of molecules per A3
@@ -10,6 +10,8 @@ a0 = 0.529177             # Bohr radius in Angstrom
 hbar_c = 1975.9086        # hbar*c in eV * Angstrom
 hc = 12415                # h*c in eV * Angstrom
 m0c2 = 510.9989461        # electron mass in keV
+
+dtype = np.float32
 
 
 def atom_params(atom_numbers: List[int]) -> np.ndarray:
@@ -27,7 +29,8 @@ def atom_params(atom_numbers: List[int]) -> np.ndarray:
 
     if not all([1 <= z <= 103 for z in atom_numbers]):
         raise ValueError("z must be a interger in range [1, 92]")
-    return np.array([_atom_params[z-1] for z in atom_numbers])
+    return np.array([_atom_params[z-1] for z in atom_numbers], dtype=dtype)
+
 
 def atom_potentials(atom_numbers: List[int], voxel_size:float, radius=3.0) -> np.ndarray:
 
@@ -50,7 +53,7 @@ def atom_potentials(atom_numbers: List[int], voxel_size:float, radius=3.0) -> np
 
     n_atoms = len(atom_numbers)
     pms = atom_params(atom_numbers)
-    v = np.empty(shape=(n_atoms, *r2.shape))
+    v = np.empty(shape=(n_atoms, *r2.shape), dtype=dtype)
     for k in range(n_atoms):
         pm = pms[k]  # the 13 parameters
         a = pm[1:4]
@@ -63,6 +66,58 @@ def atom_potentials(atom_numbers: List[int], voxel_size:float, radius=3.0) -> np
 
         v[k] = s1 + s2
     return v
+
+
+def atom_scattering_factors(atom_numbers: List[int], voxel_size: float, size: Union[int, Tuple[int, int, int]]):
+    # The following two functions are for fourier space convolution
+    # The kernel size are designed to be given by caller, so that it's the same as
+    # the convolved array.
+
+    """
+    pre-calculates 3D atomic scattering factors for 3D potential builder.
+    This computation is based on equation (5.17) in Kirkland.
+
+    Parameters
+    ----------
+    atom_numbers: list, atom numbers.
+    voxel_size: float
+    len_x: int
+    len_y: int
+    len_z: int
+
+    Returns
+    -------
+    numpy array
+        3D form factor(s) with the first dimension corresponding to atom_numbers
+    """
+    if type(size) is int:
+        size = (size, size, size)
+
+    fx_range = np.fft.fftshift(np.fft.fftfreq(size[0], voxel_size))
+    fy_range = np.fft.fftshift(np.fft.fftfreq(size[1], voxel_size))
+    fz_range = np.fft.fftshift(np.fft.fftfreq(size[2], voxel_size))
+
+    fx, fy, fz = np.meshgrid(fx_range, fy_range, fz_range, indexing="ij")
+    f2 = fx*fx + fy*fy + fz*fz
+    mask = f2 < 16  # use frequency up to 4 A^-1
+
+    factor = 2 * np.pi * e * a0 / voxel_size**3
+
+    n_atoms = len(atom_numbers)
+    pms = atom_params(atom_numbers)
+    scat_fac = np.empty(shape=(n_atoms, size[0], size[1], size[2]), dtype=dtype)
+    for k in range(n_atoms):
+        pm = pms[k]  # the 13 parameters
+        a = pm[1:4]
+        b = pm[4:7]
+        c = pm[7:10]
+        d = pm[10:]
+
+        scat_fac[k] = factor * np.sum([a[i] / (f2 + b[i]) + c[i] * np.exp(-d[i] * f2) for i in range(3)], axis=0)
+        scat_fac[k] = np.where(mask, scat_fac[k], 0)
+        scat_fac[k] = np.fft.ifftshift(scat_fac[k])
+
+    return scat_fac
 
 
 def _read_atom_parameters(asset_path: Path=None):
@@ -91,7 +146,7 @@ def _read_atom_parameters(asset_path: Path=None):
     with open(asset_path/"atom_params.txt", 'r') as f:
         raw_data = f.readlines()
 
-    params = np.empty([103, 12+1])
+    params = np.empty([103, 12+1], dtype=dtype)
     for Z in range(103):
         line1 = raw_data[Z*4]
         line2 = raw_data[Z*4+1]
