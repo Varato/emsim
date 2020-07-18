@@ -1,5 +1,6 @@
 import numpy as np
 import math
+from scipy.special import kn
 from pathlib2 import Path
 from typing import List, Tuple, Union
 
@@ -32,7 +33,25 @@ def atom_params(atom_numbers: List[int]) -> np.ndarray:
     return np.array([_atom_params[z-1] for z in atom_numbers], dtype=dtype)
 
 
-def atom_potentials(atom_numbers: List[int], voxel_size:float, radius=3.0) -> np.ndarray:
+def potentials(atom_numbers: List[int], voxel_size: float, radius: float = 3.0) -> np.ndarray:
+    """
+    pre-calculates potentials for each atom specified in atom_numbers.
+    The computation is based on equation (5.9) in Kirkland.
+
+    Parameters
+    ----------
+    atom_numbers: int of a sequence of integers
+        atomic number(s).
+    voxel_size: float
+        voxel size that determines the sampling rate for atomic potential.
+    max_radius: float
+        tells the procedure to compute all projected potential upto this radius.
+        This value, together with voxel_size, determine the array length of the returned.
+
+    Returns
+    -------
+    4D array: (n_atoms, len_x, len_y, len_z)
+    """
 
     # construct 3D meshgrid for the potential
     r0, r1, n = _potential_rspace_params(radius, voxel_size)
@@ -67,8 +86,63 @@ def atom_potentials(atom_numbers: List[int], voxel_size:float, radius=3.0) -> np
         v[k] = s1 + s2
     return v
 
+def projected_potentials(atom_numbers: List[int], voxel_size: float, radius: float = 3.0) -> np.ndarray:
 
-def atom_scattering_factors(atom_numbers: List[int], voxel_size: float, size: Union[int, Tuple[int, int, int]]):
+    """
+    pre-calculates projected potential for each atom specified in atom_numbers.
+    The computation is based on euqation (5.10) in Kirkland.
+
+    Parameters
+    ----------
+    atom_numbers: int of a sequence of integers
+        atomic number(s).
+    voxel_size: float
+        voxel size that determines the sampling rate for projected atomic potential.
+    max_radius: float
+        tells the procedure to compute all projected potential upto this radius.
+        This value, together with pixel_size, determine the array length of the returned.
+
+    Returns
+    -------
+    3D array: (n_atoms, len_x, len_y)
+    """
+
+    r0, r1, n = _potential_rspace_params(radius, voxel_size)
+
+    # builds 2D mesh grid for projected potential
+    xy_range = np.linspace(r0, r1, n)
+    xx, yy = np.meshgrid(xy_range, xy_range, indexing="ij")
+    r = np.sqrt(xx*xx + yy*yy)
+
+    # to avoid infinity at the origin,
+    # if diff_from_origin is smaller than 0.5 voxel size, set the radius as 0.5*voxel_size
+    singular_point_idx, displacement = _find_singular_point(r0, voxel_size, 0)
+    if displacement < 0.5:
+        r[singular_point_idx, singular_point_idx] = 0.5*voxel_size
+    r2 = r**2
+
+    c1 = 4 * np.pi**2 * a0 * e
+    c2 = 2 * np.pi**2 * a0 * e
+
+    n_atoms = len(atom_numbers)
+    pms = atom_params(atom_numbers)
+    vz = np.empty(shape=(n_atoms, *r2.shape), dtype=dtype)
+    for k in range(n_atoms):
+        pm = pms[k]  # the 13 parameters
+        a = pm[1:4]
+        b = pm[4:7]
+        c = pm[7:10]
+        d = pm[10:]
+
+        s1 = c1 * sum([a[i]*kn(0, 2*np.pi*r*np.sqrt(b[i])) for i in range(3)])
+        s2 = c2 * sum([c[i]/d[i] * np.exp(-(np.pi**2) * r2/d[i]) for i in range(3)])
+
+        vz[k] = s1 + s2
+
+    return vz
+
+
+def scattering_factors(atom_numbers: List[int], voxel_size: float, size: Union[int, Tuple[int, int, int]]):
     # The following two functions are for fourier space convolution
     # The kernel size are designed to be given by caller, so that it's the same as
     # the convolved array.
