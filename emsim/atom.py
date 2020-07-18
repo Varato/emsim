@@ -15,24 +15,6 @@ m0c2 = 510.9989461        # electron mass in keV
 dtype = np.float32
 
 
-def atom_params(atom_numbers: List[int]) -> np.ndarray:
-    """
-    looks up potential parameters for queries by element numbers.
-
-    Parameters
-    ----------
-    atom_numbers: a list of Zs
-
-    Returns
-    -------
-    ndarray with shape [num_queries, 13]. 13 = [chisqr, a1-3, b1-3, c1-3, d1-3]
-    """
-
-    if not all([1 <= z <= 103 for z in atom_numbers]):
-        raise ValueError("z must be a interger in range [1, 92]")
-    return np.array([_atom_params[z-1] for z in atom_numbers], dtype=dtype)
-
-
 def potentials(atom_numbers: List[int], voxel_size: float, radius: float = 3.0) -> np.ndarray:
     """
     pre-calculates potentials for each atom specified in atom_numbers.
@@ -91,6 +73,10 @@ def projected_potentials(atom_numbers: List[int], voxel_size: float, radius: flo
     """
     pre-calculates projected potential for each atom specified in atom_numbers.
     The computation is based on euqation (5.10) in Kirkland.
+
+    Notice the formular used here is just the integral of `potential` along z-axis.
+    Therefore:
+        projected_potential ~ potential.sum(-1) when voxel_size -> 0
 
     Parameters
     ----------
@@ -192,6 +178,24 @@ def scattering_factors(atom_numbers: List[int], voxel_size: float, size: Union[i
         scat_fac[k] = np.fft.ifftshift(scat_fac[k])
 
     return scat_fac
+
+
+def atom_params(atom_numbers: List[int]) -> np.ndarray:
+    """
+    looks up potential parameters for queries by element numbers.
+
+    Parameters
+    ----------
+    atom_numbers: a list of Zs
+
+    Returns
+    -------
+    ndarray with shape [num_queries, 13]. 13 = [chisqr, a1-3, b1-3, c1-3, d1-3]
+    """
+
+    if not all([1 <= z <= 103 for z in atom_numbers]):
+        raise ValueError("z must be a interger in range [1, 92]")
+    return np.array([_atom_params[z-1] for z in atom_numbers], dtype=dtype)
 
 
 def _read_atom_parameters(asset_path: Path=None):
