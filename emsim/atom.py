@@ -26,8 +26,8 @@ def potentials(atom_numbers: List[int], voxel_size: float, radius: float = 3.0) 
         atomic number(s).
     voxel_size: float
         voxel size that determines the sampling rate for atomic potential.
-    max_radius: float
-        tells the procedure to compute all projected potential upto this radius.
+    radius: float
+        tells the procedure to compute potential upto this radius.
         This value, together with voxel_size, determine the array length of the returned.
 
     Returns
@@ -165,7 +165,7 @@ def scattering_factors(atom_numbers: List[int], voxel_size: float, size: Union[i
 
     n_atoms = len(atom_numbers)
     pms = atom_params(atom_numbers)
-    scat_fac = np.empty(shape=(n_atoms, size[0], size[1], size[2]), dtype=dtype)
+    scat_fac = np.empty(shape=(n_atoms, *size), dtype=dtype)
     for k in range(n_atoms):
         pm = pms[k]  # the 13 parameters
         a = pm[1:4]
@@ -178,6 +178,51 @@ def scattering_factors(atom_numbers: List[int], voxel_size: float, size: Union[i
         scat_fac[k] = np.fft.ifftshift(scat_fac[k])
 
     return scat_fac
+
+
+def projected_scattering_factors(atom_numbers: List[int], voxel_size: float, size: Union[int, Tuple[int, int]]):
+    """
+    pre-calculates 2D atomic scattering factors for slice builder.
+    This computation is based on equation (5.17) in Kirkland.
+
+    Parameters
+    ----------
+    atom_numbers: list, atomic numbers.
+    pixel_size: float
+    len_x: int
+    len_y: int
+
+    Returns
+    -------
+    numpy array
+        2D form factor(s) with the first dimension corresponding to elem_nums
+    """
+
+    fx_range = np.fft.fftshift(np.fft.fftfreq(size[0], voxel_size))
+    fy_range = np.fft.fftshift(np.fft.fftfreq(size[1], voxel_size))
+
+    fx, fy = np.meshgrid(fx_range, fy_range, indexing="ij")
+    f2 = fx * fx + fy * fy
+    mask = f2 < 16 # use frequency up to 4 A^-1
+
+    factor = 2 * np.pi * e * a0 / voxel_size**2
+
+    n_atoms = len(atom_numbers)
+    pms = atom_params(atom_numbers)
+    scat_fac2d = np.empty(shape=(n_atoms, *size), dtype=dtype)
+
+    for k in enumerate(atom_numbers):
+        pm = pms[k]  # the 13 parameters
+        a = pm[1:4]
+        b = pm[4:7]
+        c = pm[7:10]
+        d = pm[10:]
+
+        scat_fac2d[k] = np.sum([a[i] / (f2 + b[i]) + c[i] * np.exp(-d[i] * f2) for i in range(3)], axis=0) * factor
+        scat_fac2d[k] = np.where(mask, scat_fac2d[k], 0.)
+        scat_fac2d[k] = np.fft.ifftshift(scat_fac2d[k])
+
+    return scat_fac2d
 
 
 def atom_params(atom_numbers: List[int]) -> np.ndarray:
@@ -329,11 +374,3 @@ _element_symbol = [
     'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu', 'Hf',
     'Ta', 'W' , 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg', 'Tl', 'Pb', 'Bi', 'Po',
     'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th', 'Pa', 'U']
-
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    v = atom_potentials([10], voxel_size=1.0)
-    print(v.shape)
-    plt.imshow(v[0].sum(0))
-    plt.show()
