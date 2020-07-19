@@ -1,4 +1,3 @@
 numpy
 scipy
-pathlib2
 matplotlib

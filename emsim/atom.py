@@ -1,7 +1,7 @@
 import numpy as np
 import math
 from scipy.special import kn
-from pathlib2 import Path
+from pathlib import Path
 from typing import List, Tuple, Union
 
 
@@ -161,7 +161,7 @@ def scattering_factors(atom_numbers: List[int], voxel_size: float, size: Union[i
     f2 = fx*fx + fy*fy + fz*fz
     mask = f2 < 16  # use frequency up to 4 A^-1
 
-    factor = 2 * np.pi * e * a0 / voxel_size**3
+    # factor = 2 * np.pi * e * a0 / voxel_size**3
 
     n_atoms = len(atom_numbers)
     pms = atom_params(atom_numbers)
@@ -173,14 +173,14 @@ def scattering_factors(atom_numbers: List[int], voxel_size: float, size: Union[i
         c = pm[7:10]
         d = pm[10:]
 
-        scat_fac[k] = factor * np.sum([a[i] / (f2 + b[i]) + c[i] * np.exp(-d[i] * f2) for i in range(3)], axis=0)
+        scat_fac[k] = np.sum([a[i] / (f2 + b[i]) + c[i] * np.exp(-d[i] * f2) for i in range(3)], axis=0)
         scat_fac[k] = np.where(mask, scat_fac[k], 0)
-        scat_fac[k] = np.fft.ifftshift(scat_fac[k])
+        # scat_fac[k] = np.fft.ifftshift(scat_fac[k])
 
     return scat_fac
 
 
-def projected_scattering_factors(atom_numbers: List[int], voxel_size: float, size: Union[int, Tuple[int, int]]):
+def scattering_factors2D(atom_numbers: List[int], voxel_size: float, size: Union[int, Tuple[int, int]]):
     """
     pre-calculates 2D atomic scattering factors for slice builder.
     This computation is based on equation (5.17) in Kirkland.
@@ -197,6 +197,8 @@ def projected_scattering_factors(atom_numbers: List[int], voxel_size: float, siz
     numpy array
         2D form factor(s) with the first dimension corresponding to elem_nums
     """
+    if type(size) is int:
+        size = (size, size)
 
     fx_range = np.fft.fftshift(np.fft.fftfreq(size[0], voxel_size))
     fy_range = np.fft.fftshift(np.fft.fftfreq(size[1], voxel_size))
@@ -205,22 +207,21 @@ def projected_scattering_factors(atom_numbers: List[int], voxel_size: float, siz
     f2 = fx * fx + fy * fy
     mask = f2 < 16 # use frequency up to 4 A^-1
 
-    factor = 2 * np.pi * e * a0 / voxel_size**2
+    # factor = 2 * np.pi * e * a0 / voxel_size**2
 
     n_atoms = len(atom_numbers)
     pms = atom_params(atom_numbers)
     scat_fac2d = np.empty(shape=(n_atoms, *size), dtype=dtype)
-
-    for k in enumerate(atom_numbers):
+    for k in range(n_atoms):
         pm = pms[k]  # the 13 parameters
         a = pm[1:4]
         b = pm[4:7]
         c = pm[7:10]
         d = pm[10:]
 
-        scat_fac2d[k] = np.sum([a[i] / (f2 + b[i]) + c[i] * np.exp(-d[i] * f2) for i in range(3)], axis=0) * factor
+        scat_fac2d[k] = np.sum([a[i] / (f2 + b[i]) + c[i] * np.exp(-d[i] * f2) for i in range(3)], axis=0)
         scat_fac2d[k] = np.where(mask, scat_fac2d[k], 0.)
-        scat_fac2d[k] = np.fft.ifftshift(scat_fac2d[k])
+        # scat_fac2d[k] = np.fft.ifftshift(scat_fac2d[k])
 
     return scat_fac2d
 
@@ -240,7 +241,7 @@ def atom_params(atom_numbers: List[int]) -> np.ndarray:
 
     if not all([1 <= z <= 103 for z in atom_numbers]):
         raise ValueError("z must be a interger in range [1, 92]")
-    return np.array([_atom_params[z-1] for z in atom_numbers], dtype=dtype)
+    return np.array([_read_atom_parameters()[z-1] for z in atom_numbers], dtype=dtype)
 
 
 def _read_atom_parameters(asset_path: Path=None):
@@ -295,7 +296,7 @@ def _read_atom_mass(asset_path: Path=None):
 
 def _potential_rspace_params(r: float, dx: float) -> Tuple[float, float, int]:
     """
-    This function slves the following problem.
+    This function solves the following problem.
 
     We want to sample atom potential (a 3D scalar field) up to a radius `r` at a certain sampling rate `dx`,
     while we want the sampling voxel box to have odd number of dimensions so that it can be properly place it
@@ -359,18 +360,29 @@ def _find_singular_point(start: float, dx: float, x: float = 0):
     # find the index that is nearest to origin, and its difference from real origin
     idx = int(round((x-start)/dx))
     displacement = abs((x-start)/dx - idx)
-
     return idx, displacement
 
 
-_atom_params = _read_atom_parameters()
+def _number():
+    syms = symbols()
+    table = {k: v for k, v in zip(syms, range(1, 93))}
+    def inner(symbol: str) -> int:
+        return table.get(symbol, None)
+    return inner
 
-_element_symbol = [
-    'H' , 'He', 'Li', 'Be', 'B' , 'C' , 'N' , 'O' , 'F' , 'Ne', 'Na', 'Mg',
-    'Al', 'Si', 'P' , 'S' , 'Cl', 'Ar', 'K' , 'Ca', 'Sc', 'Ti', 'V' , 'Cr',
-    'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr',
-    'Rb', 'Sr', 'Y' , 'Zr', 'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd',
-    'In', 'Sn', 'Sb', 'Te', 'I' , 'Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd',
-    'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu', 'Hf',
-    'Ta', 'W' , 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg', 'Tl', 'Pb', 'Bi', 'Po',
-    'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th', 'Pa', 'U']
+
+def symbols():
+    """
+    symbols for 1-92 elements
+    """
+    return [
+        'H' , 'He', 'Li', 'Be', 'B' , 'C' , 'N' , 'O' , 'F' , 'Ne', 'Na', 'Mg',
+        'Al', 'Si', 'P' , 'S' , 'Cl', 'Ar', 'K' , 'Ca', 'Sc', 'Ti', 'V' , 'Cr',
+        'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr',
+        'Rb', 'Sr', 'Y' , 'Zr', 'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd',
+        'In', 'Sn', 'Sb', 'Te', 'I' , 'Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd',
+        'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu', 'Hf',
+        'Ta', 'W' , 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg', 'Tl', 'Pb', 'Bi', 'Po',
+        'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th', 'Pa', 'U']
+
+number = _number()
