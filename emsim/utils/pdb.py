@@ -12,47 +12,180 @@ from urllib.request import urlretrieve
 from gzip import GzipFile
 from io import BytesIO
 from pathlib import Path
-from typing import List
+from typing import Union, Optional, List
+from collections import namedtuple
 
-# Some of the molecule fucntions should probably go back to the utils module
-from .. import atom
+from Bio.PDB import PDBParser, PDBList, MMCIFParser
+
+from .. import elem
 
 
-def fetch_pdb_file(pdbcode: str, output='./', force: bool = False, assembly: bool = False) -> str:
+AtomList = namedtuple("AtomList", ['elements', 'coordinates'])
+
+# Most amino acids are composed only by C, H, O, N.
+# Exceptions: CYS, MET have S. SEC has Se
+STANDART_AMINO_ACIDS22 = [
+    'ALA', 'ARG', 'ASN', 'ASP', 'CSC', 'LYS', 'MET', 'PHE', 'PRO', 'PYL', 'GLN',
+    'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'SEC', 'SER', 'THR', 'TRP', 'TYR', 'VAL']
+AMIBIGUOUS_AMINO_ACIDS = ['GLX', 'ASX', 'UNK']  # GLX = GLU or GLN, ASX = ASN or ASP, UNK = UNKNOWN
+STANDART_NUCLEOTIDES11 = ['A', 'C', 'G', 'I', 'U', 'DA', 'DC', 'DG', 'DI', 'DT', 'DU', 'N']  # N = UNKNOWN
+
+# Te standard residues are recored as ATOM record in PDB or PDBx/mmCIF
+STANDART_RESIDUES = STANDART_AMINO_ACIDS22 + AMIBIGUOUS_AMINO_ACIDS + STANDART_NUCLEOTIDES11
+
+
+def fetch_pdb_file(pdb_code: str, pdir: Union[Path, str] = Path('.'), overwrite: bool = False) -> str:
     """
-    Download a PDB file and save it in a given location.
 
     Parameters
     ----------
-    pdbcode : str
-        A valid PDB code
-    output : str, optional
-        The destination for the PDB file to be saved
-    force : bool, optional
-        Download PDB file even if it already exists
-    assembly : bool, optional
-        Download biological assembly
+    pdb_code: str
+        the PDB code to download
+    pdir: the location to store the dowloaded file
+    overwrite: bool
+        specifies whether to overwrite existing files
 
     Returns
     -------
-    str
-        Path to the saved PDB file 
+    filename: str
+
     """
-    url = "https://files.rcsb.org/download/{code}.pdb{assembly}.gz".format(code=pdbcode, assembly="1" if assembly else "")
-    filename = Path(output) / "{}.pdb".format(pdbcode)  #"".join([output,'/',pdbcode, '.pdb'])
-    if (os.path.isfile(filename)) and not force:
-        return filename
-    try:
-        response = urlopen(url)
-    except HTTPError:
-        raise IOError("Error 404: {url} not found".format(url=url))
-    compressed = BytesIO()
-    compressed.write(response.read())
-    compressed.seek(0)
-    decompressed = GzipFile(fileobj=compressed, mode='rb')
-    with open(filename, "wb") as f:
-        f.write(decompressed.read())
-    return filename
+    pdbl = PDBList(server="ftp://ftp.wwpdb.org")
+    return pdbl.retrieve_pdb_file(pdb_code=pdb_code, pdir=pdir, file_format='mmCif', overwrite=overwrite)
+
+
+def fetch_all_pdb_file(pdir):
+    pass
+
+
+def read_atoms(pdb_file: Union[str, Path], sort: bool = True, identifier: Optional[str] = None) -> AtomList:
+    """
+    read atoms from a PDB, or PDBx/mmCif file
+
+    Parameters
+    ----------
+    pdb_file: Union[str, Path]
+    sort: bool
+        sort the read atoms by their element numbers. Their coordinates are correspondingly ordered.
+    identifier: Optional[str]
+
+    Returns
+    -------
+    AtomList: a namedtuple with two attributes:
+        elements: the atoms specified by their element number
+        coordinates: the corresponding coordinates
+    """
+    parser, code, _ = make_parser(pdb_file)
+
+    if identifier is None:
+        identifier = code
+
+    structure = parser.get_structure(identifier, pdb_file)
+
+    elems = []
+    coords = []
+    # for model in structure:
+    #     for chain in model:
+    #         for residue in chain:
+    #             hetflag = residue.get_id()[0]
+    #             resname = residue.get_resname()
+    #             # for non standart residue
+    #             if hetflag.strip():
+    #                 for a in residue:
+    #                     atom_name = a.get_name()
+    #                     elem_name = ''.join([x for x in atom_name if x.isalpha()])
+    #                     elems.append(elem.number(elem_name))
+    #                     coords.append(a.get_coord())
+    #             # for standard residule
+    #             else:
+    #                 if resname == 'SEC':  # SEC contains element Se
+    #                     for a in residue:
+    #                         atom_name = a.get_name()
+    #                         elem_name = 'SE' if atom_name.startswith('S') else atom_name[0]
+    #                         elems.append(elem.number(elem_name))
+    #                         coords.append(a.get_coord())
+    #                 else:  # others just contain C H O N P S
+    #                     elems += [elem.number(a.get_name()[0]) for a in residue]
+    #                     coords += [a.get_coord() for a in residue]
+
+    for a in structure.get_atoms():
+        z = elem.number(a.element)
+        if z is None:
+            continue
+        elems.append(elem.number(a.element))
+        coords.append(a.get_coord())
+
+    atom_list = AtomList(elements=np.array(elems, dtype=np.int), coordinates=np.array(coords, dtype=np.float))
+    if sort:
+        return sort_atoms(atom_list)
+    return atom_list
+
+
+def sort_atoms(atom_list: AtomList) -> AtomList:
+    idx = np.argsort(atom_list.elements)
+    sorted_elems = atom_list.elements[idx]
+    sorted_coords = atom_list.coordinates[idx]
+    return AtomList(elements=sorted_elems, coordinates=sorted_coords)
+
+
+def make_parser(pdb_file: Union[str, Path]):
+    pdb_file = Path(pdb_file)
+    if pdb_file.stem.startswith('pdb') and pdb_file.suffix == '.ent':
+        parser = PDBParser(PERMISSIVE=True, QUIET=True)
+        code = pdb_file.stem[3:]
+        file_format = 'pdb'
+    elif pdb_file.suffix == '.cif':
+        parser = MMCIFParser(QUIET=True)
+        code = pdb_file.stem
+        file_format = 'mmcif'
+    else:
+        raise ValueError("parser only supports PDB, PDBx/mmCif format")
+    return parser, code, file_format
+
+
+def read_symmetries(pdb_file: Union[str, Path]):
+    parser, _, _ = make_parser(pdb_file)
+    # parser.get_structure(pdb_file)
+    # TODO
+
+
+
+
+# def fetch_pdb_file(pdb_code: str, output='./', force: bool = False, assembly: bool = False) -> str:
+#     """
+#     Download a PDB file and save it in a given location.
+#
+#     Parameters
+#     ----------
+#     pdb_code : str
+#         A valid PDB code
+#     output : str, optional
+#         The destination for the PDB file to be saved
+#     force : bool, optional
+#         Download PDB file even if it already exists
+#     assembly : bool, optional
+#         Download biological assembly
+#
+#     Returns
+#     -------
+#     str
+#         Path to the saved PDB file
+#     """
+#     url = "https://files.rcsb.org/download/{code}.pdb{assembly}.gz".format(code=pdb_code, assembly="1" if assembly else "")
+#     filename = Path(output) / "{}.pdb".format(pdb_code)  # "".join([output,'/',pdbcode, '.pdb'])
+#     if (os.path.isfile(filename)) and not force:
+#         return filename
+#     try:
+#         response = urlopen(url)
+#     except HTTPError:
+#         raise IOError("Error 404: {url} not found".format(url=url))
+#     compressed = BytesIO()
+#     compressed.write(response.read())
+#     compressed.seek(0)
+#     decompressed = GzipFile(fileobj=compressed, mode='rb')
+#     with open(filename, "wb") as f:
+#         f.write(decompressed.read())
+#     return filename
 
 
 def read_atoms_and_coordinates(pdb_file, residual=False, multimodel=False, assemble=True):
@@ -80,14 +213,14 @@ def read_atoms_and_coordinates(pdb_file, residual=False, multimodel=False, assem
         Return count of residual atoms if residual=True
     """
 
-    legal_atoms = atom.symbols() # element #1-92 (H - U)
+    legal_atoms = elem.symbols() # element #1-92 (H - U)
     elements, coords = [],[]
     rescount = 0
     with open(pdb_file) as f:
         for line in f:
             if (line[:6] == 'ENDMDL') and not multimodel:
                 break
-            if line.startswith("ATOM") or line.startswith("HETATM") or (line.startswith('ANISOU')):
+            if line.startswith("ATOM") or line.startswith("HETATM"):
                 atom_label = line[76:78].lstrip().upper()
                 (occ, tag) = (float(line[56:60]), line[16])
                 use_atom = (occ > 0.5) | ((occ == 0.5) & (tag.upper() == "A"))
@@ -95,8 +228,8 @@ def read_atoms_and_coordinates(pdb_file, residual=False, multimodel=False, assem
                     x = float(line[30:38].strip())
                     y = float(line[38:46].strip())
                     z = float(line[46:54].strip())
-                    elements.append(atom.number(atom_label))
-                    coords.append([x,y,z])
+                    elements.append(elem.number(atom_label))
+                    coords.append([x, y, z])
                 else:
                     rescount += 1
 

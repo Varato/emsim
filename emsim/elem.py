@@ -15,14 +15,14 @@ m0c2 = 510.9989461        # electron mass in keV
 dtype = np.float32
 
 
-def potentials(atom_numbers: List[int], voxel_size: float, radius: float = 3.0) -> np.ndarray:
+def potentials(elem_numbers: List[int], voxel_size: float, radius: float = 3.0) -> np.ndarray:
     """
-    pre-calculates potentials for each atom specified in atom_numbers.
+    pre-calculates potentials for each atom specified in elem_numbers.
     The computation is based on equation (5.9) in Kirkland.
 
     Parameters
     ----------
-    atom_numbers: int of a sequence of integers
+    elem_numbers: int of a sequence of integers
         atomic number(s).
     voxel_size: float
         voxel size that determines the sampling rate for atomic potential.
@@ -52,8 +52,8 @@ def potentials(atom_numbers: List[int], voxel_size: float, radius: float = 3.0) 
     c1 = 2 * np.pi**2 * a0 * e
     c2 = 2 * pow(np.pi, 5/2) * a0 * e
 
-    n_atoms = len(atom_numbers)
-    pms = atom_params(atom_numbers)
+    n_atoms = len(elem_numbers)
+    pms = elem_params(elem_numbers)
     v = np.empty(shape=(n_atoms, *r2.shape), dtype=dtype)
     for k in range(n_atoms):
         pm = pms[k]  # the 13 parameters
@@ -68,10 +68,11 @@ def potentials(atom_numbers: List[int], voxel_size: float, radius: float = 3.0) 
         v[k] = s1 + s2
     return v
 
-def projected_potentials(atom_numbers: List[int], voxel_size: float, radius: float = 3.0) -> np.ndarray:
+
+def projected_potentials(elem_numbers: List[int], voxel_size: float, radius: float = 3.0) -> np.ndarray:
 
     """
-    pre-calculates projected potential for each atom specified in atom_numbers.
+    pre-calculates projected potential for each atom specified in elem_numbers.
     The computation is based on euqation (5.10) in Kirkland.
 
     Notice the formular used here is just the integral of `potential` along z-axis.
@@ -80,11 +81,11 @@ def projected_potentials(atom_numbers: List[int], voxel_size: float, radius: flo
 
     Parameters
     ----------
-    atom_numbers: int of a sequence of integers
+    elem_numbers: int of a sequence of integers
         atomic number(s).
     voxel_size: float
         voxel size that determines the sampling rate for projected atomic potential.
-    max_radius: float
+    radius: float
         tells the procedure to compute all projected potential upto this radius.
         This value, together with pixel_size, determine the array length of the returned.
 
@@ -110,8 +111,8 @@ def projected_potentials(atom_numbers: List[int], voxel_size: float, radius: flo
     c1 = 4 * np.pi**2 * a0 * e
     c2 = 2 * np.pi**2 * a0 * e
 
-    n_atoms = len(atom_numbers)
-    pms = atom_params(atom_numbers)
+    n_atoms = len(elem_numbers)
+    pms = elem_params(elem_numbers)
     vz = np.empty(shape=(n_atoms, *r2.shape), dtype=dtype)
     for k in range(n_atoms):
         pm = pms[k]  # the 13 parameters
@@ -128,7 +129,7 @@ def projected_potentials(atom_numbers: List[int], voxel_size: float, radius: flo
     return vz
 
 
-def scattering_factors(atom_numbers: List[int], voxel_size: float, size: Union[int, Tuple[int, int, int]]):
+def scattering_factors(elem_numbers: List[int], voxel_size: float, size: Union[int, Tuple[int, int, int]]):
     # The following two functions are for fourier space convolution
     # The kernel size are designed to be given by caller, so that it's the same as
     # the convolved array.
@@ -139,16 +140,15 @@ def scattering_factors(atom_numbers: List[int], voxel_size: float, size: Union[i
 
     Parameters
     ----------
-    atom_numbers: list, atom numbers.
+    elem_numbers: list, atom numbers.
     voxel_size: float
-    len_x: int
-    len_y: int
-    len_z: int
+    size: int or Tuple[int, int ,int]
+        the size of the meshgrid
 
     Returns
     -------
     numpy array
-        3D form factor(s) with the first dimension corresponding to atom_numbers
+        3D form factor(s) with the first dimension corresponding to elem_numbers
     """
     if type(size) is int:
         size = (size, size, size)
@@ -163,8 +163,8 @@ def scattering_factors(atom_numbers: List[int], voxel_size: float, size: Union[i
 
     # factor = 2 * np.pi * e * a0 / voxel_size**3
 
-    n_atoms = len(atom_numbers)
-    pms = atom_params(atom_numbers)
+    n_atoms = len(elem_numbers)
+    pms = elem_params(elem_numbers)
     scat_fac = np.empty(shape=(n_atoms, *size), dtype=dtype)
     for k in range(n_atoms):
         pm = pms[k]  # the 13 parameters
@@ -180,17 +180,16 @@ def scattering_factors(atom_numbers: List[int], voxel_size: float, size: Union[i
     return scat_fac
 
 
-def scattering_factors2D(atom_numbers: List[int], voxel_size: float, size: Union[int, Tuple[int, int]]):
+def scattering_factors2d(elem_numbers: List[int], voxel_size: float, size: Union[int, Tuple[int, int]]):
     """
     pre-calculates 2D atomic scattering factors for slice builder.
     This computation is based on equation (5.17) in Kirkland.
 
     Parameters
     ----------
-    atom_numbers: list, atomic numbers.
-    pixel_size: float
-    len_x: int
-    len_y: int
+    elem_numbers: list, atomic numbers.
+    voxel_size: float
+    size: int or Tuple[int, int]
 
     Returns
     -------
@@ -205,12 +204,12 @@ def scattering_factors2D(atom_numbers: List[int], voxel_size: float, size: Union
 
     fx, fy = np.meshgrid(fx_range, fy_range, indexing="ij")
     f2 = fx * fx + fy * fy
-    mask = f2 < 16 # use frequency up to 4 A^-1
+    mask = f2 < 16  # use frequency up to 4 A^-1
 
     # factor = 2 * np.pi * e * a0 / voxel_size**2
 
-    n_atoms = len(atom_numbers)
-    pms = atom_params(atom_numbers)
+    n_atoms = len(elem_numbers)
+    pms = elem_params(elem_numbers)
     scat_fac2d = np.empty(shape=(n_atoms, *size), dtype=dtype)
     for k in range(n_atoms):
         pm = pms[k]  # the 13 parameters
@@ -226,25 +225,25 @@ def scattering_factors2D(atom_numbers: List[int], voxel_size: float, size: Union
     return scat_fac2d
 
 
-def atom_params(atom_numbers: List[int]) -> np.ndarray:
+def elem_params(elem_numbers: List[int]) -> np.ndarray:
     """
     looks up potential parameters for queries by element numbers.
 
     Parameters
     ----------
-    atom_numbers: a list of Zs
+    elem_numbers: a list of Zs
 
     Returns
     -------
     ndarray with shape [num_queries, 13]. 13 = [chisqr, a1-3, b1-3, c1-3, d1-3]
     """
 
-    if not all([1 <= z <= 103 for z in atom_numbers]):
+    if not all([1 <= z <= 103 for z in elem_numbers]):
         raise ValueError("z must be a interger in range [1, 92]")
-    return np.array([_read_atom_parameters()[z-1] for z in atom_numbers], dtype=dtype)
+    return np.array([_read_elem_parameters()[z - 1] for z in elem_numbers], dtype=dtype)
 
 
-def _read_atom_parameters(asset_path: Path=None):
+def _read_elem_parameters(asset_path: Path = None):
     """
     parses atom_params and return as numpy array.
     There are 12 parameters for each atom according to Appendix C.4 in Kirkland's book, 
@@ -279,14 +278,15 @@ def _read_atom_parameters(asset_path: Path=None):
         chiq = float(line1.split("=")[2].strip())
         abcd = [float(x) for x in (line2 + line3 + line4).strip().split()]
         params[Z, 0] = chiq
-        params[Z, 1:4  ] = abcd[0:5:2]
-        params[Z, 4:7  ] = abcd[1:6:2]
-        params[Z, 7:10 ] = abcd[6:11:2]
+        params[Z, 1:4] = abcd[0:5:2]
+        params[Z, 4:7] = abcd[1:6:2]
+        params[Z, 7:10] = abcd[6:11:2]
         params[Z, 10:13] = abcd[7:12:2]
 
     return params
 
-def _read_atom_mass(asset_path: Path=None):
+
+def _read_elem_mass(asset_path: Path = None):
     if asset_path is None:
         asset_path = Path(__file__).parent/"assets"
 
@@ -365,7 +365,8 @@ def _find_singular_point(start: float, dx: float, x: float = 0):
 
 def _number():
     syms = symbols()
-    table = {k: v for k, v in zip(syms, range(1, 93))}
+    table = {k.upper(): v for k, v in zip(syms, range(1, 93))}
+
     def inner(symbol: str) -> int:
         return table.get(symbol, None)
     return inner
@@ -384,5 +385,6 @@ def symbols():
         'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu', 'Hf',
         'Ta', 'W' , 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg', 'Tl', 'Pb', 'Bi', 'Po',
         'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th', 'Pa', 'U']
+
 
 number = _number()

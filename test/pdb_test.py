@@ -7,17 +7,25 @@ import configparser
 
 from emsim import utils
 
+
 class PdbTestCase(unittest.TestCase):
     def setUp(self):
         config = configparser.ConfigParser()
-        config.read(Path.home()/'emsimConfig.ini')
+        config.read(str(Path.home()/'emsimConfig.ini'))
         self.data_dir = Path(config['DEFAULT']['data_dir'])
         if not self.data_dir.is_dir():
             os.mkdir(self.data_dir)
 
-    def test_pdb_download(self):
-        utils.pdb.fetch_pdb_file('4BED', self.data_dir)
+        self.pdb_code = ['1fat', '4bed', '1zik']
+        self.filenames = []
 
     def test_pdb_parsing(self):
-        elems, coords = utils.pdb.read_atoms_and_coordinates(self.data_dir / '4BED.pdb', assemble=False)
-        print(len(elems), coords.shape)
+        for code in self.pdb_code:
+            filename = utils.pdb.fetch_pdb_file(code, self.data_dir)
+            self.filenames.append(filename)
+        for filename in self.filenames:
+            atom_list = utils.pdb.read_atoms(filename, sort=True)
+            # print(atom_list.coordinates.shape)
+            # print(atom_list.elements)
+            self.assertTrue(np.all(atom_list.elements[:-1] <= atom_list.elements[1:]))
+
