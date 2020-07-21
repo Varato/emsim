@@ -16,6 +16,7 @@ from typing import Union, Optional, List
 from collections import namedtuple
 
 from Bio.PDB import PDBParser, PDBList, MMCIFParser
+from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 
 from .. import elem
 
@@ -34,7 +35,7 @@ STANDART_NUCLEOTIDES11 = ['A', 'C', 'G', 'I', 'U', 'DA', 'DC', 'DG', 'DI', 'DT',
 STANDART_RESIDUES = STANDART_AMINO_ACIDS22 + AMIBIGUOUS_AMINO_ACIDS + STANDART_NUCLEOTIDES11
 
 
-def fetch_pdb_file(pdb_code: str, pdir: Union[Path, str] = Path('.'), overwrite: bool = False) -> str:
+def fetch_pdb_file(pdb_code: str, pdir: Union[Path, str] = Path('.'), file_format: str = 'mmcif', overwrite: bool = False) -> str:
     """
 
     Parameters
@@ -42,6 +43,8 @@ def fetch_pdb_file(pdb_code: str, pdir: Union[Path, str] = Path('.'), overwrite:
     pdb_code: str
         the PDB code to download
     pdir: the location to store the dowloaded file
+    file_format: str
+        {'pdb' | 'mmCif'}
     overwrite: bool
         specifies whether to overwrite existing files
 
@@ -51,7 +54,7 @@ def fetch_pdb_file(pdb_code: str, pdir: Union[Path, str] = Path('.'), overwrite:
 
     """
     pdbl = PDBList(server="ftp://ftp.wwpdb.org")
-    return pdbl.retrieve_pdb_file(pdb_code=pdb_code, pdir=pdir, file_format='mmCif', overwrite=overwrite)
+    return pdbl.retrieve_pdb_file(pdb_code=pdb_code, pdir=pdir, file_format=file_format, overwrite=overwrite)
 
 
 def fetch_all_pdb_file(pdir):
@@ -75,7 +78,7 @@ def read_atoms(pdb_file: Union[str, Path], sort: bool = True, identifier: Option
         elements: the atoms specified by their element number
         coordinates: the corresponding coordinates
     """
-    parser, code, _ = make_parser(pdb_file)
+    _, code, parser = check_file_format(pdb_file, make_parser=True)
 
     if identifier is None:
         identifier = code
@@ -86,27 +89,13 @@ def read_atoms(pdb_file: Union[str, Path], sort: bool = True, identifier: Option
     coords = []
     # for model in structure:
     #     for chain in model:
-    #         for residue in chain:
-    #             hetflag = residue.get_id()[0]
-    #             resname = residue.get_resname()
-    #             # for non standart residue
-    #             if hetflag.strip():
-    #                 for a in residue:
-    #                     atom_name = a.get_name()
-    #                     elem_name = ''.join([x for x in atom_name if x.isalpha()])
-    #                     elems.append(elem.number(elem_name))
-    #                     coords.append(a.get_coord())
-    #             # for standard residule
-    #             else:
-    #                 if resname == 'SEC':  # SEC contains element Se
-    #                     for a in residue:
-    #                         atom_name = a.get_name()
-    #                         elem_name = 'SE' if atom_name.startswith('S') else atom_name[0]
-    #                         elems.append(elem.number(elem_name))
-    #                         coords.append(a.get_coord())
-    #                 else:  # others just contain C H O N P S
-    #                     elems += [elem.number(a.get_name()[0]) for a in residue]
-    #                     coords += [a.get_coord() for a in residue]
+    #         for residule in chain:
+    #             for a in residule:
+    #                 z = elem.number(a.element)
+    #                 if z is None:
+    #                     continue
+    #                 elems.append(elem.number(a.element))
+    #                 coords.append(a.get_coord())
 
     for a in structure.get_atoms():
         z = elem.number(a.element)
@@ -128,128 +117,76 @@ def sort_atoms(atom_list: AtomList) -> AtomList:
     return AtomList(elements=sorted_elems, coordinates=sorted_coords)
 
 
-def make_parser(pdb_file: Union[str, Path]):
+def check_file_format(pdb_file: Union[str, Path], make_parser: bool = False):
     pdb_file = Path(pdb_file)
+    file_format = ''
+    code = pdb_file.stem
+    # TODO: reliable check needs to peek into the file
     if pdb_file.stem.startswith('pdb') and pdb_file.suffix == '.ent':
-        parser = PDBParser(PERMISSIVE=True, QUIET=True)
-        code = pdb_file.stem[3:]
+        code = code[3:]
         file_format = 'pdb'
     elif pdb_file.suffix == '.cif':
-        parser = MMCIFParser(QUIET=True)
-        code = pdb_file.stem
         file_format = 'mmcif'
+
+    if make_parser:
+        if file_format == 'pdb':
+            parser = PDBParser(PERMISSIVE=True, QUIET=True)
+        elif file_format == 'mmcif':
+            parser = MMCIFParser(QUIET=True)
+        else:
+            raise ValueError(f'parser does not support the file format: {str(pdb_file)}')
+        return file_format, code, parser
     else:
-        raise ValueError("parser only supports PDB, PDBx/mmCif format")
-    return parser, code, file_format
+        return file_format, code
 
 
 def read_symmetries(pdb_file: Union[str, Path]):
-    parser, _, _ = make_parser(pdb_file)
-    # parser.get_structure(pdb_file)
-    # TODO
+    file_format, code = check_file_format(pdb_file)
+
+    operations = None
+    if file_format == 'pdb':
+        operations = read_pdb_remark_350(pdb_file)
+    elif file_format == 'mmcif':
+        operations = read_mmcif_struct_oper_list(pdb_file)
+    return operations
+
+
+def read_mmcif_struct_oper_list(pdb_file: Union[str, Path]) -> np.ndarray:
+    mmcif_dict = MMCIF2Dict(pdb_file)
+
+    # The _pdbx_struct_oper_list may contain:
+    #   a 'P' operation to transform the deposited coordinates to a standard point frame
+    #   a 'X0' operation to move the deposited coordinates into the crystal frame
+    # We are not interested in these two operations here. So we filter out them.
+    # Here we only find out the operations identified by id enumerated as 1, 2, 3 ...
+    op_ids = mmcif_dict["_pdbx_struct_oper_list.id"]
+    index_needed = [i for i, d in enumerate(op_ids) if d.strip().isdigit()]
+    print(index_needed)
+
+    matrices = []
+    for i in range(1, 4):
+        rows = []
+        b = [float(x) for i, x in enumerate(mmcif_dict[f"_pdbx_struct_oper_list.vector[{i:d}]"]) if i in index_needed]
+        for j in range(1, 4):
+            rows.append([float(x) for i, x in enumerate(mmcif_dict[f"_pdbx_struct_oper_list.matrix[{i:d}][{j:d}]"]) if i in index_needed])
+        rows.append(b)
+        matrices.append(rows)
+    operations = np.array(matrices)  # (3, 4, n)
+    operations = np.transpose(operations, (2, 0, 1))
+    return operations
 
 
 
-
-# def fetch_pdb_file(pdb_code: str, output='./', force: bool = False, assembly: bool = False) -> str:
-#     """
-#     Download a PDB file and save it in a given location.
-#
-#     Parameters
-#     ----------
-#     pdb_code : str
-#         A valid PDB code
-#     output : str, optional
-#         The destination for the PDB file to be saved
-#     force : bool, optional
-#         Download PDB file even if it already exists
-#     assembly : bool, optional
-#         Download biological assembly
-#
-#     Returns
-#     -------
-#     str
-#         Path to the saved PDB file
-#     """
-#     url = "https://files.rcsb.org/download/{code}.pdb{assembly}.gz".format(code=pdb_code, assembly="1" if assembly else "")
-#     filename = Path(output) / "{}.pdb".format(pdb_code)  # "".join([output,'/',pdbcode, '.pdb'])
-#     if (os.path.isfile(filename)) and not force:
-#         return filename
-#     try:
-#         response = urlopen(url)
-#     except HTTPError:
-#         raise IOError("Error 404: {url} not found".format(url=url))
-#     compressed = BytesIO()
-#     compressed.write(response.read())
-#     compressed.seek(0)
-#     decompressed = GzipFile(fileobj=compressed, mode='rb')
-#     with open(filename, "wb") as f:
-#         f.write(decompressed.read())
-#     return filename
-
-
-def read_atoms_and_coordinates(pdb_file, residual=False, multimodel=False, assemble=True):
+def read_pdb_remark_350(pdb_file: Union[str, Path]) -> np.ndarray:
     """
-    Parse a PDB file and return atom labes and coordinates.
-
-    Parameters
-    ----------
-    pdb_file : str
-        Path to PDB file
-    residual : bool, optional
-        Counts residual atoms, default is False
-    multimodel : bool, optional
-        Parse multiple models (sometimes biological assemblies are saved as models), default is False
-    assemble : bool, optional
-        Apply symmetry operations and return biological assembly, default is True
+    gets symmetry operators from a pdb file REMARK 350 section.
+    This section contains all operations needed to generate the biomolecule.
+    See https://www.wwpdb.org/documentation/file-format-content/format23/remarks2.html for details.
 
     Returns
-    -------
-    elements : ndarray
-        Atom elements listed in the PDB file, specified by atom number 1-92
-    coords : ndarray
-        Atom coordinates (x, y, z) listed in the PDB file
-    rescount : int
-        Return count of residual atoms if residual=True
-    """
-
-    legal_atoms = elem.symbols() # element #1-92 (H - U)
-    elements, coords = [],[]
-    rescount = 0
-    with open(pdb_file) as f:
-        for line in f:
-            if (line[:6] == 'ENDMDL') and not multimodel:
-                break
-            if line.startswith("ATOM") or line.startswith("HETATM"):
-                atom_label = line[76:78].lstrip().upper()
-                (occ, tag) = (float(line[56:60]), line[16])
-                use_atom = (occ > 0.5) | ((occ == 0.5) & (tag.upper() == "A"))
-                if use_atom and (atom_label in legal_atoms):
-                    x = float(line[30:38].strip())
-                    y = float(line[38:46].strip())
-                    z = float(line[46:54].strip())
-                    elements.append(elem.number(atom_label))
-                    coords.append([x, y, z])
-                else:
-                    rescount += 1
-
-    coords = np.array(coords)
-    if assemble:
-        symmetries  = read_symmetry(pdb_file)
-        elements, coords = apply_symmetry(elements, coords, symmetries)
-    out = (elements, coords)
-    if residual: out += (rescount,)
-    return out
-
-
-def read_symmetry(pdb_file: str) -> np.ndarray:
-    """
-    gets symmetry operators from a pdb file.
-
-    Returns
-    numpy array
-        symmetry operators stored in 3 by 4 arrays. The first 3 columns are rotation, the last is translation.
-        It should at least contains the identity.
+    3D array in shape (n_symmetries, 3, 4)
+        symmetry operators stored in 3 by 4 matrices. The first 3 columns are rotation, the last is translation.
+        It at least contains the identity.
 
     Notes
     -----
@@ -260,8 +197,8 @@ def read_symmetry(pdb_file: str) -> np.ndarray:
         lines = fin.readlines()
         for line in lines:
             line = line.strip()
-            if line[13:18] == "BIOMT":
-                symm_list.append(list(map(float, (line[24:33], line[34:43], line[44:53], line[58:68]))))
+            if line.startswith('REMARK 350') and line[13:18] == "BIOMT":
+                symm_list.append([float(x) for x in [line[24:33], line[34:43], line[44:53], line[58:68]]])
 
     if len(symm_list) == 0:
         # at least add the identity
