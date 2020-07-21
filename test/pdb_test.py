@@ -31,8 +31,6 @@ class PdbTestCase(unittest.TestCase):
         for filename in self.filenames:
             atom_list = utils.pdb.read_atoms(filename, sort=True)
             print(atom_list.coordinates[:5])
-            # print(atom_list.coordinates.shape)
-            # print(atom_list.elements)
             self.assertTrue(np.all(atom_list.elements[:-1] <= atom_list.elements[1:]))
 
     def test_cif_atoms(self):
@@ -42,8 +40,6 @@ class PdbTestCase(unittest.TestCase):
         for filename in self.filenames:
             atom_list = utils.pdb.read_atoms(filename, sort=True)
             print(atom_list.coordinates[:5])
-            # print(atom_list.coordinates.shape)
-            # print(atom_list.elements)
             self.assertTrue(np.all(atom_list.elements[:-1] <= atom_list.elements[1:]))
 
     def test_pdb_symmetry(self):

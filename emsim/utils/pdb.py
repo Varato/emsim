@@ -152,13 +152,29 @@ def read_symmetries(pdb_file: Union[str, Path]):
 
 
 def read_mmcif_struct_oper_list(pdb_file: Union[str, Path]) -> np.ndarray:
-    mmcif_dict = MMCIF2Dict(pdb_file)
+    """
+    reads symmetry operation from a mmCif file from the entry _struct_oper_list.
 
-    # The _pdbx_struct_oper_list may contain:
-    #   a 'P' operation to transform the deposited coordinates to a standard point frame
-    #   a 'X0' operation to move the deposited coordinates into the crystal frame
-    # We are not interested in these two operations here. So we filter out them.
-    # Here we only find out the operations identified by id enumerated as 1, 2, 3 ...
+    The _pdbx_struct_oper_list may contain:
+      a 'P' operation to transform the deposited coordinates to a standard point frame
+      a 'X0' operation to move the deposited coordinates into the crystal frame
+    We are not interested in these two operations here. So we filter out them.
+    Here we only find out the operations identified by id enumerated as 1, 2, 3 ...
+
+    Reference: https://pdb101.rcsb.org/learn/guide-to-understanding-pdb-data/biological-assemblies
+
+    Parameters
+    ----------
+    pdb_file: Union[str, Path]
+
+    Returns
+    -------
+    3D array in shape (n_symmetries, 3, 4)
+        symmetry operators stored in 3 by 4 matrices. The first 3 columns are rotation, the last is translation.
+        It at least contains the identity.
+    """
+
+    mmcif_dict = MMCIF2Dict(pdb_file)
     op_ids = mmcif_dict["_pdbx_struct_oper_list.id"]
     index_needed = [i for i, d in enumerate(op_ids) if d.strip().isdigit()]
     print(index_needed)
@@ -176,14 +192,18 @@ def read_mmcif_struct_oper_list(pdb_file: Union[str, Path]) -> np.ndarray:
     return operations
 
 
-
 def read_pdb_remark_350(pdb_file: Union[str, Path]) -> np.ndarray:
     """
     gets symmetry operators from a pdb file REMARK 350 section.
     This section contains all operations needed to generate the biomolecule.
     See https://www.wwpdb.org/documentation/file-format-content/format23/remarks2.html for details.
 
+    Parameters
+    ----------
+    pdb_file: Union[str, Path]
+
     Returns
+    -------
     3D array in shape (n_symmetries, 3, 4)
         symmetry operators stored in 3 by 4 matrices. The first 3 columns are rotation, the last is translation.
         It at least contains the identity.

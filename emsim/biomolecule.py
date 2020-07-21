@@ -6,5 +6,5 @@ import numpy as np
 
 
 class BioMolecule(object):
-    def __init__(self, atom_numbers, atom_coords):
+    def __init__(self, atom_list):
         pass
