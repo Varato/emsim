@@ -1,5 +1,6 @@
 from typing import Union, Optional, Tuple, Dict, Any
 import numpy as np
+from functools import reduce
 
 from .rotation import get_rotation_mattrices
 
@@ -70,9 +71,10 @@ def centralize(mol: AtomList) -> AtomList:
     return translate(mol, -mol.r_min-mol.space/2.0)
 
 
-def rotate(mol: AtomList, quat: np.ndarray) -> AtomList:
+def rotate(mol: AtomList, quat: np.ndarray, set_center: bool = False) -> AtomList:
     rot = get_rotation_mattrices(quat)
-    mol = centralize(mol)
+    if set_center:
+        mol = centralize(mol)
     rot_coords = np.matmul(rot, mol.coordinates[..., None]).squeeze()
     return AtomList(elements=mol.elements, coordinates=rot_coords)
 
@@ -80,8 +82,29 @@ def rotate(mol: AtomList, quat: np.ndarray) -> AtomList:
 def bin_atoms(mol: AtomList,
               voxel_size: Union[float, Tuple[float, float, float]],
               box_size: Optional[Union[int, Tuple[int, int, int]]] = None):
+    """
+    puts atoms in bins (3D histogram). The process is applied to each kind of element separately.
+    The bins are determined by voxel_size and molecule size / box_size.
+
+    Parameters
+    ----------
+    mol: AtomList
+    voxel_size: Union[float, Tuple[float, float, float]]
+    box_size: Optional[Union[int, Tuple[int, int, int]]]
+
+    Returns
+    -------
+    Dict[int, np.ndarray]
+        keys specify elements by their Z number.
+        values are the the binning volumes for each kind of element.
+
+    Notes
+    -----
+    The (x, y, z) coordinates of the input molecule atoms should have origin at the geometric center of the molecule.
+    Otherwise the binned molecule will not be placed at the center of the box.
+
+    """
     bins = _find_bin_edges(voxel_size, mol.space, box_size)
-    mol = centralize(mol)  # move origin to the corner
     elem_dict = group_atoms(mol)
 
     volume = {}
@@ -91,6 +114,49 @@ def bin_atoms(mol: AtomList,
         volume[z] = h.astype(np.int)
 
     return volume
+
+
+def index_atoms(mol: AtomList,
+                voxel_size: Union[float, Tuple[float, float, float]],
+                box_size: Optional[Union[int, Tuple[int, int, int]]] = None):
+    """
+    The inverted indexing process of the `bin_atoms`.
+    In bin_atoms, we find what atoms are in a given bin. Here we find for each atom which bin it belongs to.
+    The bin is specified by indices along the 3 dimensions.
+
+    Parameters
+    ----------
+    mol: AtomList
+    voxel_size: Union[float, Tuple[float, float, float]]
+    box_size: Optional[Union[int, Tuple[int, int, int]]]
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray]
+        The elements Z value and their corresponding bin indices.
+
+    """
+
+    bins = _find_bin_edges(voxel_size, mol.space, box_size)
+    num_bins = [len(bins[d]) - 1 for d in range(3)]
+    xyz = mol.coordinates
+
+    # the index is 1 at the first bin. hence -1.
+    x_idx = np.digitize(xyz[:, 0], bins[0], right=False) - 1
+    y_idx = np.digitize(xyz[:, 1], bins[1], right=False) - 1
+    z_idx = np.digitize(xyz[:, 2], bins[2], right=False) - 1
+
+    atom_idx = np.transpose(np.vstack((x_idx, y_idx, z_idx)))
+
+    # remove atoms out of the box
+    valid = reduce(np.logical_and, (np.min(atom_idx, axis=1) >= 0,
+                                    atom_idx[:, 0] < num_bins[0],
+                                    atom_idx[:, 1] < num_bins[1],
+                                    atom_idx[:, 2] < num_bins[2]))
+    if not np.any(valid):
+        raise ValueError("No atoms in roi, or the thickness_nm is too small")
+
+    return mol.elements[valid], atom_idx[valid]
 
 
 def _find_bin_edges(voxel_size: Union[float, Tuple[float, float, float]],
@@ -136,8 +202,7 @@ def _find_bin_edges(voxel_size: Union[float, Tuple[float, float, float]],
     end = [
         (lambda n, dx: dx * (n // 2))(
             box_size[d] + 1, voxel_size[d])
-        for d in range(3)
-    ]
+        for d in range(3)]
 
     bins = tuple(np.arange(start[d], end[d] + voxel_size[d], voxel_size[d]) for d in range(3))
     return bins

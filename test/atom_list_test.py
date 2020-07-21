@@ -23,7 +23,8 @@ class AtomListTest(unittest.TestCase):
         pdb_code = '4bed'
 
         filename = utils.pdb.fetch_pdb_file(pdb_code, self.data_dir)
-        self.mol = utils.pdb.build_biological_unit(filename)
+        mol = utils.pdb.build_biological_unit(filename)
+        self.mol = al.centralize(mol)
 
     def test_bin_atoms(self):
         volume = al.bin_atoms(self.mol, voxel_size=3.0)
