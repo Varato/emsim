@@ -118,8 +118,10 @@ def get_rotation_mattrices(quat: np.ndarray) -> np.ndarray:
     array
         (batch_size, 3, 3)
     """
-    if quat.ndim != 2:
-        raise ValueError("quat must be in shape (batch_size, 4)")
+    if quat.ndim == 1:
+        quat = quat[None, :]
+    elif quat.ndim > 2:
+        raise ValueError("ndim of quat must be 1 or 2")
 
     n_rot = quat.shape[0]
 

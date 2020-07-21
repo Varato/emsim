@@ -1,4 +1,4 @@
-from typing import Union, Optional, Tuple, Dict
+from typing import Union, Optional, Tuple, Dict, Any
 import numpy as np
 
 from .rotation import get_rotation_mattrices
@@ -67,11 +67,12 @@ def translate(mol: AtomList, r: np.ndarray) -> AtomList:
 
 
 def centralize(mol: AtomList) -> AtomList:
-    return translate(mol, -mol.r_min-mol.space)
+    return translate(mol, -mol.r_min-mol.space/2.0)
 
 
 def rotate(mol: AtomList, quat: np.ndarray) -> AtomList:
     rot = get_rotation_mattrices(quat)
+    mol = centralize(mol)
     rot_coords = np.matmul(rot, mol.coordinates[..., None]).squeeze()
     return AtomList(elements=mol.elements, coordinates=rot_coords)
 
@@ -80,7 +81,7 @@ def bin_atoms(mol: AtomList,
               voxel_size: Union[float, Tuple[float, float, float]],
               box_size: Optional[Union[int, Tuple[int, int, int]]] = None):
     bins = _find_bin_edges(voxel_size, mol.space, box_size)
-    mol = translate(mol, -mol.r_min)  # move origin to the corner
+    mol = centralize(mol)  # move origin to the corner
     elem_dict = group_atoms(mol)
 
     volume = {}
@@ -94,7 +95,29 @@ def bin_atoms(mol: AtomList,
 
 def _find_bin_edges(voxel_size: Union[float, Tuple[float, float, float]],
                     real_size: Tuple[float, float, float],
-                    box_size: Optional[Union[int, Tuple[int, int, int]]] = None):
+                    box_size: Optional[Union[int, Tuple[int, int, int]]] = None) \
+        -> Tuple[Any, ...]:
+
+    """
+    Find bins for histogramdd for atom (x, y, z) coordinates.
+    This assumes the origin is at the geometric center of the molecule, so that the binned
+    atoms are at the center of the box.
+
+    Parameters
+    ----------
+    voxel_size: Union[float, Tuple[float, float, float]]
+        this equals to the bin size.
+    real_size: Tuple[float, float, float]
+        the molecules geometric size
+    box_size: Optional[Union[int, Tuple[int, int, int]]]
+        target box size of the resulted atom volume.
+        If not given, then the function uses the voxel_size and real_size to compute a minimum box_size.
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray, np.ndarray]: the bins for the 3 dimensions.
+
+    """
 
     if type(voxel_size) is float:
         voxel_size = (voxel_size, voxel_size, voxel_size)
@@ -106,6 +129,15 @@ def _find_bin_edges(voxel_size: Union[float, Tuple[float, float, float]],
     else:
         box_size = np.ceil(np.array(real_size) / voxel_size).astype(np.int)
 
-    bins = tuple(np.arange(0, box_size[d] * voxel_size[d], voxel_size[d]) for d in range(3))
+    start = [
+        (lambda n, dx: -dx * (n // 2 - 1) if n % 2 == 0 else -dx * (n // 2))(
+            box_size[d] + 1, voxel_size[d])
+        for d in range(3)]
+    end = [
+        (lambda n, dx: dx * (n // 2))(
+            box_size[d] + 1, voxel_size[d])
+        for d in range(3)
+    ]
 
+    bins = tuple(np.arange(start[d], end[d] + voxel_size[d], voxel_size[d]) for d in range(3))
     return bins
