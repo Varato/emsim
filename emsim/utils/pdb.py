@@ -19,7 +19,7 @@ from Bio.PDB import PDBParser, PDBList, MMCIFParser
 from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 
 from .. import elem
-from ..atom_list import AtomList
+from .. import atom_list as al
 
 
 # Most amino acids are composed only by C, H, O, N.
@@ -34,7 +34,9 @@ STANDART_NUCLEOTIDES11 = ['A', 'C', 'G', 'I', 'U', 'DA', 'DC', 'DG', 'DI', 'DT',
 STANDART_RESIDUES = STANDART_AMINO_ACIDS22 + AMIBIGUOUS_AMINO_ACIDS + STANDART_NUCLEOTIDES11
 
 
-def fetch_pdb_file(pdb_code: str, pdir: Union[Path, str] = Path('.'), file_format: str = 'mmcif', overwrite: bool = False) -> str:
+def fetch_pdb_file(pdb_code: str, pdir: Union[Path, str] = Path('.'),
+                   file_format: str = 'mmCif',
+                   overwrite: bool = False) -> str:
     """
 
     Parameters
@@ -57,17 +59,17 @@ def fetch_pdb_file(pdb_code: str, pdir: Union[Path, str] = Path('.'), file_forma
 
 
 def build_biological_unit(pdb_file: Union[str, Path]):
-    al = read_atoms(pdb_file, sort=True)
+    atml = read_atoms(pdb_file)
     op = read_symmetries(pdb_file)
-    al = apply_symmetry(al, op)
-    return al
+    atml = apply_symmetry(atml, op)
+    return atml
 
 
 def fetch_all_pdb_file(pdir):
     pass
 
 
-def read_atoms(pdb_file: Union[str, Path], sort: bool = True, identifier: Optional[str] = None) -> AtomList:
+def read_atoms(pdb_file: Union[str, Path], identifier: Optional[str] = None) -> al.AtomList:
     """
     read atoms from a PDB, or PDBx/mmCif file
 
@@ -110,17 +112,7 @@ def read_atoms(pdb_file: Union[str, Path], sort: bool = True, identifier: Option
         elems.append(elem.number(a.element))
         coords.append(a.get_coord())
 
-    atom_list = AtomList(elements=np.array(elems, dtype=np.int), coordinates=np.array(coords, dtype=np.float))
-    if sort:
-        return sort_atoms(atom_list)
-    return atom_list
-
-
-def sort_atoms(atom_list: AtomList) -> AtomList:
-    idx = np.argsort(atom_list.elements)
-    sorted_elems = atom_list.elements[idx]
-    sorted_coords = atom_list.coordinates[idx]
-    return AtomList(elements=sorted_elems, coordinates=sorted_coords)
+    return al.AtomList(elements=np.array(elems, dtype=np.int), coordinates=np.array(coords, dtype=np.float))
 
 
 def check_file_format(pdb_file: Union[str, Path], make_parser: bool = False):
@@ -233,7 +225,7 @@ def read_pdb_remark_350(pdb_file: Union[str, Path]) -> np.ndarray:
     return symms
 
 
-def apply_symmetry(atom_list: AtomList, operations: np.ndarray):
+def apply_symmetry(atom_list: al.AtomList, operations: np.ndarray):
     """
     applies symmetry operators on atoms to generate whole structure of pdb molecules.
     Here the symmetries must be in shape (n_opers, 3, 4), meaning that the rotation matrices and
@@ -261,7 +253,7 @@ def apply_symmetry(atom_list: AtomList, operations: np.ndarray):
     tmp_atom_xyz = np.append(atom_list.coordinates, np.ones((n_atoms, 1)), axis=1)  # (n_atoms, 4)
     # (n_opers, 1, 3, 4) @ (1, n_atoms, 4, 1) -> (n_opers, n_atoms, 3, 1)
     all_atom_xyz = np.matmul(operations[:, None, :, :], tmp_atom_xyz[None, :, :, None])  # (n_opers, n_atoms, 3, 1)
-    all_atom_xyz = all_atom_xyz.squeeze()  # (n_opers, n_atoms, 3)
+    all_atom_xyz = all_atom_xyz.squeeze().reshape(-1, 3)  # (n_opers * n_atoms, 3)
 
-    # the correspondence between the elements[i] and coordinates[..., i, :] is interpreted as broadcasting
-    return AtomList(elements=atom_list.elements, coordinates=all_atom_xyz)
+    all_elems = np.concatenate([atom_list.elements] * n_opers)  # (o_pers * n_atoms, )
+    return al.AtomList(elements=all_elems, coordinates=all_atom_xyz)

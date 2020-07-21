@@ -115,7 +115,8 @@ def get_rotation_mattrices(quat: np.ndarray) -> np.ndarray:
 
     Returns
     -------
-    (batch_size, 3, 3) array
+    array
+        (batch_size, 3, 3)
     """
     if quat.ndim != 2:
         raise ValueError("quat must be in shape (batch_size, 4)")
