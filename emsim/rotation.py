@@ -74,7 +74,7 @@ def rotation_matrix(axis: np.ndarray, theta: float) -> np.ndarray:
                      [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
 
 
-def get_quaternion(n, theta):
+def get_quaternion(n: np.ndarray, theta: float) -> np.ndarray:
     """
     converts a n-theta representation of rotation operator to a corresponding quaternion.
 
@@ -86,7 +86,7 @@ def get_quaternion(n, theta):
         angle as rad
     Returns
     -------
-        quaternion: 4-array
+        1D array in shape (4, )
     """
 
     if not isinstance(n, np.ndarray):
@@ -104,23 +104,29 @@ def get_quaternion(n, theta):
     return quaternion
 
 
-def get_rot_mat(quaternion):
+def get_rotation_mattrices(quat: np.ndarray) -> np.ndarray:
     """
     converts a quaternion into 3x3 rotation matrix.
 
     Parameters
     ---------
-    quaternion: 4-array
+    quat: array
+        batched quaternions in shape (batch_size, 4)
 
     Returns
     -------
-        rot: 3 by 3 array
+    (batch_size, 3, 3) array
     """
-    rot = np.zeros([3, 3], dtype=np.float64)
-    q0 = quaternion[0]
-    q1 = quaternion[1]
-    q2 = quaternion[2]
-    q3 = quaternion[3]
+    if quat.ndim != 2:
+        raise ValueError("quat must be in shape (batch_size, 4)")
+
+    n_rot = quat.shape[0]
+
+    rot = np.empty(shape=(n_rot, 3, 3), dtype=np.float64)
+    q0 = quat[:, 0]
+    q1 = quat[:, 1]
+    q2 = quat[:, 2]
+    q3 = quat[:, 3]
 
     q01 = q0 * q1
     q02 = q0 * q2
@@ -132,15 +138,15 @@ def get_rot_mat(quaternion):
     q23 = q2 * q3
     q33 = q3 * q3
 
-    rot[0, 0] = (1. - 2. * (q22 + q33))
-    rot[0, 1] = 2. * (q12 + q03)
-    rot[0, 2] = 2. * (q13 - q02)
-    rot[1, 0] = 2. * (q12 - q03)
-    rot[1, 1] = (1. - 2. * (q11 + q33))
-    rot[1, 2] = 2. * (q01 + q23)
-    rot[2, 0] = 2. * (q02 + q13)
-    rot[2, 1] = 2. * (q23 - q01)
-    rot[2, 2] = (1. - 2. * (q11 + q22))
+    rot[:, 0, 0] = (1. - 2. * (q22 + q33))
+    rot[:, 0, 1] = 2. * (q12 + q03)
+    rot[:, 0, 2] = 2. * (q13 - q02)
+    rot[:, 1, 0] = 2. * (q12 - q03)
+    rot[:, 1, 1] = (1. - 2. * (q11 + q33))
+    rot[:, 1, 2] = 2. * (q01 + q23)
+    rot[:, 2, 0] = 2. * (q02 + q13)
+    rot[:, 2, 1] = 2. * (q23 - q01)
+    rot[:, 2, 2] = (1. - 2. * (q11 + q22))
 
     return rot
 

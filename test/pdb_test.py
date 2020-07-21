@@ -62,6 +62,16 @@ class PdbTestCase(unittest.TestCase):
         print(ops)
         print(ops.shape)
 
+    def test_build_biological_unit(self):
+        for code in self.pdb_code:
+            filename = utils.pdb.fetch_pdb_file(code, self.data_dir, file_format='mmCif')
+            self.filenames.append(filename)
+
+        al = utils.pdb.build_biological_unit(self.filenames[0])
+        print(al.elements.shape)
+        print(al.coordinates.shape)
+
+
 
 
 

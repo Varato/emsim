@@ -19,9 +19,8 @@ from Bio.PDB import PDBParser, PDBList, MMCIFParser
 from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 
 from .. import elem
+from ..atom_list import AtomList
 
-
-AtomList = namedtuple("AtomList", ['elements', 'coordinates'])
 
 # Most amino acids are composed only by C, H, O, N.
 # Exceptions: CYS, MET have S. SEC has Se
@@ -55,6 +54,13 @@ def fetch_pdb_file(pdb_code: str, pdir: Union[Path, str] = Path('.'), file_forma
     """
     pdbl = PDBList(server="ftp://ftp.wwpdb.org")
     return pdbl.retrieve_pdb_file(pdb_code=pdb_code, pdir=pdir, file_format=file_format, overwrite=overwrite)
+
+
+def build_biological_unit(pdb_file: Union[str, Path]):
+    al = read_atoms(pdb_file, sort=True)
+    op = read_symmetries(pdb_file)
+    al = apply_symmetry(al, op)
+    return al
 
 
 def fetch_all_pdb_file(pdir):
@@ -177,7 +183,6 @@ def read_mmcif_struct_oper_list(pdb_file: Union[str, Path]) -> np.ndarray:
     mmcif_dict = MMCIF2Dict(pdb_file)
     op_ids = mmcif_dict["_pdbx_struct_oper_list.id"]
     index_needed = [i for i, d in enumerate(op_ids) if d.strip().isdigit()]
-    print(index_needed)
 
     matrices = []
     for i in range(1, 4):
@@ -228,33 +233,35 @@ def read_pdb_remark_350(pdb_file: Union[str, Path]) -> np.ndarray:
     return symms
 
 
-def apply_symmetry(atom_numbers: List[int] , atom_xyz: np.ndarray, symmetries: np.ndarray):
+def apply_symmetry(atom_list: AtomList, operations: np.ndarray):
     """
     applies symmetry operators on atoms to generate whole structure of pdb molecules.
-    Here the symmetries must be in shape (num_symms, 3, 4), meaning that the rotation matrices and
+    Here the symmetries must be in shape (n_opers, 3, 4), meaning that the rotation matrices and
     translation vectors are put together.
 
     Parameters
     ---------
-    atom_numbers: List
-        specifies a list of atoms by their Z
-    atom_xyz: numpy array
-        atoms' xyz coordinates
-    symmetries: numpy array
-        symmetry operators (integrated rotation and translation) in shape (num_symms, 3, 4)
+    atom_list: AtomList
+        specifies a list of atoms by their Z and the corresponding xyz coordinates
+    operations: numpy array
+        symmetry operators (integrated rotation and translation) in shape (n_opers, 3, 4)
 
     Returns
     -------
-        new atomic symbols and xyz coordinates after symm_oper applied
+    A new AtomList object.
+        The `elements` array remains the same as the input one, i.e. in shape (n_elems,),
+        while the `coordinates`' shape becomes (n_opers, n_elems, 3).
+        The correspondence between `elements[i]` and coordinates[:, i, 3] is iterpreted as broadcasting.
     """
 
-    num_symms = symmetries.shape[0]
-    num_atoms = len(atom_numbers)
+    n_opers = operations.shape[0]
+    n_atoms = len(atom_list.elements)
 
     # append the coordinates with ones, so as to perform rotation and translation simultaneously.
-    tmp_atom_xyz = np.append(atom_xyz, np.ones((num_atoms, 1)), axis=1)
-    all_atom_xyz = np.transpose(symmetries @ tmp_atom_xyz.T, (0, 2, 1))
+    tmp_atom_xyz = np.append(atom_list.coordinates, np.ones((n_atoms, 1)), axis=1)  # (n_atoms, 4)
+    # (n_opers, 1, 3, 4) @ (1, n_atoms, 4, 1) -> (n_opers, n_atoms, 3, 1)
+    all_atom_xyz = np.matmul(operations[:, None, :, :], tmp_atom_xyz[None, :, :, None])  # (n_opers, n_atoms, 3, 1)
+    all_atom_xyz = all_atom_xyz.squeeze()  # (n_opers, n_atoms, 3)
 
-    # the atom_symbols replicated according to number of symmetries.
-    all_atom_numbers = atom_numbers * num_symms
-    return all_atom_numbers, all_atom_xyz.reshape((num_symms * num_atoms, 3))
+    # the correspondence between the elements[i] and coordinates[..., i, :] is interpreted as broadcasting
+    return AtomList(elements=atom_list.elements, coordinates=all_atom_xyz)
