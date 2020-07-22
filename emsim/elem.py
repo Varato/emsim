@@ -69,7 +69,7 @@ def potentials(elem_numbers: List[int], voxel_size: float, radius: float = 3.0) 
     return v
 
 
-def projected_potentials(elem_numbers: List[int], voxel_size: float, radius: float = 3.0) -> np.ndarray:
+def projected_potentials(elem_numbers: List[int], pixel_size: float, radius: float = 3.0) -> np.ndarray:
 
     """
     pre-calculates projected potential for each atom specified in elem_numbers.
@@ -83,7 +83,7 @@ def projected_potentials(elem_numbers: List[int], voxel_size: float, radius: flo
     ----------
     elem_numbers: int of a sequence of integers
         atomic number(s).
-    voxel_size: float
+    pixel_size: float
         voxel size that determines the sampling rate for projected atomic potential.
     radius: float
         tells the procedure to compute all projected potential upto this radius.
@@ -94,7 +94,7 @@ def projected_potentials(elem_numbers: List[int], voxel_size: float, radius: flo
     3D array: (n_atoms, len_x, len_y)
     """
 
-    r0, r1, n = _potential_rspace_params(radius, voxel_size)
+    r0, r1, n = _potential_rspace_params(radius, pixel_size)
 
     # builds 2D mesh grid for projected potential
     xy_range = np.linspace(r0, r1, n)
@@ -103,9 +103,9 @@ def projected_potentials(elem_numbers: List[int], voxel_size: float, radius: flo
 
     # to avoid infinity at the origin,
     # if diff_from_origin is smaller than 0.5 voxel size, set the radius as 0.5*voxel_size
-    singular_point_idx, displacement = _find_singular_point(r0, voxel_size, 0)
+    singular_point_idx, displacement = _find_singular_point(r0, pixel_size, 0)
     if displacement < 0.5:
-        r[singular_point_idx, singular_point_idx] = 0.5*voxel_size
+        r[singular_point_idx, singular_point_idx] = 0.5 * pixel_size
     r2 = r**2
 
     c1 = 4 * np.pi**2 * a0 * e
@@ -176,7 +176,7 @@ def scattering_factors(elem_numbers: List[int], voxel_size: float, size: Union[i
     return scat_fac
 
 
-def scattering_factors2d(elem_numbers: List[int], voxel_size: float, size: Union[int, Tuple[int, int]]):
+def scattering_factors2d(elem_numbers: List[int], pixel_size: float, size: Union[int, Tuple[int, int]]):
     """
     pre-calculates 2D atomic scattering factors for slice builder.
     This computation is based on equation (5.17) in Kirkland.
@@ -184,7 +184,7 @@ def scattering_factors2d(elem_numbers: List[int], voxel_size: float, size: Union
     Parameters
     ----------
     elem_numbers: list, atomic numbers.
-    voxel_size: float
+    pixel_size: float
     size: int or Tuple[int, int]
 
     Returns
@@ -195,8 +195,8 @@ def scattering_factors2d(elem_numbers: List[int], voxel_size: float, size: Union
     if type(size) is int:
         size = (size, size)
 
-    fx_range = np.fft.fftshift(np.fft.fftfreq(size[0], voxel_size))
-    fy_range = np.fft.fftshift(np.fft.fftfreq(size[1], voxel_size))
+    fx_range = np.fft.fftshift(np.fft.fftfreq(size[0], pixel_size))
+    fy_range = np.fft.fftshift(np.fft.fftfreq(size[1], pixel_size))
 
     fx, fy = np.meshgrid(fx_range, fy_range, indexing="ij")
     f2 = fx * fx + fy * fy

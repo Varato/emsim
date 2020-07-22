@@ -13,6 +13,8 @@ import numpy as np
 
 from emsim.utils.rot import get_rotation_mattrices
 
+water_num_dens = 0.031    # number of molecules per A3
+
 
 class AtomList(object):
     def __init__(self, elements: np.ndarray, coordinates: np.ndarray):
@@ -291,6 +293,40 @@ def index_atoms(mol: AtomList,
         raise ValueError("No atoms in roi, or the thickness_nm is too small")
 
     return mol.elements[valid], atom_idx[valid]
+
+
+def add_water_simple(atmv: AtomVolume) -> AtomVolume:
+    """
+    Simply add oxygens and hydrogens in vacancies of the given AtomVolume.
+
+    Parameters
+    ----------
+    atmv: AtomVolume
+        the input AtomVolume
+
+    Returns
+    -------
+    AtomVolume
+        the resulted AtomVolume with oxygens and hydrogens in vacancy voxels
+
+    """
+    dx, dy, dz = atmv.voxel_size
+    vox_wat_num = water_num_dens * dx*dy*dz  # average number of water molecules in a voxel
+
+    oxygens = np.where(atmv.vacancies, np.random.poisson(vox_wat_num, atmv.box_size), 0).astype(np.int)
+    hydrogens = np.where(atmv.vacancies, np.random.poisson(vox_wat_num * 2, atmv.box_size), 0).astype(np.int)
+
+    unique_elements = atmv.unique_elements
+    atom_histograms = atmv.atom_histograms
+    for z, hist in [(1, hydrogens), (8, oxygens)]:
+        if z in unique_elements:
+            idx = unique_elements.index(z)
+            atom_histograms[idx] += hist
+        else:
+            unique_elements.append(z)
+            atom_histograms = np.append(atom_histograms, hist[None, ...], axis=0)
+
+    return AtomVolume(unique_elements, atom_histograms, atmv.voxel_size)
 
 
 def _find_bin_edges1(d: float, length: float, n_bins: Optional[int] = None) -> np.ndarray:

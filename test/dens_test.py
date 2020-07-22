@@ -30,6 +30,19 @@ class DensityTestCase(unittest.TestCase):
         plt.imshow(slices.sum(-1))
         plt.show()
 
+    def test_build_potential_fourier_water(self):
+        pot = dens.build_potential_fourier(self.mol, self.voxel_size, box_size=70, add_water=True)
+        print("pot  shape:", pot.shape)
+        plt.imshow(pot.sum(-1))
+        plt.show()
+
+    def test_build_slices_fourier_water(self):
+        slices = dens.build_slices_fourier(
+            self.mol, pixel_size=self.voxel_size, thickness=1.2, frame_size=(70, 70), add_water=True)
+        print(slices.shape)
+        plt.imshow(slices.sum(-1))
+        plt.show()
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -20,7 +20,7 @@ class AtomPotentialTestCase(unittest.TestCase):
             projected_potential ~ potential.sum(-1) * voxel_size when voxel_size is small
         """
         vs = elem.potentials(self.elems, voxel_size=self.voxel_size)
-        vzs = elem.projected_potentials(self.elems, voxel_size=self.voxel_size)
+        vzs = elem.projected_potentials(self.elems, pixel_size=self.voxel_size)
         vzs_ = vs.sum(1) * self.voxel_size
 
         dim = vzs.shape[1]
