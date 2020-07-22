@@ -12,17 +12,22 @@ class DensityTestCase(unittest.TestCase):
         pdir = emsim.io.data_dir.get_pdb_data_dir_from_config()
         # pipeline
         pdb_code = '1fat'
-        pdb_file = utils.pdb.fetch_pdb_file(pdb_code, pdir)
+        pdb_file = utils.pdb.retrieve_pdb_file(pdb_code, pdir)
         mol = emsim.utils.pdb.build_biological_unit(pdb_file)
         self.mol = atm.centralize(mol)
         self.voxel_size = 2.0
 
-    def test_fourier_builder(self):
-        atmv = atm.bin_atoms(self.mol, voxel_size=self.voxel_size, box_size=60)
-        pot = dens.fourier_potential_builder(atmv, projected=False)
+    def test_build_potential_fourier(self):
+        pot = dens.build_potential_fourier(self.mol, self.voxel_size, box_size=70)
         print("pot  shape:", pot.shape)
-        print("atmv shape:", atmv.box_size)
-        plt.imshow(pot.sum(0))
+        plt.imshow(pot.sum(-1))
+        plt.show()
+
+    def test_build_slices_fourier(self):
+        slices = dens.build_slices_fourier(
+            self.mol, pixel_size=self.voxel_size, thickness=1.2, frame_size=(65, 70), n_slices=2)
+        print(slices.shape)
+        plt.imshow(slices.sum(-1))
         plt.show()
 
 

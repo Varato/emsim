@@ -17,7 +17,7 @@ class PdbTestCase(unittest.TestCase):
 
     def test_pdb_atoms(self):
         for code in self.pdb_code:
-            filename = utils.pdb.fetch_pdb_file(code, self.pdir, file_format='pdb')
+            filename = utils.pdb.retrieve_pdb_file(code, self.pdir, file_format='pdb')
             self.filenames.append(filename)
         for filename in self.filenames:
             atom_list = utils.pdb.read_atoms(filename)
@@ -25,7 +25,7 @@ class PdbTestCase(unittest.TestCase):
 
     def test_cif_atoms(self):
         for code in self.pdb_code:
-            filename = utils.pdb.fetch_pdb_file(code, self.pdir, file_format='mmCif')
+            filename = utils.pdb.retrieve_pdb_file(code, self.pdir, file_format='mmCif')
             self.filenames.append(filename)
         for filename in self.filenames:
             atom_list = utils.pdb.read_atoms(filename)
@@ -33,7 +33,7 @@ class PdbTestCase(unittest.TestCase):
 
     def test_pdb_symmetry(self):
         for code in self.pdb_code:
-            filename = utils.pdb.fetch_pdb_file(code, self.pdir, file_format='pdb')
+            filename = utils.pdb.retrieve_pdb_file(code, self.pdir, file_format='pdb')
             self.filenames.append(filename)
 
         print('checking file', self.filenames[0])
@@ -42,7 +42,7 @@ class PdbTestCase(unittest.TestCase):
 
     def test_cif_symmetry(self):
         for code in self.pdb_code:
-            filename = utils.pdb.fetch_pdb_file(code, self.pdir, file_format='mmCif')
+            filename = utils.pdb.retrieve_pdb_file(code, self.pdir, file_format='mmCif')
             self.filenames.append(filename)
 
         print('checking file', self.filenames[0])
@@ -51,7 +51,7 @@ class PdbTestCase(unittest.TestCase):
 
     def test_build_biological_unit(self):
         for code in self.pdb_code:
-            filename = utils.pdb.fetch_pdb_file(code, self.pdir, file_format='mmCif')
+            filename = utils.pdb.retrieve_pdb_file(code, self.pdir, file_format='mmCif')
             self.filenames.append(filename)
 
         al = utils.pdb.build_biological_unit(self.filenames[0])

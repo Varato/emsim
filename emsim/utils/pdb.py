@@ -4,16 +4,10 @@ See http://www.wwpdb.org/documentation/file-format-content/format33/v3.3.html fo
 Here we focus on ATOM, HETATM entry for atoms, 
 and REMARK 350 for transformats that are needed to generate the biomolecule
 """
-import os
 import numpy as np
-from urllib.request import urlopen
-from urllib.error import HTTPError
-from urllib.request import urlretrieve
-from gzip import GzipFile
-from io import BytesIO
+
 from pathlib import Path
 from typing import Union, Optional, List
-from collections import namedtuple
 
 from Bio.PDB import PDBParser, PDBList, MMCIFParser
 from Bio.PDB.MMCIF2Dict import MMCIF2Dict
@@ -34,16 +28,16 @@ STANDART_NUCLEOTIDES11 = ['A', 'C', 'G', 'I', 'U', 'DA', 'DC', 'DG', 'DI', 'DT',
 STANDART_RESIDUES = STANDART_AMINO_ACIDS22 + AMIBIGUOUS_AMINO_ACIDS + STANDART_NUCLEOTIDES11
 
 
-def fetch_pdb_file(pdb_code: str, pdir: Union[Path, str] = Path('.'),
-                   file_format: str = 'mmCif',
-                   overwrite: bool = False) -> str:
+def retrieve_pdb_file(pdb_code: str, pdb_data_dir: Union[Path, str] = Path('.'),
+                      file_format: str = 'mmCif',
+                      overwrite: bool = False) -> str:
     """
 
     Parameters
     ----------
     pdb_code: str
         the PDB code to download
-    pdir: the location to store the dowloaded file
+    pdb_data_dir: the location to store the dowloaded file
     file_format: str
         {'pdb' | 'mmCif'}
     overwrite: bool
@@ -54,8 +48,8 @@ def fetch_pdb_file(pdb_code: str, pdir: Union[Path, str] = Path('.'),
     filename: str
 
     """
-    pdbl = PDBList(server="ftp://ftp.wwpdb.org")
-    return pdbl.retrieve_pdb_file(pdb_code=pdb_code, pdir=pdir, file_format=file_format, overwrite=overwrite)
+    pdbl = PDBList(server="ftp://ftp.wwpdb.org", pdb=pdb_data_dir)
+    return pdbl.retrieve_pdb_file(pdb_code=pdb_code, file_format=file_format, overwrite=overwrite)
 
 
 def build_biological_unit(pdb_file: Union[str, Path]) -> atm.AtomList:
@@ -65,8 +59,16 @@ def build_biological_unit(pdb_file: Union[str, Path]) -> atm.AtomList:
     return atml
 
 
-def fetch_all_pdb_file(pdir):
-    pass
+def fetch_all_pdb_file(pdb_data_dir: Union[Path, str], file_format: str = "mmCif"):
+    pdb_data_dir = Path(pdb_data_dir)
+    pdbl = PDBList(server="ftp://ftp.wwpdb.org", pdb=pdb_data_dir)
+    pdbl.download_entire_pdb(listfile=pdb_data_dir/'pdb_list.txt', file_format=file_format)
+
+
+def retrieve_pdb_files(pdb_codes: List[str], pdb_data_dir: Union[Path, str], file_format: str = "mmCif"):
+    pdbl = PDBList(server="ftp://ftp.wwpdb.org", pdb=pdb_data_dir)
+    filenames = pdbl.download_pdb_files(pdb_codes, file_format=file_format)
+    return filenames
 
 
 def read_atoms(pdb_file: Union[str, Path], identifier: Optional[str] = None) -> atm.AtomList:
@@ -76,8 +78,6 @@ def read_atoms(pdb_file: Union[str, Path], identifier: Optional[str] = None) -> 
     Parameters
     ----------
     pdb_file: Union[str, Path]
-    sort: bool
-        sort the read atoms by their element numbers. Their coordinates are correspondingly ordered.
     identifier: Optional[str]
 
     Returns
@@ -181,7 +181,9 @@ def read_mmcif_struct_oper_list(pdb_file: Union[str, Path]) -> np.ndarray:
         rows = []
         b = [float(x) for i, x in enumerate(mmcif_dict[f"_pdbx_struct_oper_list.vector[{i:d}]"]) if i in index_needed]
         for j in range(1, 4):
-            rows.append([float(x) for i, x in enumerate(mmcif_dict[f"_pdbx_struct_oper_list.matrix[{i:d}][{j:d}]"]) if i in index_needed])
+            rows.append([
+                float(x) for i, x in enumerate(
+                    mmcif_dict[f"_pdbx_struct_oper_list.matrix[{i:d}][{j:d}]"]) if i in index_needed])
         rows.append(b)
         matrices.append(rows)
     operations = np.array(matrices)  # (3, 4, n)
@@ -240,7 +242,7 @@ def apply_symmetry(atom_list: atm.AtomList, operations: np.ndarray) -> atm.AtomL
 
     Returns
     -------
-    A new AtomList object.
+    AtomList
         The `elements` array remains the same as the input one, i.e. in shape (n_elems,),
         while the `coordinates`' shape becomes (n_opers, n_elems, 3).
         The correspondence between `elements[i]` and coordinates[:, i, 3] is iterpreted as broadcasting.

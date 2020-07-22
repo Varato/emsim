@@ -130,10 +130,6 @@ def projected_potentials(elem_numbers: List[int], voxel_size: float, radius: flo
 
 
 def scattering_factors(elem_numbers: List[int], voxel_size: float, size: Union[int, Tuple[int, int, int]]):
-    # The following two functions are for fourier space convolution
-    # The kernel size are designed to be given by caller, so that it's the same as
-    # the convolved array.
-
     """
     pre-calculates 3D atomic scattering factors for 3D potential builder.
     This computation is based on equation (5.17) in Kirkland.

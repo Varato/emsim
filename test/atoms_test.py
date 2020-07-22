@@ -16,7 +16,7 @@ class AtomListTest(unittest.TestCase):
         pdir = emsim.io.data_dir.get_pdb_data_dir_from_config()
         pdb_code = '1fat'
 
-        filename = utils.pdb.fetch_pdb_file(pdb_code, pdir)
+        filename = utils.pdb.retrieve_pdb_file(pdb_code, pdir)
         mol = utils.pdb.build_biological_unit(filename)
         self.mol = atm.centralize(mol)
         self.voxel_size = 2.0
