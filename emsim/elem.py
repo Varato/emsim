@@ -4,13 +4,8 @@ from scipy.special import kn
 from pathlib import Path
 from typing import List, Tuple, Union
 
+from .physics import a0, e
 
-water_num_dens = 0.031    # number of molecules per A3
-e = 14.39964              # electron charge in Volts * Angstrom
-a0 = 0.529177             # Bohr radius in Angstrom
-hbar_c = 1975.9086        # hbar*c in eV * Angstrom
-hc = 12415                # h*c in eV * Angstrom
-m0c2 = 510.9989461        # electron mass in keV
 
 dtype = np.float32
 
@@ -134,6 +129,20 @@ def scattering_factors(elem_numbers: List[int], voxel_size: float, size: Union[i
     pre-calculates 3D atomic scattering factors for 3D potential builder.
     This computation is based on equation (5.17) in Kirkland.
 
+    Notice in the equation (5.15)
+    f(q) = 1/(2*pi*e*a0) FT[V(r)] (r is 3D vector)
+    the projected potential defiend so has dimension [L]. It's in unit of Angstroms.
+
+    To find the fourier transform of the potential, we need to multiply it by the factor 1/(2*pi*e*a0).
+    Taken into account the FFT algorithm treats sampling rate as 1, to complete retrieve the fourier transform
+    of the real space potential, we need multiply the factor:
+
+    2*pi*e*a0 * voxel_size^3
+
+    to the f(q) defined in (5.17).
+
+    This is needed because we want to use it to compute molecular potential in real space.
+
     Parameters
     ----------
     elem_numbers: list, atom numbers.
@@ -157,7 +166,7 @@ def scattering_factors(elem_numbers: List[int], voxel_size: float, size: Union[i
     f2 = fx*fx + fy*fy + fz*fz
     mask = f2 < 16  # use frequency up to 4 A^-1
 
-    # factor = 2 * np.pi * e * a0 / voxel_size**3
+    factor = 2 * np.pi * e * a0 / voxel_size**3
 
     n_atoms = len(elem_numbers)
     pms = elem_params(elem_numbers)
@@ -169,9 +178,9 @@ def scattering_factors(elem_numbers: List[int], voxel_size: float, size: Union[i
         c = pm[7:10]
         d = pm[10:]
 
-        scat_fac[k] = np.sum([a[i] / (f2 + b[i]) + c[i] * np.exp(-d[i] * f2) for i in range(3)], axis=0)
+        scat_fac[k] = np.sum([a[i] / (f2 + b[i]) + c[i] * np.exp(-d[i] * f2) for i in range(3)], axis=0) * factor
         scat_fac[k] = np.where(mask, scat_fac[k], 0)
-        # scat_fac[k] = np.fft.ifftshift(scat_fac[k])
+        scat_fac[k] = np.fft.ifftshift(scat_fac[k])
 
     return scat_fac
 
@@ -180,6 +189,18 @@ def scattering_factors2d(elem_numbers: List[int], pixel_size: float, size: Union
     """
     pre-calculates 2D atomic scattering factors for slice builder.
     This computation is based on equation (5.17) in Kirkland.
+
+    Notice in the equation (5.15)
+    f(q) = 1/(2*pi*e*a0) FT[V(r)]
+    the projected potential defiend so has dimension [L]. It's in unit of Angstroms.
+
+    To find the fourier transform of the potential, we need to multiply it by the factor 1/(2*pi*e*a0).
+    Taken into account the FFT algorithm treats sampling rate as 1, to complete retrieve the fourier transform
+    of the real space potential, we need multiply the factor:
+
+    2*pi*e*a0 * pixel_size^2
+
+    to the f(q) defined in (5.17)
 
     Parameters
     ----------
@@ -202,7 +223,7 @@ def scattering_factors2d(elem_numbers: List[int], pixel_size: float, size: Union
     f2 = fx * fx + fy * fy
     mask = f2 < 16  # use frequency up to 4 A^-1
 
-    # factor = 2 * np.pi * e * a0 / voxel_size**2
+    factor = 2 * np.pi * e * a0 / pixel_size**2
 
     n_atoms = len(elem_numbers)
     pms = elem_params(elem_numbers)
@@ -214,9 +235,9 @@ def scattering_factors2d(elem_numbers: List[int], pixel_size: float, size: Union
         c = pm[7:10]
         d = pm[10:]
 
-        scat_fac2d[k] = np.sum([a[i] / (f2 + b[i]) + c[i] * np.exp(-d[i] * f2) for i in range(3)], axis=0)
+        scat_fac2d[k] = np.sum([a[i] / (f2 + b[i]) + c[i] * np.exp(-d[i] * f2) for i in range(3)], axis=0) * factor
         scat_fac2d[k] = np.where(mask, scat_fac2d[k], 0.)
-        # scat_fac2d[k] = np.fft.ifftshift(scat_fac2d[k])
+        scat_fac2d[k] = np.fft.ifftshift(scat_fac2d[k])
 
     return scat_fac2d
 

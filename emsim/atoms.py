@@ -5,15 +5,13 @@ AtomList: Represents a list of atoms specified by their Z, associated with their
 AtomVolume: Represents a list of unique elements specified by their Z, associated with all atoms of this kind binned in
     a 3D histogram according to their (x, y, z) coordiantes.
 """
-
-from typing import Union, Optional, Tuple, List, Dict, Any, Generator
+from typing import Union, Optional, Tuple, List, Dict, Generator
 from functools import reduce
 import math
 import numpy as np
 
-from emsim.utils.rot import get_rotation_mattrices
-
-water_num_dens = 0.031    # number of molecules per A3
+from .utils.rot import get_rotation_mattrices
+from .physics import water_num_dens
 
 
 class AtomList(object):
@@ -366,5 +364,3 @@ def _find_bin_edges(voxel_size: Union[float, Tuple[float, float, float]],
         voxel_size = (voxel_size, voxel_size, voxel_size)
 
     return tuple(_find_bin_edges1(voxel_size[i], lengths[i], box_size[i]) for i in range(3))
-
-
