@@ -1,12 +1,10 @@
 """
 build bio-molecule potential / scattering factor
 """
-from typing import Union, Optional, Tuple, List
 import numpy as np
 
-from . import utils
-from .rotation import get_rotation_mattrices
-from .atom_list import AtomList
+from emsim.utils.rot import get_rotation_mattrices
+from .atoms import AtomList
 
 
 def rotate_generator(mol: AtomList):

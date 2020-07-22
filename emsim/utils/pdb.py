@@ -19,7 +19,7 @@ from Bio.PDB import PDBParser, PDBList, MMCIFParser
 from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 
 from .. import elem
-from .. import atom_list as al
+from .. import atoms as atm
 
 
 # Most amino acids are composed only by C, H, O, N.
@@ -58,7 +58,7 @@ def fetch_pdb_file(pdb_code: str, pdir: Union[Path, str] = Path('.'),
     return pdbl.retrieve_pdb_file(pdb_code=pdb_code, pdir=pdir, file_format=file_format, overwrite=overwrite)
 
 
-def build_biological_unit(pdb_file: Union[str, Path]):
+def build_biological_unit(pdb_file: Union[str, Path]) -> atm.AtomList:
     atml = read_atoms(pdb_file)
     op = read_symmetries(pdb_file)
     atml = apply_symmetry(atml, op)
@@ -69,7 +69,7 @@ def fetch_all_pdb_file(pdir):
     pass
 
 
-def read_atoms(pdb_file: Union[str, Path], identifier: Optional[str] = None) -> al.AtomList:
+def read_atoms(pdb_file: Union[str, Path], identifier: Optional[str] = None) -> atm.AtomList:
     """
     read atoms from a PDB, or PDBx/mmCif file
 
@@ -112,7 +112,7 @@ def read_atoms(pdb_file: Union[str, Path], identifier: Optional[str] = None) -> 
         elems.append(elem.number(a.element))
         coords.append(a.get_coord())
 
-    return al.AtomList(elements=np.array(elems, dtype=np.int), coordinates=np.array(coords, dtype=np.float))
+    return atm.AtomList(elements=np.array(elems, dtype=np.int), coordinates=np.array(coords, dtype=np.float))
 
 
 def check_file_format(pdb_file: Union[str, Path], make_parser: bool = False):
@@ -138,7 +138,7 @@ def check_file_format(pdb_file: Union[str, Path], make_parser: bool = False):
         return file_format, code
 
 
-def read_symmetries(pdb_file: Union[str, Path]):
+def read_symmetries(pdb_file: Union[str, Path]) -> np.ndarray:
     file_format, code = check_file_format(pdb_file)
 
     operations = None
@@ -225,7 +225,7 @@ def read_pdb_remark_350(pdb_file: Union[str, Path]) -> np.ndarray:
     return symms
 
 
-def apply_symmetry(atom_list: al.AtomList, operations: np.ndarray):
+def apply_symmetry(atom_list: atm.AtomList, operations: np.ndarray) -> atm.AtomList:
     """
     applies symmetry operators on atoms to generate whole structure of pdb molecules.
     Here the symmetries must be in shape (n_opers, 3, 4), meaning that the rotation matrices and
@@ -256,4 +256,4 @@ def apply_symmetry(atom_list: al.AtomList, operations: np.ndarray):
     all_atom_xyz = all_atom_xyz.squeeze().reshape(-1, 3)  # (n_opers * n_atoms, 3)
 
     all_elems = np.concatenate([atom_list.elements] * n_opers)  # (o_pers * n_atoms, )
-    return al.AtomList(elements=all_elems, coordinates=all_atom_xyz)
+    return atm.AtomList(elements=all_elems, coordinates=all_atom_xyz)

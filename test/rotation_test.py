@@ -1,6 +1,6 @@
 import unittest
 
-from emsim import rotation as rot
+from emsim.utils import rot as rot
 
 
 class RotationTestCase(unittest.TestCase):

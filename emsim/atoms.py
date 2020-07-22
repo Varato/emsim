@@ -1,8 +1,16 @@
-from typing import Union, Optional, Tuple, Dict, Any
+"""
+This module provides functions that deal with atomic representations of molecules.
+
+AtomList: Represents a list of atoms specified by their Z, associated with their corresponding (x, y, z) coordinates.
+AtomVolume: Represents a list of unique elements specified by their Z, associated with all atoms of this kind binned in
+    a 3D histogram according to their (x, y, z) coordiantes.
+"""
+
+from typing import Union, Optional, Tuple, List, Dict, Any
 import numpy as np
 from functools import reduce
 
-from .rotation import get_rotation_mattrices
+from emsim.utils.rot import get_rotation_mattrices
 
 
 class AtomList(object):
@@ -31,6 +39,26 @@ class AtomList(object):
     @property
     def space(self):
         return self.r_max - self.r_min
+
+
+class AtomVolume(object):
+    def __init__(self,
+                 unique_elements: List[int],
+                 atom_histograms: np.ndarray,
+                 voxel_size: Union[float, Tuple[float, float, float]]):
+        self.unique_elements = unique_elements  # (n_elems, )
+        self.atom_histograms = atom_histograms  # (n_elems, *box_size)
+        if type(voxel_size) is float:
+            self.voxel_size = (voxel_size, voxel_size, voxel_size)
+        else:
+            self.voxel_size = voxel_size
+        self.n_elems = len(unique_elements)
+        self.box_size = self.atom_histograms.shape[-3:]
+
+    @property
+    def vacancies(self):
+        vacs = np.where(self.atom_histograms == 0, True, False)
+        return np.logical_and.reduce(vacs, axis=0)
 
 
 def group_atoms(atom_list: AtomList) -> Dict[int, np.ndarray]:
@@ -81,7 +109,7 @@ def rotate(mol: AtomList, quat: np.ndarray, set_center: bool = False) -> AtomLis
 
 def bin_atoms(mol: AtomList,
               voxel_size: Union[float, Tuple[float, float, float]],
-              box_size: Optional[Union[int, Tuple[int, int, int]]] = None):
+              box_size: Optional[Union[int, Tuple[int, int, int]]] = None) -> AtomVolume:
     """
     puts atoms in bins (3D histogram). The process is applied to each kind of element separately.
     The bins are determined by voxel_size and molecule size / box_size.
@@ -94,7 +122,7 @@ def bin_atoms(mol: AtomList,
 
     Returns
     -------
-    Dict[int, np.ndarray]
+    AtomVolume
         keys specify elements by their Z number.
         values are the the binning volumes for each kind of element.
 
@@ -105,15 +133,18 @@ def bin_atoms(mol: AtomList,
 
     """
     bins = _find_bin_edges(voxel_size, mol.space, box_size)
+    num_bins = [len(bins[d]) - 1 for d in range(3)]
     elem_dict = group_atoms(mol)
 
-    volume = {}
-    for z in elem_dict:
-        xyz = elem_dict[z]
-        h, _ = np.histogramdd(xyz, bins=bins)
-        volume[z] = h.astype(np.int)
+    z_values = list(elem_dict.keys())
+    n_elems = len(z_values)
 
-    return volume
+    volumes = np.empty(shape=(n_elems, *num_bins), dtype=np.int)
+
+    for i, z in enumerate(z_values):
+        volumes[i, ...], _ = np.histogramdd(elem_dict[z], bins=bins)
+
+    return AtomVolume(unique_elements=z_values, atom_histograms=volumes, voxel_size=voxel_size)
 
 
 def index_atoms(mol: AtomList,
