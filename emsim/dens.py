@@ -6,21 +6,35 @@ import numpy as np
 
 from . import atoms as atm
 from . import elem
+from .physics import a0, e
 
 
 def build_potential_fourier(mol: atm.AtomList,
                             voxel_size: float,
                             box_size: Optional[Union[int, Tuple[int, int, int]]] = None,
-                            add_water: bool = False) \
-        -> np.ndarray:
+                            add_water: bool = False) -> np.ndarray:
     """
+    Build up a molecule's atomic potential by convolutin in Fourier space. This function uses
+    scaterring factor as Fourier transform of atomic potential.
+
+    Notice the multiple in the equation (5.15) in Kirkland:
+    f(q) = 1/(2*pi*e*a0) FT[V(r)] (r is 3D vector)
+
+    Thus to find the fourier transform of the potential, we need to multiply the scattering factor f(q)
+    by the factor 2*pi*e*a0. Further, to conserve power in iFFT, we need to divide the outcome
+    of iFFt by voxel_size**3, which is the sampling period in real space.
+
+
+    This is needed because we want to use it to compute molecular potential in real space.
 
     Parameters
     ----------
-    mol
-    voxel_size
-    box_size
-    add_water
+    mol: AtomList
+        determines locations of atoms of the input molecule.
+    voxel_size: float
+
+    box_size: Optional[Union[int, Tuple[int, int, int]]]
+    add_water: bool
 
     Returns
     -------
@@ -50,11 +64,10 @@ def build_potential_fourier(mol: atm.AtomList,
     form_fac = elem.scattering_factors(elem_nums, voxel_size, size=box_size_final)
     for i, z in enumerate(elem_nums):
         potential += np.fft.irfftn(
-            np.fft.rfftn(
-                atmv.atom_histograms[i]) * form_fac[i, :, :, :len_z // 2 + 1], s=box_size_final)
+            np.fft.rfftn(atmv.atom_histograms[i]) * form_fac[i, :, :, :len_z // 2 + 1], s=box_size_final)
 
     np.clip(potential, a_min=1e-7, a_max=None, out=potential)
-    return potential
+    return potential * 2 * np.pi * a0 * e / voxel_size**3
 
 
 def build_slices_fourier(mol: atm.AtomList,
@@ -123,7 +136,7 @@ def build_slices_fourier(mol: atm.AtomList,
                     atmv.atom_histograms[i, :, :, s]) * form_fac[i, :, :len_y // 2 + 1], s=(len_x, len_y))
 
     np.clip(slices, a_min=1e-7, a_max=None, out=slices)
-    return slices
+    return slices * 2 * np.pi * a0 * e / pixel_size**2
 
 
 def build_slices_patchins(mol: atm.AtomList,

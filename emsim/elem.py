@@ -129,20 +129,6 @@ def scattering_factors(elem_numbers: List[int], voxel_size: float, size: Union[i
     pre-calculates 3D atomic scattering factors for 3D potential builder.
     This computation is based on equation (5.17) in Kirkland.
 
-    Notice in the equation (5.15)
-    f(q) = 1/(2*pi*e*a0) FT[V(r)] (r is 3D vector)
-    the projected potential defiend so has dimension [L]. It's in unit of Angstroms.
-
-    To find the fourier transform of the potential, we need to multiply it by the factor 1/(2*pi*e*a0).
-    Taken into account the FFT algorithm treats sampling rate as 1, to complete retrieve the fourier transform
-    of the real space potential, we need multiply the factor:
-
-    2*pi*e*a0 * voxel_size^3
-
-    to the f(q) defined in (5.17).
-
-    This is needed because we want to use it to compute molecular potential in real space.
-
     Parameters
     ----------
     elem_numbers: list, atom numbers.
@@ -158,15 +144,14 @@ def scattering_factors(elem_numbers: List[int], voxel_size: float, size: Union[i
     if type(size) is int:
         size = (size, size, size)
 
-    fx_range = np.fft.fftshift(np.fft.fftfreq(size[0], voxel_size))
-    fy_range = np.fft.fftshift(np.fft.fftfreq(size[1], voxel_size))
-    fz_range = np.fft.fftshift(np.fft.fftfreq(size[2], voxel_size))
+    # d in fftfreq is the sampling spacing (inverse of sampling freq)
+    fx_range = np.fft.fftshift(np.fft.fftfreq(size[0], d=voxel_size))
+    fy_range = np.fft.fftshift(np.fft.fftfreq(size[1], d=voxel_size))
+    fz_range = np.fft.fftshift(np.fft.fftfreq(size[2], d=voxel_size))
 
     fx, fy, fz = np.meshgrid(fx_range, fy_range, fz_range, indexing="ij")
     f2 = fx*fx + fy*fy + fz*fz
     mask = f2 < 16  # use frequency up to 4 A^-1
-
-    factor = 2 * np.pi * e * a0 / voxel_size**3
 
     n_atoms = len(elem_numbers)
     pms = elem_params(elem_numbers)
@@ -178,7 +163,7 @@ def scattering_factors(elem_numbers: List[int], voxel_size: float, size: Union[i
         c = pm[7:10]
         d = pm[10:]
 
-        scat_fac[k] = np.sum([a[i] / (f2 + b[i]) + c[i] * np.exp(-d[i] * f2) for i in range(3)], axis=0) * factor
+        scat_fac[k] = np.sum([a[i] / (f2 + b[i]) + c[i] * np.exp(-d[i] * f2) for i in range(3)], axis=0)
         scat_fac[k] = np.where(mask, scat_fac[k], 0)
         scat_fac[k] = np.fft.ifftshift(scat_fac[k])
 
@@ -223,8 +208,6 @@ def scattering_factors2d(elem_numbers: List[int], pixel_size: float, size: Union
     f2 = fx * fx + fy * fy
     mask = f2 < 16  # use frequency up to 4 A^-1
 
-    factor = 2 * np.pi * e * a0 / pixel_size**2
-
     n_atoms = len(elem_numbers)
     pms = elem_params(elem_numbers)
     scat_fac2d = np.empty(shape=(n_atoms, *size), dtype=dtype)
@@ -235,7 +218,7 @@ def scattering_factors2d(elem_numbers: List[int], pixel_size: float, size: Union
         c = pm[7:10]
         d = pm[10:]
 
-        scat_fac2d[k] = np.sum([a[i] / (f2 + b[i]) + c[i] * np.exp(-d[i] * f2) for i in range(3)], axis=0) * factor
+        scat_fac2d[k] = np.sum([a[i] / (f2 + b[i]) + c[i] * np.exp(-d[i] * f2) for i in range(3)], axis=0)
         scat_fac2d[k] = np.where(mask, scat_fac2d[k], 0.)
         scat_fac2d[k] = np.fft.ifftshift(scat_fac2d[k])
 

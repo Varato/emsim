@@ -235,7 +235,8 @@ def bin_atoms(mol: AtomList,
     Otherwise the binned molecule will not be placed at the center of the box.
 
     """
-    bins = _find_bin_edges(voxel_size, mol.space, box_size)
+    space = np.where(mol.space < 1e-3, 3.0, mol.space)
+    bins = _find_bin_edges(voxel_size, space, box_size)
     num_bins = [len(bins[d]) - 1 for d in range(3)]
     elem_dict = group_atoms(mol)
 
