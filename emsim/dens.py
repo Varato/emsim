@@ -129,7 +129,6 @@ def build_slices_fourier(mol: atm.AtomList,
         if not np.any(atmv.atom_histograms[..., s]):
             continue
         for i, _ in enumerate(elem_nums):
-            # with this setup, the potential has dimension [E] * [L]
             # slices[..., s] += np.fft.ifft2(np.fft.fft2(atmv.atom_histograms[i, :, :, s]) * form_fac[i]).real
             slices[..., s] += np.fft.irfft2(
                 np.fft.rfft2(
