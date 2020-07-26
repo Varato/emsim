@@ -30,7 +30,7 @@ def electron_wave_length_angstrom(beam_energy_kev: float) -> float:
     return wave_len
 
 
-def compute_interaction_parameter(beam_energy_kev: float) -> float:
+def interaction_parameter(beam_energy_kev: float) -> float:
     """
     Computes the interaction parameter sigma.
     Here we use the definition fo sigma that has dimension 1/([E] * [L]), which requires the projected potential has
@@ -48,33 +48,33 @@ def compute_interaction_parameter(beam_energy_kev: float) -> float:
 
     """
     dimensionless = (m0c2 + beam_energy_kev) / math.sqrt(beam_energy_kev * (2*m0c2 + beam_energy_kev))
-    sigma = (e/hbar_c) * dimensionless
+    sigma = (1/hbar_c) * dimensionless
     return sigma
 
 
 # optics
-def aberration(wave_length: float, cs: float, defocus: float):
+def aberration(wave_length_angstrom: float, cs_mm: float, defocus_angstrom: float):
     def aberration_(k):
-        chi = 0.5 * math.pi * cs * 1e7 * pow(wave_length, 3) * pow(k, 4) \
-              - math.pi * defocus * wave_length * k**2
+        chi = 0.5 * math.pi * cs_mm * 1e7 * pow(wave_length_angstrom, 3) * pow(k, 4) \
+              - math.pi * defocus_angstrom * wave_length_angstrom * k ** 2
         return chi
     return aberration_
 
 
-def mtf(apperture:float, wave_length: float, cs: float, defocus: float):
+def mtf(wave_length_angstrom: float, cs_mm: float, defocus_angstrom: float):
     """Modulation Transfer Function"""
     def mtf_(k):
-        aberr = aberration(wave_length, cs, defocus)
+        aberr = aberration(wave_length_angstrom, cs_mm, defocus_angstrom)
         return np.exp(-1j * aberr(k))
     return mtf_
 
 
-def ctf(wave_length: float, cs: float, defocus: float):
+def ctf(wave_length_angstrom: float, cs_mm: float, defocus_angstrom: float):
     """
     Contrast Transfer Function: the imaginary part of MTF.
     """
     def ctf_(k):
-        aberr = aberr = aberration(wave_length, cs, defocus)
+        aberr = aberr = aberration(wave_length_angstrom, cs_mm, defocus_angstrom)
         return np.sin(aberr(k))
     return ctf_
 

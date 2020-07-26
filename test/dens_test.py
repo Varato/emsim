@@ -11,10 +11,10 @@ from emsim import dens
 
 class DensityTestCase(unittest.TestCase):
     def setUp(self) -> None:
-        pdir = emsim.io.data_dir.get_pdb_data_dir_from_config()
+        data_dir = emsim.io.data_dir.get_pdb_data_dir_from_config()
         # pipeline
         pdb_code = '1fat'
-        pdb_file = utils.pdb.retrieve_pdb_file(pdb_code, pdir)
+        pdb_file = utils.pdb.retrieve_pdb_file(pdb_code, data_dir)
         mol = emsim.utils.pdb.build_biological_unit(pdb_file)
         self.mol = atm.centralize(mol)
         self.voxel_size = 2.0
@@ -27,7 +27,7 @@ class DensityTestCase(unittest.TestCase):
 
     def test_build_slices_fourier(self):
         slices = dens.build_slices_fourier(
-            self.mol, pixel_size=self.voxel_size, thickness=1.2, frame_size=(65, 70), n_slices=2)
+            self.mol, pixel_size=self.voxel_size, thickness=1.2, lateral_size=(65, 70), n_slices=2)
         print(slices.shape)
         plt.imshow(slices.sum(-1))
         plt.show()
@@ -40,7 +40,7 @@ class DensityTestCase(unittest.TestCase):
 
     def test_build_slices_fourier_water(self):
         slices = dens.build_slices_fourier(
-            self.mol, pixel_size=self.voxel_size, thickness=1.2, frame_size=(70, 70), add_water=True)
+            self.mol, pixel_size=self.voxel_size, thickness=1.2, lateral_size=(70, 70), add_water=True)
         print(slices.shape)
         plt.imshow(slices.sum(-1))
         plt.show()
@@ -70,7 +70,7 @@ class OneAtomTestCase(unittest.TestCase):
         print(vz_carbon.shape)
         dim = vz_carbon.shape[0]
 
-        v = dens.build_slices_fourier(self.mol, pixel_size=self.voxel_size, thickness=0.05, frame_size=dim)
+        v = dens.build_slices_fourier(self.mol, pixel_size=self.voxel_size, thickness=0.05, lateral_size=dim)
         # plt.imshow(v.sum(-1))
         plt.plot(v.sum(-1)[dim//2 + 1:, dim//2], label="vz")
         plt.plot(vz_carbon[dim//2 + 1:, dim//2], label="vz_carbon")

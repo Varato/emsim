@@ -73,7 +73,7 @@ def build_potential_fourier(mol: atm.AtomList,
 def build_slices_fourier(mol: atm.AtomList,
                          pixel_size: float,
                          thickness: float,
-                         frame_size: Optional[Union[int, Tuple[int, int]]] = None,
+                         lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
                          n_slices: Optional[int] = None,
                          add_water: bool = False):
     """
@@ -84,7 +84,7 @@ def build_slices_fourier(mol: atm.AtomList,
     mol
     pixel_size
     thickness
-    frame_size
+    lateral_size
     n_slices
     add_water
 
@@ -100,13 +100,13 @@ def build_slices_fourier(mol: atm.AtomList,
 
     """
     dims = [None, None, None]
-    if frame_size is not None:
-        if isinstance(frame_size, int):
-            dims[0] = frame_size
-            dims[1] = frame_size
-        elif isinstance(frame_size, tuple) and len(frame_size) == 2:
-            dims[0] = frame_size[0]
-            dims[1] = frame_size[1]
+    if lateral_size is not None:
+        if isinstance(lateral_size, int):
+            dims[0] = lateral_size
+            dims[1] = lateral_size
+        elif isinstance(lateral_size, tuple) and len(lateral_size) == 2:
+            dims[0] = lateral_size[0]
+            dims[1] = lateral_size[1]
 
     if isinstance(n_slices, int):
         dims[2] = n_slices
@@ -135,7 +135,7 @@ def build_slices_fourier(mol: atm.AtomList,
                     atmv.atom_histograms[i, :, :, s]) * form_fac[i, :, :len_y // 2 + 1], s=(len_x, len_y))
 
     np.clip(slices, a_min=1e-7, a_max=None, out=slices)
-    return slices * 2 * np.pi * a0 * e / pixel_size**2
+    return slices #* 2 * np.pi * a0 * e / pixel_size**2
 
 
 def build_slices_patchins(mol: atm.AtomList,
