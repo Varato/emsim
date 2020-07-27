@@ -131,11 +131,10 @@ def build_slices_fourier(mol: atm.AtomList,
         for i, _ in enumerate(elem_nums):
             # slices[..., s] += np.fft.ifft2(np.fft.fft2(atmv.atom_histograms[i, :, :, s]) * form_fac[i]).real
             slices[..., s] += np.fft.irfft2(
-                np.fft.rfft2(
-                    atmv.atom_histograms[i, :, :, s]) * form_fac[i, :, :len_y // 2 + 1], s=(len_x, len_y))
+                np.fft.rfft2(atmv.atom_histograms[i, :, :, s]) * form_fac[i, :, :len_y // 2 + 1], s=(len_x, len_y))
 
     np.clip(slices, a_min=1e-7, a_max=None, out=slices)
-    return slices #* 2 * np.pi * a0 * e / pixel_size**2
+    return slices  # * 2 * np.pi * a0 * e / pixel_size**2
 
 
 def build_slices_patchins(mol: atm.AtomList,

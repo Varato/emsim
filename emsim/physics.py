@@ -11,6 +11,26 @@ hc = 12415                # h*c in eV * Angstrom
 m0c2 = 510.9989461        # electron mass in keV
 
 
+def electron_relativity_gamma(beam_energy_kev: float) -> float:
+    gamma = 1 + beam_energy_kev / m0c2
+    return gamma
+
+
+def electron_relativity_mass(beam_energy_kev: float) -> float:
+    """
+    the relativity electron mass in mc2
+    Parameters
+    ----------
+    beam_energy_kev
+
+    Returns
+    -------
+
+    """
+    gamma = electron_relativity_gamma(beam_energy_kev)
+    return gamma * m0c2
+
+
 # electron engergy
 def electron_wave_length_angstrom(beam_energy_kev: float) -> float:
     """
@@ -48,7 +68,14 @@ def interaction_parameter(beam_energy_kev: float) -> float:
 
     """
     dimensionless = (m0c2 + beam_energy_kev) / math.sqrt(beam_energy_kev * (2*m0c2 + beam_energy_kev))
-    sigma = (1/hbar_c) * dimensionless
+    sigma = (e/hbar_c) * dimensionless
+    return sigma
+
+
+def interaction_parameter2(beam_energy_kev: float) -> float:
+    lmd = electron_wave_length_angstrom(beam_energy_kev)
+    mc2 = electron_relativity_mass(beam_energy_kev)
+    sigma = 2 * math.pi * mc2 * 1000 * e * lmd / hc**2
     return sigma
 
 

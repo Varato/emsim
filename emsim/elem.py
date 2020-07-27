@@ -175,18 +175,6 @@ def scattering_factors2d(elem_numbers: List[int], pixel_size: float, size: Union
     pre-calculates 2D atomic scattering factors for slice builder.
     This computation is based on equation (5.17) in Kirkland.
 
-    Notice in the equation (5.15)
-    f(q) = 1/(2*pi*e*a0) FT[V(r)]
-    the projected potential defiend so has dimension [L]. It's in unit of Angstroms.
-
-    To find the fourier transform of the potential, we need to multiply it by the factor 1/(2*pi*e*a0).
-    Taken into account the FFT algorithm treats sampling rate as 1, to complete retrieve the fourier transform
-    of the real space potential, we need multiply the factor:
-
-    2*pi*e*a0 * pixel_size^2
-
-    to the f(q) defined in (5.17)
-
     Parameters
     ----------
     elem_numbers: list, atomic numbers.

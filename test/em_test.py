@@ -20,7 +20,7 @@ class EmImagingTestCase(unittest.TestCase):
         resolution = 1.0
         beam_energy_kev = 200
         cs = 2.0  # mm
-        defocus = 100  # Angstrom
+        defocus = 700  # Angstrom
         dose = 20
         thickness = 3.0
         pixel_size = resolution / 2.0
@@ -28,11 +28,10 @@ class EmImagingTestCase(unittest.TestCase):
         slcs = dens.build_slices_fourier(mol, pixel_size, thickness, lateral_size=256, add_water=False)
         self.specimen = em.Specimen(slcs, pixel_size, thickness)
         self.em = em.EM(dose, beam_energy_kev, cs, defocus, aperture=np.pi/2.0)
-        print(self.em.wave_length_angstrom)
 
     def test_em_imaging(self):
         psi = self.em.make_image(self.specimen)
-        plt.imshow(np.abs(psi)**2)
+        plt.imshow(np.abs(psi)**2, cmap='gray')
         plt.show()
 
 

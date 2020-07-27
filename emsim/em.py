@@ -3,7 +3,7 @@ from typing import Tuple
 import numpy as np
 from numpy.fft import fftshift, ifftshift, fft2, ifft2
 
-from .physics import electron_wave_length_angstrom, interaction_parameter, mtf, aberration
+from .physics import electron_wave_length_angstrom, mtf, aberration, electron_relativity_gamma
 
 
 class Specimen(object):
@@ -49,9 +49,9 @@ class EM(object):
         self.cs = cs
         self.defocus = defocus
         self.aperture = aperture
+        self.relativity_gama = electron_relativity_gamma(beam_energy_kev)
 
         self.wave_length_angstrom = electron_wave_length_angstrom(beam_energy_kev)
-        self.sigma = interaction_parameter(beam_energy_kev)
 
         self.aberr_ = aberration(self.wave_length_angstrom, cs, defocus)
         self.mtf_ = mtf(self.wave_length_angstrom, cs, defocus)
@@ -63,7 +63,6 @@ class EM(object):
         return wave_in
 
     def make_image(self, specimen: Specimen):
-        specimen = band_limit_specimen(specimen)
         wave_in = self.make_wave_in(specimen.pixel_size)
         qx, qy = EM._make_mesh_grid_fourier_space(specimen.pixel_size, specimen.lateral_size)
         q_mgrid = np.sqrt(qx*qx + qy*qy)
@@ -72,11 +71,13 @@ class EM(object):
         return self.lens_propagate(psi, q_mgrid)
 
     def multi_slice_propagate(self, specimen: Specimen, wave_in: np.ndarray, q_mgrid: np.ndarray):
+        q_max = 0.5 / specimen.pixel_size
+        fil = np.fft.ifftshift( np.where(q_mgrid <= 0.5/q_max*0.6667, 1., 0.))
         spatial_propagator = np.exp(-1j * self.wave_length_angstrom * np.pi * specimen.dz * q_mgrid**2)
         psi = wave_in
         for slc in specimen:
-            t = np.exp(1j * self.sigma * slc)
-            psi = ifft2(ifftshift(spatial_propagator) * fft2(psi * t))
+            t = np.exp(1j * self.relativity_gama * self.wave_length_angstrom * slc)
+            psi = ifft2(ifftshift(spatial_propagator) * fft2(psi * t) * fil)
         return psi
 
     def projection_approx_propagate(self, specimen: Specimen, wave_in: np.ndarray, q_mgrid: np.ndarray):
