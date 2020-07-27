@@ -97,8 +97,8 @@ def build_slices_fourier(mol: atm.AtomList,
 
     Notes
     -----
-    The third dimension indexes different slices. For example:
-    `slices = build_slices_fourier(...)`, then `slices[..., i]` is the i-th slice.
+    The first dimension indexes different slices. For example:
+    `slices = build_slices_fourier(...)`, then `slices[i, ...]` is the i-th slice.
 
     """
     if using_dens_kernel:
@@ -131,7 +131,7 @@ def build_slices_fourier(mol: atm.AtomList,
     if using_dens_kernel:
         slices = dens_kernel.build_slices_fourier_wrapper(
             scattering_factors_ifftshifted=scatering_factors,
-            atom_histograms=atmv.atom_histograms)
+            atom_histograms=atmv.atom_histograms.astype(np.float32))
     else:
         slices = np.zeros(shape=atmv.box_size, dtype=np.float32)
         for s in range(n_slices):
@@ -146,77 +146,77 @@ def build_slices_fourier(mol: atm.AtomList,
     return slices  # * 2 * np.pi * a0 * e / pixel_size**2
 
 
-def build_slices_patchins(mol: atm.AtomList,
-                          pixel_size: float,
-                          thickness: float,
-                          frame_size: Optional[Union[int, Tuple[int, int]]] = None,
-                          n_slices: Optional[int] = None,
-                          radius: float = 3.0):
-
-    dims = [None, None, None]
-    if frame_size is not None:
-        if isinstance(frame_size, int):
-            dims[0] = frame_size
-            dims[1] = frame_size
-        elif isinstance(frame_size, tuple) and len(frame_size) == 2:
-            dims[0] = frame_size[0]
-            dims[1] = frame_size[1]
-
-    if isinstance(n_slices, int):
-        dims[2] = n_slices
-
-    len_x, len_y, len_z = dims
-
-    elem_nums, atom_idx = atm.index_atoms(
-        mol, voxel_size=(pixel_size, pixel_size, thickness), box_size=(len_x, len_y, len_z))
-
-    unique_elems = np.unique(elem_nums)
-
-    vz = elem.projected_potentials(unique_elems, pixel_size, radius)
-    vz, patch_len = _regularize_potential_patch2d(vz, len_x, len_y)
-
-    slices = np.zeros(shape=(len_x, len_y, len_z), dtype=np.float64)
-    r = patch_len // 2
-    for i, z in enumerate(elem_nums):
-        ix, iy, iz = atom_idx[i, :]
-        start_x, end_x = ix - r, ix + r
-        start_y, end_y = iy - r, iy + r
-
-        # take care of atoms whose indices are out of range
-        patch_start_x, patch_end_x = max(0, -start_x), min(patch_len, patch_len + len_x - 1 - end_x)
-        patch_start_y, patch_end_y = max(0, -start_y), min(patch_len, patch_len + len_y - 1 - end_y)
-        sx, ex = max(0, start_x), min(len_x, end_x + 1)
-        sy, ey = max(0, start_y), min(len_y, end_y + 1)
-
-        slices[sx:ex, sy:ey, iz] += vz[z][patch_start_x:patch_end_x, patch_start_y:patch_end_y]
-
-    return slices
-
-
-def _regularize_potential_patch2d(vz, len_x, len_y):
-    """
-    crops the projected potential patches if the patches are larger than the slices (should rarely happen)
-
-
-    Parameters
-    ----------
-    vz
-    len_x
-    len_y
-
-    Returns
-    -------
-
-    """
-
-    elem_nums = list(vz.keys())
-
-    init_patch_len = vz[elem_nums[0]].shape[-1]
-    patch_len = min(init_patch_len, len_x, len_y)
-    patch_len = patch_len - 1 if patch_len % 2 == 0 else patch_len
-    if patch_len < init_patch_len:
-        diff = init_patch_len - patch_len  # must be an even number
-        start = diff//2
-        for z in vz.keys():
-            vz[z] = vz[z][start:start+patch_len, start:start+patch_len]
-    return vz, patch_len
+# def build_slices_patchins(mol: atm.AtomList,
+#                           pixel_size: float,
+#                           thickness: float,
+#                           frame_size: Optional[Union[int, Tuple[int, int]]] = None,
+#                           n_slices: Optional[int] = None,
+#                           radius: float = 3.0):
+#
+#     dims = [None, None, None]
+#     if frame_size is not None:
+#         if isinstance(frame_size, int):
+#             dims[0] = frame_size
+#             dims[1] = frame_size
+#         elif isinstance(frame_size, tuple) and len(frame_size) == 2:
+#             dims[0] = frame_size[0]
+#             dims[1] = frame_size[1]
+#
+#     if isinstance(n_slices, int):
+#         dims[2] = n_slices
+#
+#     len_x, len_y, len_z = dims
+#
+#     elem_nums, atom_idx = atm.index_atoms(
+#         mol, voxel_size=(pixel_size, pixel_size, thickness), box_size=(len_x, len_y, len_z))
+#
+#     unique_elems = np.unique(elem_nums)
+#
+#     vz = elem.projected_potentials(unique_elems, pixel_size, radius)
+#     vz, patch_len = _regularize_potential_patch2d(vz, len_x, len_y)
+#
+#     slices = np.zeros(shape=(len_x, len_y, len_z), dtype=np.float64)
+#     r = patch_len // 2
+#     for i, z in enumerate(elem_nums):
+#         ix, iy, iz = atom_idx[i, :]
+#         start_x, end_x = ix - r, ix + r
+#         start_y, end_y = iy - r, iy + r
+#
+#         # take care of atoms whose indices are out of range
+#         patch_start_x, patch_end_x = max(0, -start_x), min(patch_len, patch_len + len_x - 1 - end_x)
+#         patch_start_y, patch_end_y = max(0, -start_y), min(patch_len, patch_len + len_y - 1 - end_y)
+#         sx, ex = max(0, start_x), min(len_x, end_x + 1)
+#         sy, ey = max(0, start_y), min(len_y, end_y + 1)
+#
+#         slices[sx:ex, sy:ey, iz] += vz[z][patch_start_x:patch_end_x, patch_start_y:patch_end_y]
+#
+#     return slices
+#
+#
+# def _regularize_potential_patch2d(vz, len_x, len_y):
+#     """
+#     crops the projected potential patches if the patches are larger than the slices (should rarely happen)
+#
+#
+#     Parameters
+#     ----------
+#     vz
+#     len_x
+#     len_y
+#
+#     Returns
+#     -------
+#
+#     """
+#
+#     elem_nums = list(vz.keys())
+#
+#     init_patch_len = vz[elem_nums[0]].shape[-1]
+#     patch_len = min(init_patch_len, len_x, len_y)
+#     patch_len = patch_len - 1 if patch_len % 2 == 0 else patch_len
+#     if patch_len < init_patch_len:
+#         diff = init_patch_len - patch_len  # must be an even number
+#         start = diff//2
+#         for z in vz.keys():
+#             vz[z] = vz[z][start:start+patch_len, start:start+patch_len]
+#     return vz, patch_len

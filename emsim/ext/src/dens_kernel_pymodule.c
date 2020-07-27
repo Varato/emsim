@@ -31,7 +31,7 @@ static PyObject* build_slices_fourier_wrapper(PyObject *self, PyObject *args, Py
     slices = fftwf_malloc(sizeof(float) * n_slices * len_x * len_y);
 
     int succeeded = build_slices_fftwf_kernel((float *)scattering_factors_ifftshifted->data, n_elems,
-                                              (unsigned int*)atom_histograms->data, n_slices, len_x, len_y,
+                                              (float *)atom_histograms->data, n_slices, len_x, len_y,
                                               slices);
     if (!succeeded) {
         Py_RETURN_NONE;

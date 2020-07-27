@@ -13,7 +13,7 @@ from emsim import dens
 class EmImagingTestCase(unittest.TestCase):
     def setUp(self) -> None:
         pdb_data_dir = emsim.io.data_dir.get_pdb_data_dir_from_config()
-        pdb_code = '7ahl'
+        pdb_code = '4ear'
         pdb_file = utils.pdb.retrieve_pdb_file(pdb_code, pdb_data_dir)
         mol = utils.pdb.build_biological_unit(pdb_file)
 

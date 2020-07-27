@@ -5,8 +5,8 @@
 
 
 int build_slices_fftwf_kernel(float scattering_factors_ifftshifted[], int n_elems,
-                             unsigned int atom_histograms[], int n_slices, int len_x, int len_y, 
-                             float output[]) 
+                              float atom_histograms[], int n_slices, int len_x, int len_y,
+                              float output[])
     /*
        Logical dimensions of the input arrays:
             scattering_factors_ifftshifted: (n_elems, len_x, len_y)
@@ -34,11 +34,11 @@ int build_slices_fftwf_kernel(float scattering_factors_ifftshifted[], int n_elem
     fftwf_plan_with_nthreads(omp_get_max_threads());
     /* Signature
        fftwf_plan fftwf_plan_many_dft(int rank, const int *n, int howmany,
-                                    fftwf_complex *in, const int *inembed,
-                                    int istride, int idist,
-                                    fftwf_complex *out, const int *onembed,
-                                    int ostride, int odist,
-                                    int sign, unsigned flags);
+                                      fftwf_complex *in, const int *inembed,
+                                      int istride, int idist,
+                                      fftwf_complex *out, const int *onembed,
+                                      int ostride, int odist,
+                                      int sign, unsigned flags);
      */
     p  = fftwf_plan_many_dft(2, n, n_elems * n_slices,
                             in, n,

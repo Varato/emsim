@@ -14,11 +14,11 @@ class Specimen(object):
 
     @property
     def lateral_size(self):
-        return self.slices.shape[:2]
+        return self.slices.shape[1:]
 
     @property
     def num_slices(self):
-        return self.slices.shape[-1]
+        return self.slices.shape[0]
 
     def __iter__(self):
         self._s = 0
@@ -26,7 +26,7 @@ class Specimen(object):
 
     def __next__(self):
         if self._s < self.num_slices:
-            slc = self.slices[:, :, self._s]
+            slc = self.slices[self._s, ...]
             self._s += 1
             return slc
         else:
@@ -82,7 +82,7 @@ class EM(object):
 
     def projection_approx_propagate(self, specimen: Specimen, wave_in: np.ndarray, q_mgrid: np.ndarray):
         vz = specimen.slices.sum(-1)
-        t = np.exp(1j * self.sigma * vz)
+        t = np.exp(1j * self.relativity_gama * self.wave_length_angstrom * vz)
         return wave_in * t
 
     def lens_propagate(self, wave_in: np.ndarray, q_mgrid: np.ndarray):
