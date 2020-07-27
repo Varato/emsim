@@ -1,25 +1,36 @@
 from setuptools import setup, find_packages, Extension
+import platform
 import numpy as np
 
-dens_kernel = Extension(
-    "emsim.extensions.dens_kernel", 
-    sources = [
-        "emsim/extensions/src/dens_kernel_pymodule.c",
-        "emsim/extensions/src/dens_kernel.c",
-        "emsim/extensions/src/utils.c"],
-    include_dirs = ["emsim/extensions/include", np.get_include()],
-    library_dirs = ["emsim/extensions/lib/win-x64"],
-    libraries = ['libfftw3-3', 'python38']
-)
+ext_modules = []
+data_files = []
+
+if platform.system() == "Windows" and platform.machine() == "AMD64":
+    dens_kernel = Extension(
+        "emsim.ext.dens_kernel",
+        sources=[
+            "emsim/ext/src/dens_kernel_pymodule.c",
+            "emsim/ext/src/dens_kernel.c",
+            "emsim/ext/src/utils.c"],
+        include_dirs=["emsim/ext/include", np.get_include()],
+        library_dirs=["emsim/ext/lib_x86_64-win32/"],
+        libraries=['libfftw3-3']  # using single float fftw: change fftw_ to fftwf_ in c files
+    )
+    ext_modules.append(dens_kernel)
+
+    fftw_dlls = ["libfftw3-3.dll", "libfftw3f-3.dll", "libfftw3l-3.dll"]
+    data_files.append(("emsim/ext", ["emsim/ext/lib_x86_64-win32/" + dll for dll in fftw_dlls]))
+
 
 setup(
     name="emsim",
     version="0.0.0",
-    ext_modules = [dens_kernel],
+    ext_modules = ext_modules,
     packages=find_packages(where='.'),
     scripts=[],
     install_requires=[],
-    package_data={
+    package_data = {
         'atom_params': ['emsim/assets/*.txt'],
     },
+    data_files = data_files
 )

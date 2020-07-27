@@ -16,10 +16,7 @@ int build_slices_fftw_kernel(float scattering_factors_ifftshifted[], int n_elems
     
     */
 {
-    int n[2];                   // logical dimensions of each fft transform
-    n[0] = len_x;
-    n[1] = len_y;
-
+    int n[2] = {len_x, len_y};                   // logical dimensions of each fft transform
     int n_pix = len_x * len_y;  // distance between each transform for the input
     
     fftw_plan p, ip;
@@ -74,16 +71,18 @@ int build_slices_fftw_kernel(float scattering_factors_ifftshifted[], int n_elems
             slices_flourer[s * n_pix + i][1] = 0;  // (n_slices, n_pix)
 
             for (int k = 0; k < n_elems; ++k){    
-                slices_flourer[s * n_pix + i][0] += location_phase[k*n_slices*n_pix + s*n_pix + i][0] * (float)scattering_factors_ifftshifted[k*n_pix + i];
-                slices_flourer[s * n_pix + i][1] += location_phase[k*n_slices*n_pix + s*n_pix + i][1] * (float)scattering_factors_ifftshifted[k*n_pix + i];
+                slices_flourer[s * n_pix + i][0] +=
+                    location_phase[k*n_slices*n_pix + s*n_pix + i][0] * (float)scattering_factors_ifftshifted[k*n_pix + i];
+                slices_flourer[s * n_pix + i][1] +=
+                    location_phase[k*n_slices*n_pix + s*n_pix + i][1] * (float)scattering_factors_ifftshifted[k*n_pix + i];
             }
         }
     }
 
     fftw_execute(ip);
 
-    for (int i = 0; i < n_slices * n_pix; ++i){
-        output[i] = (float)in[i][0];
+    for (int i = 0; i < n_slices * n_pix; ++i) {
+        output[i] = (float)in[i][0] / (float)n_pix;
     }
 
     fftw_destroy_plan(p);

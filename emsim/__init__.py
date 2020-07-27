@@ -3,6 +3,6 @@ from . import utils
 from . import elem
 from . import atoms
 from . import dens
-from . import extensions
+from . import ext
 
 config.generate_config_file()

@@ -13,7 +13,7 @@ class DensityTestCase(unittest.TestCase):
     def setUp(self) -> None:
         data_dir = emsim.io.data_dir.get_pdb_data_dir_from_config()
         # pipeline
-        pdb_code = '1fat'
+        pdb_code = '4ear'
         pdb_file = utils.pdb.retrieve_pdb_file(pdb_code, data_dir)
         mol = emsim.utils.pdb.build_biological_unit(pdb_file)
         self.mol = atm.centralize(mol)
@@ -27,9 +27,17 @@ class DensityTestCase(unittest.TestCase):
 
     def test_build_slices_fourier(self):
         slices = dens.build_slices_fourier(
-            self.mol, pixel_size=self.voxel_size, thickness=1.2, lateral_size=(65, 70), n_slices=2)
-        print(slices.shape)
-        plt.imshow(slices.sum(-1))
+            self.mol, pixel_size=self.voxel_size, thickness=1.2,
+            lateral_size=(65, 70), n_slices=75)
+        slices2 = dens.build_slices_fourier(
+            self.mol, pixel_size=self.voxel_size, thickness=1.2,
+            lateral_size=(65, 70), n_slices=75, using_dens_kernel=False)
+
+        print("difference: ", np.abs(slices2 - slices).max())
+
+        _, (ax1, ax2) = plt.subplots(ncols=2)
+        ax1.imshow(slices.sum(0))
+        ax2.imshow(slices2.sum(0))
         plt.show()
 
     def test_build_potential_fourier_water(self):

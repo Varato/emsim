@@ -1,6 +1,7 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
 #include <fftw3/fftw3.h>
+#include <stdio.h>
 
 #include "dens_kernel.h"
 
@@ -28,14 +29,21 @@ static PyObject* build_slices_fourier_wrapper(PyObject *self, PyObject *args, Py
 
     float *slices;
     slices = fftw_malloc(sizeof(float) * n_slices * len_x * len_y);
-    build_slices_fftw_kernel((float *)scattering_factors_ifftshifted->data, n_elems,
-                             (unsigned int*)atom_histograms->data, n_slices, len_x, len_y,
-                             slices);
-    
+
+    printf("before calling build_slices_fftw_kernel\n");
+    int succeeded = build_slices_fftw_kernel((float *)scattering_factors_ifftshifted->data, n_elems,
+                                             (unsigned int*)atom_histograms->data, n_slices, len_x, len_y,
+                                             slices);
+    if (!succeeded) {
+        Py_RETURN_NONE;
+    }
+
+    printf("after calling build_slices_fftw_kernel\n");
     npy_intp dims[3] = {n_slices, len_x, len_y};
     
     PyArrayObject *ret; // return value
-    ret = (PyArrayObject *)PyArray_SimpleNewFromData(3, dims, NPY_DOUBLE, slices);
+    ret = (PyArrayObject *)PyArray_SimpleNewFromData(3, dims, NPY_FLOAT, slices);
+    printf("before returning\n");
     return PyArray_Return(ret);
 }
 

@@ -75,7 +75,8 @@ def build_slices_fourier(mol: atm.AtomList,
                          thickness: float,
                          lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
                          n_slices: Optional[int] = None,
-                         add_water: bool = False):
+                         add_water: bool = False,
+                         using_dens_kernel: bool = True):
     """
     builds projected potential slices for EM multi-slice imaging simulation
 
@@ -87,6 +88,7 @@ def build_slices_fourier(mol: atm.AtomList,
     lateral_size
     n_slices
     add_water
+    using_dens_kernel
 
     Returns
     -------
@@ -99,39 +101,46 @@ def build_slices_fourier(mol: atm.AtomList,
     `slices = build_slices_fourier(...)`, then `slices[..., i]` is the i-th slice.
 
     """
+    if using_dens_kernel:
+        from .ext import dens_kernel
+
     dims = [None, None, None]
     if lateral_size is not None:
         if isinstance(lateral_size, int):
-            dims[0] = lateral_size
             dims[1] = lateral_size
+            dims[2] = lateral_size
         elif isinstance(lateral_size, tuple) and len(lateral_size) == 2:
-            dims[0] = lateral_size[0]
-            dims[1] = lateral_size[1]
+            dims[1] = lateral_size[0]
+            dims[2] = lateral_size[1]
 
     if isinstance(n_slices, int):
-        dims[2] = n_slices
+        dims[0] = n_slices
 
     mol = atm.centralize(mol)
-    atmv = atm.bin_atoms(mol, voxel_size=(pixel_size, pixel_size, thickness), box_size=(dims[0], dims[1], dims[2]))
+    atmv = atm.bin_atoms(mol, voxel_size=(thickness, pixel_size, pixel_size), box_size=(dims[0], dims[1], dims[2]))
     if add_water:
         atmv = atm.add_water_simple(atmv)
 
     elem_nums = atmv.unique_elements
-    len_x, len_y = atmv.box_size[:2]
+    len_x, len_y = atmv.box_size[1:]
     if isinstance(n_slices, int):
-        assert atmv.box_size[-1] == n_slices
-    n_slices = atmv.box_size[-1]
+        assert atmv.box_size[0] == n_slices
+    n_slices = atmv.box_size[0]
 
-    slices = np.zeros(shape=atmv.box_size, dtype=np.float)
-    form_fac = elem.scattering_factors2d(elem_nums, pixel_size, size=(len_x, len_y))
-
-    for s in range(n_slices):
-        if not np.any(atmv.atom_histograms[..., s]):
-            continue
-        for i, _ in enumerate(elem_nums):
-            # slices[..., s] += np.fft.ifft2(np.fft.fft2(atmv.atom_histograms[i, :, :, s]) * form_fac[i]).real
-            slices[..., s] += np.fft.irfft2(
-                np.fft.rfft2(atmv.atom_histograms[i, :, :, s]) * form_fac[i, :, :len_y // 2 + 1], s=(len_x, len_y))
+    scatering_factors = elem.scattering_factors2d(elem_nums, pixel_size, size=(len_x, len_y)).astype(np.float32)
+    if using_dens_kernel:
+        slices = dens_kernel.build_slices_fourier_wrapper(
+            scattering_factors_ifftshifted=scatering_factors,
+            atom_histograms=atmv.atom_histograms)
+    else:
+        slices = np.zeros(shape=atmv.box_size, dtype=np.float32)
+        for s in range(n_slices):
+            if not np.any(atmv.atom_histograms[:, s, ...]):
+                continue
+            for i, _ in enumerate(elem_nums):
+                # slices[..., s] += np.fft.ifft2(np.fft.fft2(atmv.atom_histograms[i, :, :, s]) * form_fac[i]).real
+                slices[s, ...] += np.fft.irfft2(np.fft.rfft2(atmv.atom_histograms[i, s, :, :])
+                                                * scatering_factors[i, :, :len_y // 2 + 1], s=(len_x, len_y))
 
     np.clip(slices, a_min=1e-7, a_max=None, out=slices)
     return slices  # * 2 * np.pi * a0 * e / pixel_size**2
