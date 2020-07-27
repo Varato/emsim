@@ -13,6 +13,7 @@ import numpy as np
 from .utils.rot import get_rotation_mattrices
 from .physics import water_num_dens
 
+float_type = np.float32
 
 class AtomList(object):
     def __init__(self, elements: np.ndarray, coordinates: np.ndarray):
@@ -27,7 +28,7 @@ class AtomList(object):
             specifies batched coordinates for the elements.
         """
         self.elements = elements
-        self.coordinates = coordinates
+        self.coordinates = coordinates.astype(float_type)
 
     @property
     def r_min(self):

@@ -7,7 +7,7 @@ from typing import List, Tuple, Union
 from .physics import a0, e
 
 
-dtype = np.float32
+float_type = np.float32
 
 
 def potentials(elem_numbers: List[int], voxel_size: float, radius: float = 3.0) -> np.ndarray:
@@ -49,7 +49,7 @@ def potentials(elem_numbers: List[int], voxel_size: float, radius: float = 3.0) 
 
     n_atoms = len(elem_numbers)
     pms = elem_params(elem_numbers)
-    v = np.empty(shape=(n_atoms, *r2.shape), dtype=dtype)
+    v = np.empty(shape=(n_atoms, *r2.shape), dtype=float_type)
     for k in range(n_atoms):
         pm = pms[k]  # the 13 parameters
         a = pm[1:4]
@@ -108,7 +108,7 @@ def projected_potentials(elem_numbers: List[int], pixel_size: float, radius: flo
 
     n_atoms = len(elem_numbers)
     pms = elem_params(elem_numbers)
-    vz = np.empty(shape=(n_atoms, *r2.shape), dtype=dtype)
+    vz = np.empty(shape=(n_atoms, *r2.shape), dtype=float_type)
     for k in range(n_atoms):
         pm = pms[k]  # the 13 parameters
         a = pm[1:4]
@@ -155,7 +155,7 @@ def scattering_factors(elem_numbers: List[int], voxel_size: float, size: Union[i
 
     n_atoms = len(elem_numbers)
     pms = elem_params(elem_numbers)
-    scat_fac = np.empty(shape=(n_atoms, *size), dtype=dtype)
+    scat_fac = np.empty(shape=(n_atoms, *size), dtype=float_type)
     for k in range(n_atoms):
         pm = pms[k]  # the 13 parameters
         a = pm[1:4]
@@ -198,7 +198,7 @@ def scattering_factors2d(elem_numbers: List[int], pixel_size: float, size: Union
 
     n_atoms = len(elem_numbers)
     pms = elem_params(elem_numbers)
-    scat_fac2d = np.empty(shape=(n_atoms, *size), dtype=dtype)
+    scat_fac2d = np.empty(shape=(n_atoms, *size), dtype=float_type)
     for k in range(n_atoms):
         pm = pms[k]  # the 13 parameters
         a = pm[1:4]
@@ -228,7 +228,7 @@ def elem_params(elem_numbers: List[int]) -> np.ndarray:
 
     if not all([1 <= z <= 103 for z in elem_numbers]):
         raise ValueError("z must be a interger in range [1, 92]")
-    return np.array([_read_elem_parameters()[z - 1] for z in elem_numbers], dtype=dtype)
+    return np.array([_read_elem_parameters()[z - 1] for z in elem_numbers], dtype=float_type)
 
 
 def _read_elem_parameters(asset_path: Path = None):
@@ -257,7 +257,7 @@ def _read_elem_parameters(asset_path: Path = None):
     with open(asset_path/"atom_params.txt", 'r') as f:
         raw_data = f.readlines()
 
-    params = np.empty([103, 12+1], dtype=dtype)
+    params = np.empty([103, 12+1], dtype=float_type)
     for Z in range(103):
         line1 = raw_data[Z*4]
         line2 = raw_data[Z*4+1]

@@ -3,6 +3,7 @@ The functions to build electron density / atomic potential for bio molecules
 """
 from typing import Union, Optional, Tuple
 import numpy as np
+from numpy.fft import fft2, ifft2, rfft2, irfft2
 
 from . import atoms as atm
 from . import elem
@@ -130,7 +131,7 @@ def build_slices_fourier(mol: atm.AtomList,
     scatering_factors = elem.scattering_factors2d(elem_nums, pixel_size, size=(len_x, len_y)).astype(np.float32)
     if using_dens_kernel:
         slices = dens_kernel.build_slices_fourier_wrapper(
-            scattering_factors_ifftshifted=scatering_factors,
+            scattering_factors_ifftshifted=scatering_factors[:, :, :],
             atom_histograms=atmv.atom_histograms.astype(np.float32))
     else:
         slices = np.zeros(shape=atmv.box_size, dtype=np.float32)
@@ -139,8 +140,8 @@ def build_slices_fourier(mol: atm.AtomList,
                 continue
             for i, _ in enumerate(elem_nums):
                 # slices[..., s] += np.fft.ifft2(np.fft.fft2(atmv.atom_histograms[i, :, :, s]) * form_fac[i]).real
-                slices[s, ...] += np.fft.irfft2(np.fft.rfft2(atmv.atom_histograms[i, s, :, :])
-                                                * scatering_factors[i, :, :len_y // 2 + 1], s=(len_x, len_y))
+                slices[s, ...] += irfft2(rfft2(atmv.atom_histograms[i, s, :, :]) *
+                                         scatering_factors[i, :, :len_y // 2 + 1], s=(len_x, len_y))
 
     np.clip(slices, a_min=1e-7, a_max=None, out=slices)
     return slices  # * 2 * np.pi * a0 * e / pixel_size**2
