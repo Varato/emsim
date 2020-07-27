@@ -71,13 +71,12 @@ def build_potential_fourier(mol: atm.AtomList,
     return potential * 2 * np.pi * a0 * e / voxel_size**3
 
 
-def build_slices_fourier(mol: atm.AtomList,
-                         pixel_size: float,
-                         thickness: float,
-                         lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
-                         n_slices: Optional[int] = None,
-                         add_water: bool = False,
-                         using_dens_kernel: bool = True):
+def build_slices_fourier_np(mol: atm.AtomList,
+                            pixel_size: float,
+                            thickness: float,
+                            lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
+                            n_slices: Optional[int] = None,
+                            add_water: bool = False):
     """
     builds projected potential slices for EM multi-slice imaging simulation
 
@@ -89,7 +88,6 @@ def build_slices_fourier(mol: atm.AtomList,
     lateral_size
     n_slices
     add_water
-    using_dens_kernel
 
     Returns
     -------
@@ -102,9 +100,74 @@ def build_slices_fourier(mol: atm.AtomList,
     `slices = build_slices_fourier(...)`, then `slices[i, ...]` is the i-th slice.
 
     """
-    if using_dens_kernel:
-        from .ext import dens_kernel
 
+    elem_nums, n_slices, len_x, len_y, atmv, scattering_factors = _prepare_slices_build(
+        mol, pixel_size, thickness, lateral_size, n_slices, add_water)
+
+    slices = np.zeros(shape=atmv.box_size, dtype=np.float32)
+    for s in range(n_slices):
+        if not np.any(atmv.atom_histograms[:, s, ...]):
+            continue
+        for i, _ in enumerate(elem_nums):
+            # slices[s, ...] += np.fft.ifft2(np.fft.fft2(atmv.atom_histograms[i, s, ...]) * scattering_factors[i]).real
+            slices[s, ...] += irfft2(rfft2(atmv.atom_histograms[i, s, :, :]) *
+                                     scattering_factors[i, :, :len_y // 2 + 1], s=(len_x, len_y))
+
+    np.clip(slices, a_min=1e-7, a_max=None, out=slices)
+    return slices  # * 2 * np.pi * a0 * e / pixel_size**2
+
+
+def build_slices_fourier_fftw(mol: atm.AtomList,
+                              pixel_size: float,
+                              thickness: float,
+                              lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
+                              n_slices: Optional[int] = None,
+                              add_water: bool = False):
+    """
+    builds projected potential slices for EM multi-slice imaging simulation
+
+    Parameters
+    ----------
+    mol
+    pixel_size
+    thickness
+    lateral_size
+    n_slices
+    add_water
+
+    Returns
+    -------
+    array
+        projected potential slices
+
+    Notes
+    -----
+    The first dimension indexes different slices. For example:
+    `slices = build_slices_fourier(...)`, then `slices[i, ...]` is the i-th slice.
+
+    """
+    try:
+        from .ext import dens_kernel
+    except ImportError:
+        raise ImportError("the extension dens_kernel cannot be found. use numpy version instead.")
+
+    elem_nums, n_slices, len_x, len_y, atmv, scattering_factors = _prepare_slices_build(
+        mol, pixel_size, thickness, lateral_size, n_slices, add_water)
+
+    slices = dens_kernel.build_slices_fourier_wrapper(
+        scattering_factors_ifftshifted=scattering_factors,
+        atom_histograms=atmv.atom_histograms.astype(np.float32))
+
+    np.clip(slices, a_min=1e-7, a_max=None, out=slices)
+    return slices  # * 2 * np.pi * a0 * e / pixel_size**2
+
+
+def _prepare_slices_build(mol: atm.AtomList,
+                          pixel_size: float,
+                          thickness: float,
+                          lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
+                          n_slices: Optional[int] = None,
+                          add_water: bool = False):
     dims = [None, None, None]
     if lateral_size is not None:
         if isinstance(lateral_size, int):
@@ -129,22 +192,7 @@ def build_slices_fourier(mol: atm.AtomList,
     n_slices = atmv.box_size[0]
 
     scatering_factors = elem.scattering_factors2d(elem_nums, pixel_size, size=(len_x, len_y)).astype(np.float32)
-    if using_dens_kernel:
-        slices = dens_kernel.build_slices_fourier_wrapper(
-            scattering_factors_ifftshifted=scatering_factors[:, :, :],
-            atom_histograms=atmv.atom_histograms.astype(np.float32))
-    else:
-        slices = np.zeros(shape=atmv.box_size, dtype=np.float32)
-        for s in range(n_slices):
-            if not np.any(atmv.atom_histograms[:, s, ...]):
-                continue
-            for i, _ in enumerate(elem_nums):
-                # slices[..., s] += np.fft.ifft2(np.fft.fft2(atmv.atom_histograms[i, :, :, s]) * form_fac[i]).real
-                slices[s, ...] += irfft2(rfft2(atmv.atom_histograms[i, s, :, :]) *
-                                         scatering_factors[i, :, :len_y // 2 + 1], s=(len_x, len_y))
-
-    np.clip(slices, a_min=1e-7, a_max=None, out=slices)
-    return slices  # * 2 * np.pi * a0 * e / pixel_size**2
+    return elem_nums, n_slices, len_x, len_y, atmv, scatering_factors
 
 
 # def build_slices_patchins(mol: atm.AtomList,

@@ -26,12 +26,12 @@ class DensityTestCase(unittest.TestCase):
         plt.show()
 
     def test_build_slices_fourier(self):
-        slices = dens.build_slices_fourier(
+        slices = dens.build_slices_fourier_np(
             self.mol, pixel_size=self.voxel_size, thickness=1.2,
             lateral_size=(70, 70), n_slices=75)
-        slices2 = dens.build_slices_fourier(
+        slices2 = dens.build_slices_fourier_fftw(
             self.mol, pixel_size=self.voxel_size, thickness=1.2,
-            lateral_size=(70, 70), n_slices=75, using_dens_kernel=False)
+            lateral_size=(70, 70), n_slices=75)
 
         print("difference: ", np.abs(slices2 - slices).max())
 
@@ -47,7 +47,7 @@ class DensityTestCase(unittest.TestCase):
         plt.show()
 
     def test_build_slices_fourier_water(self):
-        slices = dens.build_slices_fourier(
+        slices = dens.build_slices_fourier_fftw(
             self.mol, pixel_size=self.voxel_size, thickness=1.2, lateral_size=(70, 70), add_water=True)
         print(slices.shape)
         plt.imshow(slices.sum(0))
@@ -64,7 +64,6 @@ class OneAtomTestCase(unittest.TestCase):
 
     def test_one_atom_potential(self):
         v_carbon = elem.potentials(elem_numbers=[6], voxel_size=self.voxel_size, radius=3.0)[0]
-        print(v_carbon.shape)
         dim = v_carbon.shape[0]
 
         v = dens.build_potential_fourier(self.mol, self.voxel_size, box_size=dim)
@@ -78,13 +77,12 @@ class OneAtomTestCase(unittest.TestCase):
         print(vz_carbon.shape)
         dim = vz_carbon.shape[0]
 
-        v = dens.build_slices_fourier(self.mol, pixel_size=self.voxel_size, thickness=0.05, lateral_size=dim)
+        v = dens.build_slices_fourier_fftw(self.mol, pixel_size=self.voxel_size, thickness=0.05, lateral_size=dim)
         # plt.imshow(v.sum(-1))
         plt.plot(v.sum(-1)[dim//2 + 1:, dim//2], label="vz")
         plt.plot(vz_carbon[dim//2 + 1:, dim//2], label="vz_carbon")
         plt.legend()
         plt.show()
-
 
 
 if __name__ == '__main__':

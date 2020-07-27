@@ -22,10 +22,10 @@ static PyObject* build_slices_fourier_wrapper(PyObject *self, PyObject *args, Py
     );
     if(!parse_result) return NULL;
 
-    int n_elems = scattering_factors_ifftshifted->dimensions[0];
-    int len_x = scattering_factors_ifftshifted->dimensions[1];
-    int len_y = scattering_factors_ifftshifted->dimensions[2];
+    int n_elems = atom_histograms->dimensions[0];
     int n_slices = atom_histograms->dimensions[1];
+    int len_x = atom_histograms->dimensions[2];
+    int len_y = atom_histograms->dimensions[3];
 
     float *slices;
     slices = fftwf_malloc(sizeof(float) * n_slices * len_x * len_y);

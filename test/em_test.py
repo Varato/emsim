@@ -13,7 +13,7 @@ from emsim import dens
 class EmImagingTestCase(unittest.TestCase):
     def setUp(self) -> None:
         pdb_data_dir = emsim.io.data_dir.get_pdb_data_dir_from_config()
-        pdb_code = '4ear'
+        pdb_code = '7ahl'
         pdb_file = utils.pdb.retrieve_pdb_file(pdb_code, pdb_data_dir)
         mol = utils.pdb.build_biological_unit(pdb_file)
 
@@ -25,7 +25,7 @@ class EmImagingTestCase(unittest.TestCase):
         thickness = 3.0
         pixel_size = resolution / 2.0
 
-        slcs = dens.build_slices_fourier(mol, pixel_size, thickness, lateral_size=256, add_water=False)
+        slcs = dens.build_slices_fourier_fftw(mol, pixel_size, thickness, lateral_size=256, add_water=False)
         self.specimen = em.Specimen(slcs, pixel_size, thickness)
         self.em = em.EM(dose, beam_energy_kev, cs, defocus, aperture=np.pi/2.0)
 

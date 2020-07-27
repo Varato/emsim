@@ -14,7 +14,8 @@ if platform.system() == "Windows" and platform.machine() == "AMD64":
             "emsim/ext/src/utils.c"],
         include_dirs=["emsim/ext/include", np.get_include()],
         library_dirs=["emsim/ext/lib_x86_64-win32/"],
-        libraries=['libfftw3f-3']  # using single float fftw: change fftw_ to fftwf_ in c files
+        libraries=['libfftw3f-3'],  # using single float fftw: change fftw_ to fftwf_ in c files
+        extra_compile_args=['/openmp'],
     )
     ext_modules.append(dens_kernel)
 

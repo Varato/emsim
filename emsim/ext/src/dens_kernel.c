@@ -37,6 +37,13 @@ int build_slices_fftwf_kernel(float scattering_factors_ifftshifted[], int n_elem
         return 0;
     }
 
+    int res = fftwf_init_threads();
+
+    if (!res) {
+        printf("fftw cannot work with multi threads");
+    }
+//
+//    printf("omp threads: %d", omp_get_max_threads());
     fftwf_plan_with_nthreads(omp_get_max_threads());
     /* Signature
        fftwf_plan fftwf_plan_many_dft(int rank, const int *n, int howmany,
@@ -68,7 +75,6 @@ int build_slices_fftwf_kernel(float scattering_factors_ifftshifted[], int n_elem
                                  FFTW_ESTIMATE);
 
     //TODO: omit this copy
-    #pragma omp parallel for
     for (int I = 0; I < n_elems * n_slices * n_pix; ++I){
         in[I] = (float)atom_histograms[I];
     }
