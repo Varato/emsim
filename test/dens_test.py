@@ -28,10 +28,10 @@ class DensityTestCase(unittest.TestCase):
     def test_build_slices_fourier(self):
         slices = dens.build_slices_fourier(
             self.mol, pixel_size=self.voxel_size, thickness=1.2,
-            lateral_size=(65, 70), n_slices=75)
+            lateral_size=(70, 70), n_slices=75)
         slices2 = dens.build_slices_fourier(
             self.mol, pixel_size=self.voxel_size, thickness=1.2,
-            lateral_size=(65, 70), n_slices=75, using_dens_kernel=False)
+            lateral_size=(70, 70), n_slices=75, using_dens_kernel=False)
 
         print("difference: ", np.abs(slices2 - slices).max())
 
@@ -50,7 +50,7 @@ class DensityTestCase(unittest.TestCase):
         slices = dens.build_slices_fourier(
             self.mol, pixel_size=self.voxel_size, thickness=1.2, lateral_size=(70, 70), add_water=True)
         print(slices.shape)
-        plt.imshow(slices.sum(-1))
+        plt.imshow(slices.sum(0))
         plt.show()
 
 

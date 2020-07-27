@@ -4,7 +4,7 @@
 #include "utils.h"
 
 
-int build_slices_fftw_kernel(float scattering_factors_ifftshifted[], int n_elems, 
+int build_slices_fftwf_kernel(float scattering_factors_ifftshifted[], int n_elems,
                              unsigned int atom_histograms[], int n_slices, int len_x, int len_y, 
                              float output[]) 
     /*
@@ -19,34 +19,34 @@ int build_slices_fftw_kernel(float scattering_factors_ifftshifted[], int n_elems
     int n[2] = {len_x, len_y};                   // logical dimensions of each fft transform
     int n_pix = len_x * len_y;  // distance between each transform for the input
     
-    fftw_plan p, ip;
-    fftw_complex *in, *location_phase;
-    fftw_complex *slices_flourer;
+    fftwf_plan p, ip;
+    fftwf_complex *in, *location_phase;
+    fftwf_complex *slices_flourer;
 
-    in  = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * n_elems * n_slices * n_pix);
-    location_phase = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * n_elems * n_slices * n_pix);
-    slices_flourer = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * n_slices * n_pix);
+    in  = (fftwf_complex *) fftwf_malloc(sizeof(fftwf_complex) * n_elems * n_slices * n_pix);
+    location_phase = (fftwf_complex *) fftwf_malloc(sizeof(fftwf_complex) * n_elems * n_slices * n_pix);
+    slices_flourer = (fftwf_complex *) fftwf_malloc(sizeof(fftwf_complex) * n_slices * n_pix);
 
     if(!in || !location_phase || !slices_flourer){
         return 0;
     }
 
-    fftw_plan_with_nthreads(omp_get_max_threads());
+    fftwf_plan_with_nthreads(omp_get_max_threads());
     /* Signature
-       fftw_plan fftw_plan_many_dft(int rank, const int *n, int howmany,
-                                    fftw_complex *in, const int *inembed,
+       fftwf_plan fftwf_plan_many_dft(int rank, const int *n, int howmany,
+                                    fftwf_complex *in, const int *inembed,
                                     int istride, int idist,
-                                    fftw_complex *out, const int *onembed,
+                                    fftwf_complex *out, const int *onembed,
                                     int ostride, int odist,
                                     int sign, unsigned flags);
      */
-    p  = fftw_plan_many_dft(2, n, n_elems * n_slices,
+    p  = fftwf_plan_many_dft(2, n, n_elems * n_slices,
                             in, n,
                             1, n_pix,
                             location_phase, n,
                             1, n_pix,
                             FFTW_FORWARD, FFTW_ESTIMATE);
-    ip = fftw_plan_many_dft(2, n, n_slices,
+    ip = fftwf_plan_many_dft(2, n, n_slices,
                             slices_flourer, n,
                             1, n_pix,
                             in, n,
@@ -62,7 +62,7 @@ int build_slices_fftw_kernel(float scattering_factors_ifftshifted[], int n_elems
         in[I][1] = 0;
     }
 
-    fftw_execute(p);
+    fftwf_execute(p);
 
     // Convolve and sum over elements in fourier space
     for (int s = 0; s < n_slices; ++s) {
@@ -79,17 +79,17 @@ int build_slices_fftw_kernel(float scattering_factors_ifftshifted[], int n_elems
         }
     }
 
-    fftw_execute(ip);
+    fftwf_execute(ip);
 
     for (int i = 0; i < n_slices * n_pix; ++i) {
         output[i] = (float)in[i][0] / (float)n_pix;
     }
 
-    fftw_destroy_plan(p);
-    fftw_destroy_plan(ip);
-    fftw_free(in);
-    fftw_free(location_phase);
-    fftw_free(slices_flourer);
+    fftwf_destroy_plan(p);
+    fftwf_destroy_plan(ip);
+    fftwf_free(in);
+    fftwf_free(location_phase);
+    fftwf_free(slices_flourer);
 
     return 1;
 }
