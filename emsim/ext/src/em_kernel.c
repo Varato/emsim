@@ -37,6 +37,7 @@ int multislice_propagate_fftw(fftwf_complex wave_in[], int len_x, int len_y,
     for (int s = 0; s < n_slices; ++s) {
 
         // multiply wave function by transmission function in real space
+        #pragma omp parallel for
         for (ii = 0; ii < n_pix; ++ii){
             float pix = slices[s*n_pix + ii];
             float t_real = cosf(pix * wave_length * relativity_gamma);
@@ -51,6 +52,7 @@ int multislice_propagate_fftw(fftwf_complex wave_in[], int len_x, int len_y,
         fftwf_execute(p);
 
         // in Fourier space, multiply the wave by spatial propagator.
+        #pragma omp parallel for
         for (ii = 0; ii < n_pix; ++ii){
             int i = ii / len_y;
             int j = ii % len_y; 
