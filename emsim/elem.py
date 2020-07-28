@@ -208,7 +208,6 @@ def scattering_factors2d(elem_numbers: List[int], pixel_size: float, size: Union
 
         scat_fac2d[k] = np.sum([a[i] / (f2 + b[i]) + c[i] * np.exp(-d[i] * f2) for i in range(3)], axis=0)
         scat_fac2d[k] = np.where(mask, scat_fac2d[k], 0.)
-        scat_fac2d[k] = np.fft.ifftshift(scat_fac2d[k])
 
     return scat_fac2d
 

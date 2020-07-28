@@ -49,40 +49,49 @@ class EM(object):
         self.cs = cs
         self.defocus = defocus
         self.aperture = aperture
-        self.relativity_gama = electron_relativity_gamma(beam_energy_kev)
+        self.relativity_gamma = electron_relativity_gamma(beam_energy_kev)
 
         self.wave_length_angstrom = electron_wave_length_angstrom(beam_energy_kev)
 
         self.aberr_ = aberration(self.wave_length_angstrom, cs, defocus)
         self.mtf_ = mtf(self.wave_length_angstrom, cs, defocus)
 
-    def make_wave_in(self, pixel_size: float):
+    def make_wave_in(self, pixel_size: float, lateral_size: Tuple[int, int]):
         n_e = self.electron_dose * pixel_size ** 2
-        wave_in = 1
+        wave_in = np.ones(lateral_size, dtype=np.complex64)
         wave_in *= np.sqrt(n_e) / np.abs(wave_in)
         return wave_in
 
-    def make_image(self, specimen: Specimen):
-        wave_in = self.make_wave_in(specimen.pixel_size)
+    def make_image(self, specimen: Specimen, kernel="fftw"):
+        wave_in = self.make_wave_in(specimen.pixel_size, specimen.lateral_size)
         qx, qy = EM._make_mesh_grid_fourier_space(specimen.pixel_size, specimen.lateral_size)
         q_mgrid = np.sqrt(qx*qx + qy*qy)
 
-        psi = self.multi_slice_propagate(specimen, wave_in, q_mgrid)
+        if kernel == "fftw":
+            psi = self.multislice_propagate_fftw(specimen, wave_in)
+        else:
+            psi = self.multislice_propagate_np(specimen, wave_in, q_mgrid)
         return self.lens_propagate(psi, q_mgrid)
 
-    def multi_slice_propagate(self, specimen: Specimen, wave_in: np.ndarray, q_mgrid: np.ndarray):
+    def multislice_propagate_fftw(self, specimen: Specimen, wave_in: np.ndarray):
+        from .ext import em_kernel
+        return em_kernel.multislice_propagate_fftw(
+            wave_in, specimen.slices.astype(np.float32),
+            specimen.pixel_size, specimen.dz, self.wave_length_angstrom, self.relativity_gamma)
+
+    def multislice_propagate_np(self, specimen: Specimen, wave_in: np.ndarray, q_mgrid: np.ndarray):
         q_max = 0.5 / specimen.pixel_size
-        fil = np.fft.ifftshift( np.where(q_mgrid <= 0.5/q_max*0.6667, 1., 0.))
+        fil = np.fft.ifftshift(np.where(q_mgrid <= q_max*0.6667, 1., 0.))
         spatial_propagator = np.exp(-1j * self.wave_length_angstrom * np.pi * specimen.dz * q_mgrid**2)
+        transmission_functions = np.exp(1j * self.relativity_gamma * self.wave_length_angstrom * specimen.slices)
         psi = wave_in
-        for slc in specimen:
-            t = np.exp(1j * self.relativity_gama * self.wave_length_angstrom * slc)
-            psi = ifft2(ifftshift(spatial_propagator) * fft2(psi * t) * fil)
+        for s in range(specimen.num_slices):
+            psi = ifft2(ifftshift(spatial_propagator) * fft2(psi * transmission_functions[s]) * fil)
         return psi
 
     def projection_approx_propagate(self, specimen: Specimen, wave_in: np.ndarray, q_mgrid: np.ndarray):
         vz = specimen.slices.sum(-1)
-        t = np.exp(1j * self.relativity_gama * self.wave_length_angstrom * vz)
+        t = np.exp(1j * self.relativity_gamma * self.wave_length_angstrom * vz)
         return wave_in * t
 
     def lens_propagate(self, wave_in: np.ndarray, q_mgrid: np.ndarray):

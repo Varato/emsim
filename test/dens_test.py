@@ -1,6 +1,7 @@
 import unittest
 import matplotlib.pyplot as plt
 import numpy as np
+import time
 
 import emsim
 from emsim import utils
@@ -13,11 +14,11 @@ class DensityTestCase(unittest.TestCase):
     def setUp(self) -> None:
         data_dir = emsim.io.data_dir.get_pdb_data_dir_from_config()
         # pipeline
-        pdb_code = '4ear'
+        pdb_code = '4bed'
         pdb_file = utils.pdb.retrieve_pdb_file(pdb_code, data_dir)
         mol = emsim.utils.pdb.build_biological_unit(pdb_file)
         self.mol = atm.centralize(mol)
-        self.voxel_size = 2.0
+        self.voxel_size = 3.0
 
     def test_build_potential_fourier(self):
         pot = dens.build_potential_fourier(self.mol, self.voxel_size, box_size=70)
@@ -26,14 +27,18 @@ class DensityTestCase(unittest.TestCase):
         plt.show()
 
     def test_build_slices_fourier(self):
+        t0 = time.time()
         slices = dens.build_slices_fourier_np(
             self.mol, pixel_size=self.voxel_size, thickness=1.2,
-            lateral_size=(70, 70), n_slices=75)
+            lateral_size=200)
+        t1 = time.time()
         slices2 = dens.build_slices_fourier_fftw(
             self.mol, pixel_size=self.voxel_size, thickness=1.2,
-            lateral_size=(70, 70), n_slices=75)
+            lateral_size=200)
+        t2 = time.time()
 
         print("difference: ", np.abs(slices2 - slices).max())
+        print(f"np time = {t1-t0:.3f}, fftw time = {t2-t1:.3f}")
 
         _, (ax1, ax2) = plt.subplots(ncols=2)
         ax1.imshow(slices.sum(0))

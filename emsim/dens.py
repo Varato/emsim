@@ -3,7 +3,7 @@ The functions to build electron density / atomic potential for bio molecules
 """
 from typing import Union, Optional, Tuple
 import numpy as np
-from numpy.fft import fft2, ifft2, rfft2, irfft2
+from numpy.fft import fft2, ifft2, rfft2, irfft2, ifftshift
 
 from . import atoms as atm
 from . import elem
@@ -191,8 +191,9 @@ def _prepare_slices_build(mol: atm.AtomList,
         assert atmv.box_size[0] == n_slices
     n_slices = atmv.box_size[0]
 
-    scatering_factors = elem.scattering_factors2d(elem_nums, pixel_size, size=(len_x, len_y)).astype(np.float32)
-    return elem_nums, n_slices, len_x, len_y, atmv, scatering_factors
+    scattering_factors = elem.scattering_factors2d(elem_nums, pixel_size, size=(len_x, len_y)).astype(np.float32)
+    scattering_factors = ifftshift(scattering_factors)
+    return elem_nums, n_slices, len_x, len_y, atmv, scattering_factors
 
 
 # def build_slices_patchins(mol: atm.AtomList,

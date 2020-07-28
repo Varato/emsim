@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "dens_kernel.h"
+#include "def.h"
 
 
 static PyObject* build_slices_fourier_wrapper(PyObject *self, PyObject *args, PyObject *kwds)
@@ -20,7 +21,7 @@ static PyObject* build_slices_fourier_wrapper(PyObject *self, PyObject *args, Py
         &PyArray_Type, &scattering_factors_ifftshifted, 
         &PyArray_Type, &atom_histograms
     );
-    if(!parse_result) return NULL;
+    if(!parse_result) Py_RETURN_NONE;
 
     int n_elems = (int) atom_histograms->dimensions[0];
     int n_slices = (int) atom_histograms->dimensions[1];
@@ -29,6 +30,9 @@ static PyObject* build_slices_fourier_wrapper(PyObject *self, PyObject *args, Py
 
     float *slices;
     slices = fftwf_malloc(sizeof(float) * n_slices * len_x * len_y);
+    if (!slices) {
+        Py_RETURN_NONE;
+    }
 
     int succeeded = build_slices_fftwf_kernel((float *)scattering_factors_ifftshifted->data, n_elems,
                                               (float *)atom_histograms->data, n_slices, len_x, len_y,
