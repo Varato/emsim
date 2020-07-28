@@ -154,7 +154,7 @@ def build_slices_fourier_fftw(mol: atm.AtomList,
     elem_nums, n_slices, len_x, len_y, atmv, scattering_factors = _prepare_slices_build(
         mol, pixel_size, thickness, lateral_size, n_slices, add_water)
 
-    slices = dens_kernel.build_slices_fourier_wrapper(
+    slices = dens_kernel.build_slices_fourier_fftw(
         scattering_factors_ifftshifted=scattering_factors,
         atom_histograms=atmv.atom_histograms.astype(np.float32))
 

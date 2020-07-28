@@ -22,10 +22,10 @@ static PyObject* build_slices_fourier_wrapper(PyObject *self, PyObject *args, Py
     );
     if(!parse_result) return NULL;
 
-    int n_elems = atom_histograms->dimensions[0];
-    int n_slices = atom_histograms->dimensions[1];
-    int len_x = atom_histograms->dimensions[2];
-    int len_y = atom_histograms->dimensions[3];
+    int n_elems = (int) atom_histograms->dimensions[0];
+    int n_slices = (int) atom_histograms->dimensions[1];
+    int len_x = (int) atom_histograms->dimensions[2];
+    int len_y = (int) atom_histograms->dimensions[3];
 
     float *slices;
     slices = fftwf_malloc(sizeof(float) * n_slices * len_x * len_y);
@@ -48,7 +48,7 @@ static PyObject* build_slices_fourier_wrapper(PyObject *self, PyObject *args, Py
 /* Method table, Module definition and Module initialization function */
 static PyMethodDef dens_kernel_methods[] = {
     {
-        "build_slices_fourier_wrapper", (PyCFunction)build_slices_fourier_wrapper, METH_VARARGS | METH_KEYWORDS,
+        "build_slices_fourier_fftw", (PyCFunction)build_slices_fourier_wrapper, METH_VARARGS | METH_KEYWORDS,
         ""
     },
     {NULL, NULL, 0, NULL}

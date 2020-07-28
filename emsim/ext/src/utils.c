@@ -7,7 +7,7 @@ void fftshift2d(const fftwf_complex *in, fftw_complex *shifted, int n0, int n1)
 {
     int I, II;
     int i, j, ii, jj;
-    #pragma omp parallel for private(i, j, ii, jj, I, II)
+    #pragma omp parallel for shared(i, j, ii, jj, I, II)
     for(I = 0; I < n0 * n1; ++I){
         i = I / n1;
         j = I % n1;
@@ -26,7 +26,7 @@ void ifftshift2d(const fftwf_complex *in, fftw_complex *unshifted, int n0, int n
 {
     int I, II;
     int i, j, ii, jj;
-    #pragma omp parallel for private(i, j, ii, jj, I, II)
+    #pragma omp parallel for shared(i, j, ii, jj, I, II)
     for(I = 0; I < n0 * n1; ++I){
         i = I / n1;
         j = I % n1;
@@ -48,7 +48,7 @@ void fftshift3d(const fftwf_complex *in, fftw_complex *shifted, int n0, int n1, 
 {
     int I, II;
     int i, j, k, ii, jj, kk;
-    #pragma omp parallel for private(i,j,k,ii,jj,kk,I,II)
+    #pragma omp parallel for shared(i,j,k,ii,jj,kk,I,II)
     for(I = 0; I < n0 * n1 * n2; ++I){
         i = I / (n1*n2);
         j = (I % (n1*n2)) / n2;
@@ -69,7 +69,7 @@ void ifftshift3d(const fftwf_complex *in, fftw_complex *unshifted, int n0, int n
 {
     int I, II;
     int i, j, k, ii, jj, kk;
-    #pragma omp parallel for private(i,j,k,ii,jj,kk,I,II)
+    #pragma omp parallel for shared(i,j,k,ii,jj,kk,I,II)
     for(I = 0; I < n0 * n1 * n2; ++I){
         i = I / (n1*n2);
         j = (I % (n1*n2)) / n2;
