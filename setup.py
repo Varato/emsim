@@ -19,7 +19,7 @@ if platform.system() == "Windows" and platform.machine() == "AMD64":
     )
     ext_modules.append(dens_kernel)
 
-    fftw_dlls = ["libfftw3-3.dll", "libfftw3f-3.dll", "libfftw3l-3.dll"]
+    fftw_dlls = ["libfftw3f-3.dll"]
     data_files.append(("emsim/ext", ["emsim/ext/lib_x86_64-win32/" + dll for dll in fftw_dlls]))
 
 
