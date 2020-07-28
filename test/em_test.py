@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 import emsim
 from emsim import em
@@ -30,10 +31,14 @@ class EmImagingTestCase(unittest.TestCase):
         self.em = em.EM(dose, beam_energy_kev, cs, defocus, aperture=np.pi/2.0)
 
     def test_em_imaging(self):
+        t0 = time.time()
         psi1 = self.em.make_image(self.specimen, kernel="np")
+        t1 = time.time()
         psi2 = self.em.make_image(self.specimen, kernel="fftw")
+        t2 = time.time()
         img1, img2 = np.abs(psi1)**2, np.abs(psi2)**2
         print("difference =", (np.abs(img1-img2)).max())
+        print(f"np time: {t1-t0:.3f}, fftw time: {t2-t1:.3f}")
 
         _, (ax1, ax2, ax3) = plt.subplots(ncols=3, figsize=(10, 3))
         ax1.imshow(img1, cmap="gray")
