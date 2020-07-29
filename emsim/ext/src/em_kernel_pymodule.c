@@ -30,29 +30,18 @@ static PyObject* multislice_propagate_fftw_wrapper(PyObject *self, PyObject *arg
     if(!parse_result) Py_RETURN_NONE;
 
     int n_slices = (int) slices->dimensions[0];
-    int len_x = (int) slices->dimensions[1];
-    int len_y = (int) slices->dimensions[2];
-    printf("wave shape %d, %d\n", wave_in->dimensions[0], wave_in->dimensions[1]);
+    npy_intp dims[2] = {(int) slices->dimensions[1], (int) slices->dimensions[2]};
 
-    float *wave_out;
-    wave_out = fftwf_malloc(sizeof(fftwf_complex) * len_x * len_y);
-    if (!wave_out) {
-        Py_RETURN_NONE;
-    }
 
-    int succeeded = multislice_propagate_fftw((fftwf_complex *)wave_in->data, len_x, len_y,
+    PyArrayObject *wave_out = (PyArrayObject *)PyArray_EMPTY(2, dims, NPY_COMPLEX64, 0);
+    int succeeded = multislice_propagate_fftw((fftwf_complex *)wave_in->data, (int)dims[0], (int)dims[1],
                                               (float *)slices->data, n_slices,  pixel_size, dz,
                                               wave_length, relativity_gamma,
-                                              wave_out);
+                                              (fftwf_complex *)wave_out->data);
     if (!succeeded) {
         Py_RETURN_NONE;
     }
-
-    npy_intp dims[2] = {len_x, len_y};
-    
-    PyArrayObject *ret; // return value
-    ret = (PyArrayObject *)PyArray_SimpleNewFromData(2, dims, NPY_COMPLEX64, wave_out);
-    return PyArray_Return(ret);
+    return PyArray_Return(wave_out);
 }
 
 

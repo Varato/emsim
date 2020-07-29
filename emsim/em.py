@@ -98,6 +98,12 @@ class EM(object):
         h = self.mtf_(q_mgrid)
         apper = np.where(q_mgrid < self.aperture / self.wave_length_angstrom, 1., 0.)
         wave_out = ifft2(ifftshift(h) * fft2(wave_in) * ifftshift(apper))
+        print("wave_in")
+        print(wave_in.flags)
+        print("h")
+        print(h.flags)
+        print("apper")
+        print(apper.flags)
         return wave_out
 
     @staticmethod

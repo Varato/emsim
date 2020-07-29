@@ -30,7 +30,17 @@ class EmImagingTestCase(unittest.TestCase):
         self.specimen = em.Specimen(slcs, pixel_size, thickness)
         self.em = em.EM(dose, beam_energy_kev, cs, defocus, aperture=np.pi/2.0)
 
-    def test_em_imaging(self):
+    def test_em_imaging_fftw(self):
+        psi = self.em.make_image(self.specimen, kernel="fftw")
+        print("final")
+        print(psi.flags)
+
+    def test_em_imaging_np(self):
+        psi = self.em.make_image(self.specimen, kernel="np")
+        print("final")
+        print(psi.flags)
+
+    def test_em_imaging_consistency(self):
         t0 = time.time()
         psi1 = self.em.make_image(self.specimen, kernel="np")
         t1 = time.time()

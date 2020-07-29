@@ -24,28 +24,17 @@ static PyObject* build_slices_fourier_wrapper(PyObject *self, PyObject *args, Py
     if(!parse_result) Py_RETURN_NONE;
 
     int n_elems = (int) atom_histograms->dimensions[0];
-    int n_slices = (int) atom_histograms->dimensions[1];
-    int len_x = (int) atom_histograms->dimensions[2];
-    int len_y = (int) atom_histograms->dimensions[3];
+    npy_intp dims[3] = {atom_histograms->dimensions[1], atom_histograms->dimensions[2], atom_histograms->dimensions[3]};
 
-    float *slices;
-    slices = fftwf_malloc(sizeof(float) * n_slices * len_x * len_y);
-    if (!slices) {
-        Py_RETURN_NONE;
-    }
-
+    PyArrayObject *slices = (PyArrayObject *)PyArray_EMPTY(3, dims, NPY_FLOAT32, 0);
     int succeeded = build_slices_fftwf_kernel((float *)scattering_factors_ifftshifted->data, n_elems,
-                                              (float *)atom_histograms->data, n_slices, len_x, len_y,
-                                              slices);
+                                              (float *)atom_histograms->data, (int)dims[0], (int)dims[1], (int)dims[2],
+                                              (float *)slices->data);
     if (!succeeded) {
         Py_RETURN_NONE;
     }
 
-    npy_intp dims[3] = {n_slices, len_x, len_y};
-    
-    PyArrayObject *ret; // return value
-    ret = (PyArrayObject *)PyArray_SimpleNewFromData(3, dims, NPY_FLOAT, slices);
-    return PyArray_Return(ret);
+    return PyArray_Return(slices);
 }
 
 
