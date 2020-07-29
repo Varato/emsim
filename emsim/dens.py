@@ -58,14 +58,14 @@ def build_potential_fourier(mol: atm.AtomList,
         atmv = atm.add_water_simple(atmv)
 
     box_size_final = atmv.box_size
-    len_z = box_size_final[2]
+    n3 = box_size_final[2]
     elem_nums = atmv.unique_elements
 
     potential = np.zeros(shape=box_size_final, dtype=np.float)
     form_fac = elem.scattering_factors(elem_nums, voxel_size, size=box_size_final)
     for i, z in enumerate(elem_nums):
         potential += np.fft.irfftn(
-            np.fft.rfftn(atmv.atom_histograms[i]) * form_fac[i, :, :, :len_z // 2 + 1], s=box_size_final)
+            np.fft.rfftn(atmv.atom_histograms[i]) * form_fac[i, :, :, :n3 // 2 + 1], s=box_size_final)
 
     np.clip(potential, a_min=1e-7, a_max=None, out=potential)
     return potential * 2 * np.pi * a0 * e / voxel_size**3
@@ -101,7 +101,7 @@ def build_slices_fourier_np(mol: atm.AtomList,
 
     """
 
-    elem_nums, n_slices, len_x, len_y, atmv, scattering_factors = _prepare_slices_build(
+    elem_nums, n_slices, n1, n2, atmv, scattering_factors = _prepare_slices_build(
         mol, pixel_size, thickness, lateral_size, n_slices, add_water)
 
     slices = np.zeros(shape=atmv.box_size, dtype=np.float32)
@@ -111,7 +111,7 @@ def build_slices_fourier_np(mol: atm.AtomList,
         for i, _ in enumerate(elem_nums):
             # slices[s, ...] += np.fft.ifft2(np.fft.fft2(atmv.atom_histograms[i, s, ...]) * scattering_factors[i]).real
             slices[s, ...] += irfft2(rfft2(atmv.atom_histograms[i, s, :, :]) *
-                                     scattering_factors[i, :, :len_y // 2 + 1], s=(len_x, len_y))
+                                     scattering_factors[i, :, :n2 // 2 + 1], s=(n1, n2))
 
     np.clip(slices, a_min=1e-7, a_max=None, out=slices)
     return slices  # * 2 * np.pi * a0 * e / pixel_size**2
@@ -151,7 +151,7 @@ def build_slices_fourier_fftw(mol: atm.AtomList,
     except ImportError:
         raise ImportError("the extension dens_kernel cannot be found. use numpy version instead.")
 
-    elem_nums, n_slices, len_x, len_y, atmv, scattering_factors = _prepare_slices_build(
+    elem_nums, n_slices, n1, n2, atmv, scattering_factors = _prepare_slices_build(
         mol, pixel_size, thickness, lateral_size, n_slices, add_water)
 
     slices = dens_kernel.build_slices_fourier_fftw(
@@ -186,14 +186,14 @@ def _prepare_slices_build(mol: atm.AtomList,
         atmv = atm.add_water_simple(atmv)
 
     elem_nums = atmv.unique_elements
-    len_x, len_y = atmv.box_size[1:]
+    n1, n2 = atmv.box_size[1:]
     if isinstance(n_slices, int):
         assert atmv.box_size[0] == n_slices
     n_slices = atmv.box_size[0]
 
-    scattering_factors = elem.scattering_factors2d(elem_nums, pixel_size, size=(len_x, len_y)).astype(np.float32)
+    scattering_factors = elem.scattering_factors2d(elem_nums, pixel_size, size=(n1, n2)).astype(np.float32)
     scattering_factors = ifftshift(scattering_factors)
-    return elem_nums, n_slices, len_x, len_y, atmv, scattering_factors
+    return elem_nums, n_slices, n1, n2, atmv, scattering_factors
 
 
 # def build_slices_patchins(mol: atm.AtomList,
@@ -215,17 +215,17 @@ def _prepare_slices_build(mol: atm.AtomList,
 #     if isinstance(n_slices, int):
 #         dims[2] = n_slices
 #
-#     len_x, len_y, len_z = dims
+#     n1, n2, n3 = dims
 #
 #     elem_nums, atom_idx = atm.index_atoms(
-#         mol, voxel_size=(pixel_size, pixel_size, thickness), box_size=(len_x, len_y, len_z))
+#         mol, voxel_size=(pixel_size, pixel_size, thickness), box_size=(n1, n2, n3))
 #
 #     unique_elems = np.unique(elem_nums)
 #
 #     vz = elem.projected_potentials(unique_elems, pixel_size, radius)
-#     vz, patch_len = _regularize_potential_patch2d(vz, len_x, len_y)
+#     vz, patch_len = _regularize_potential_patch2d(vz, n1, n2)
 #
-#     slices = np.zeros(shape=(len_x, len_y, len_z), dtype=np.float64)
+#     slices = np.zeros(shape=(n1, n2, n3), dtype=np.float64)
 #     r = patch_len // 2
 #     for i, z in enumerate(elem_nums):
 #         ix, iy, iz = atom_idx[i, :]
@@ -233,17 +233,17 @@ def _prepare_slices_build(mol: atm.AtomList,
 #         start_y, end_y = iy - r, iy + r
 #
 #         # take care of atoms whose indices are out of range
-#         patch_start_x, patch_end_x = max(0, -start_x), min(patch_len, patch_len + len_x - 1 - end_x)
-#         patch_start_y, patch_end_y = max(0, -start_y), min(patch_len, patch_len + len_y - 1 - end_y)
-#         sx, ex = max(0, start_x), min(len_x, end_x + 1)
-#         sy, ey = max(0, start_y), min(len_y, end_y + 1)
+#         patch_start_x, patch_end_x = max(0, -start_x), min(patch_len, patch_len + n1 - 1 - end_x)
+#         patch_start_y, patch_end_y = max(0, -start_y), min(patch_len, patch_len + n2 - 1 - end_y)
+#         sx, ex = max(0, start_x), min(n1, end_x + 1)
+#         sy, ey = max(0, start_y), min(n2, end_y + 1)
 #
 #         slices[sx:ex, sy:ey, iz] += vz[z][patch_start_x:patch_end_x, patch_start_y:patch_end_y]
 #
 #     return slices
 #
 #
-# def _regularize_potential_patch2d(vz, len_x, len_y):
+# def _regularize_potential_patch2d(vz, n1, n2):
 #     """
 #     crops the projected potential patches if the patches are larger than the slices (should rarely happen)
 #
@@ -251,8 +251,8 @@ def _prepare_slices_build(mol: atm.AtomList,
 #     Parameters
 #     ----------
 #     vz
-#     len_x
-#     len_y
+#     n1
+#     n2
 #
 #     Returns
 #     -------
@@ -262,7 +262,7 @@ def _prepare_slices_build(mol: atm.AtomList,
 #     elem_nums = list(vz.keys())
 #
 #     init_patch_len = vz[elem_nums[0]].shape[-1]
-#     patch_len = min(init_patch_len, len_x, len_y)
+#     patch_len = min(init_patch_len, n1, n2)
 #     patch_len = patch_len - 1 if patch_len % 2 == 0 else patch_len
 #     if patch_len < init_patch_len:
 #         diff = init_patch_len - patch_len  # must be an even number

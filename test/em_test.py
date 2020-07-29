@@ -47,7 +47,8 @@ class EmImagingTestCase(unittest.TestCase):
         psi2 = self.em.make_image(self.specimen, kernel="fftw")
         t2 = time.time()
         img1, img2 = np.abs(psi1)**2, np.abs(psi2)**2
-        print("difference =", (np.abs(img1-img2)).max())
+        print(f"max difference = {(np.abs(img1-img2)).max():.3f}")
+        print(f"max relative difference = {((np.abs(img1-img2))/img1).max():.3f}")
         print(f"np time: {t1-t0:.3f}, fftw time: {t2-t1:.3f}")
 
         _, (ax1, ax2, ax3) = plt.subplots(ncols=3, figsize=(10, 3))

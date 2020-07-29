@@ -4,19 +4,19 @@
 
 
 int build_slices_fftwf_kernel(float scattering_factors_ifftshifted[], int n_elems,
-                              float atom_histograms[], int n_slices, int len_x, int len_y,
+                              float atom_histograms[], int n_slices, int n1, int n2,
                               float output[])
 /*
     Logical dimensions of the input arrays:
-        scattering_factors_ifftshifted: (n_elems, len_x, len_y)
-        atom_histograms:    (n_elems, n_slices, len_x, len_y)
+        scattering_factors_ifftshifted: (n_elems, n1, n2)
+        atom_histograms:    (n_elems, n_slices, n1, n2)
 
     Here it needs the scattering_factors_ifftshifted to be ifftshifted (i.e. the zero-frequency is at corner). */
 {
-    int n_pix = len_x * len_y;                   // distance between each transform for the input
-    int len_y_half = len_y / 2 + 1;              // the last dimension is halved for dft_r2c
-    int n_pix_half = len_x * len_y_half;
-    int n[2] = {len_x, len_y};                   // logical dimensions of each fft transform
+    int n_pix = n1 * n2;                   // distance between each transform for the input
+    int len_y_half = n2 / 2 + 1;              // the last dimension is halved for dft_r2c
+    int n_pix_half = n1 * len_y_half;
+    int n[2] = {n1, n2};                   // logical dimensions of each fft transform
     
     fftwf_plan p, ip;
     fftwf_complex *location_phase;
@@ -63,7 +63,7 @@ int build_slices_fftwf_kernel(float scattering_factors_ifftshifted[], int n_elem
             for (int k = 0; k < n_elems; ++k){
                 float phase_real = location_phase[k*n_slices*n_pix_half + s*n_pix_half + ii][0];
                 float phase_imag = location_phase[k*n_slices*n_pix_half + s*n_pix_half + ii][1];
-                float scat_fac = scattering_factors_ifftshifted[k*n_pix + i*len_y + j];
+                float scat_fac = scattering_factors_ifftshifted[k*n_pix + i*n2 + j];
                 slices_flourer[s * n_pix_half + ii][0] += phase_real * scat_fac;
                 slices_flourer[s * n_pix_half + ii][1] += phase_imag * scat_fac;
             }
