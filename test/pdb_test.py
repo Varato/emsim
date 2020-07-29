@@ -57,3 +57,7 @@ class PdbTestCase(unittest.TestCase):
         al = utils.pdb.build_biological_unit(self.filenames[0])
         print(al.elements.shape)
         print(al.coordinates.shape)
+
+
+if __name__ == '__main__':
+    unittest.main()

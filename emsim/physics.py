@@ -4,15 +4,24 @@ import numpy as np
 
 # Constants
 water_num_dens = 0.031    # number of molecules per A3
-e = 14.39964              # electron charge in Volts * Angstrom
-a0 = 0.529177             # Bohr radius in Angstrom
-hbar_c = 1975.9086        # hbar*c in eV * Angstrom
-hc = 12415                # h*c in eV * Angstrom
-m0c2 = 510.9989461        # electron mass in keV
+e = 4.8032042510e-10      # statC = 1 esu = 1 g^(1/2) cm^(3/2) s^(−1)
+h = 6.62607015e-27        # cm2 g / s = erg s
+hbar = h / 2.0 / math.pi
+m0 = 9.1093835611e-28     # g
+a0 = 5.29177210903e-9  # cm
+c = 29979245800.0         # cm / s
+m0c2 = m0 * c**2          # erg: 1erg = 1e-7 J = 1e-10 / e_coulumb keV
+hc = h * c                # erg cm
+hbar_c = hbar * c         # erg cm
+
+e_coulumb = 1.602176634e-19
+m0c2_keV = m0c2 * 1e-7 / e_coulumb / 1000.
+hbar_c_keV_Ang = hbar_c * 0.01 / e_coulumb
+hc_keV_Ang = hc * 0.01 / e_coulumb
 
 
 def electron_relativity_gamma(beam_energy_kev: float) -> float:
-    gamma = 1 + beam_energy_kev / m0c2
+    gamma = 1 + beam_energy_kev / m0c2_keV
     return gamma
 
 
@@ -46,7 +55,7 @@ def electron_wave_length_angstrom(beam_energy_kev: float) -> float:
         the wave length in Angstrom
 
     """
-    wave_len = hc * 0.001 / math.sqrt(beam_energy_kev**2 + 2*m0c2*beam_energy_kev)
+    wave_len = hc_keV_Ang / math.sqrt(beam_energy_kev**2 + 2*m0c2_keV*beam_energy_kev)
     return wave_len
 
 
@@ -67,15 +76,8 @@ def interaction_parameter(beam_energy_kev: float) -> float:
         the interaction paremeter has dimension 1/hbar_c
 
     """
-    dimensionless = (m0c2 + beam_energy_kev) / math.sqrt(beam_energy_kev * (2*m0c2 + beam_energy_kev))
+    dimensionless = (m0c2_keV + beam_energy_kev) / math.sqrt(beam_energy_kev * (2*m0c2_keV + beam_energy_kev))
     sigma = (e/hbar_c) * dimensionless
-    return sigma
-
-
-def interaction_parameter2(beam_energy_kev: float) -> float:
-    lmd = electron_wave_length_angstrom(beam_energy_kev)
-    mc2 = electron_relativity_mass(beam_energy_kev)
-    sigma = 2 * math.pi * mc2 * 1000 * e * lmd / hc**2
     return sigma
 
 
@@ -104,4 +106,8 @@ def ctf(wave_length_angstrom: float, cs_mm: float, defocus_angstrom: float):
         aberr = aberr = aberration(wave_length_angstrom, cs_mm, defocus_angstrom)
         return np.sin(aberr(k))
     return ctf_
+
+
+if __name__ == "__main__":
+    print(hc_keV_Ang, hbar_c_keV_Ang)
 

@@ -7,12 +7,63 @@ from emsim import elem
 
 class AtomPotentialTestCase(unittest.TestCase):
     def setUp(self):
-        self.elems = [1, 2, 3, 4, 5, 6]
+        self.elems = [6, 14, 29, 79, 92]
+        self.labels = ['C', 'Si', 'Cu', 'Au', 'U']
+
         self.voxel_size = 1.0
 
     def test_atom_number(self):
         res = [elem.number(s) for s in ['H', 'He', 'Li', 'Be', 'B']]
         self.assertEqual(res, [1, 2, 3, 4, 5])
+
+    def test_potential_function(self):
+        r = np.linspace(0.001, 0.5, 500)
+        pot = elem.potential_function(self.elems)
+        vs = pot(r)
+        for i in range(len(self.elems)):
+            plt.plot(r, vs[i], label=self.labels[i])
+        plt.xlim([0, 0.5])
+        plt.ylim([0, 20])
+        plt.xticks(np.arange(0, 0.55, 0.05))
+        plt.yticks(np.arange(0, 22, 2))
+        plt.grid(True)
+        plt.legend()
+        plt.show()
+
+    def test_projected_potential_function(self):
+        r = np.linspace(0.001, 0.5, 500)
+        pot = elem.projected_potential_function(self.elems)
+        vs = pot(r) * 1000
+        for i in range(len(self.elems)):
+            plt.plot(r, vs[i], label=self.labels[i])
+        plt.xlim([0, 0.5])
+        plt.ylim([0, 20])
+        plt.xticks(np.arange(0, 0.55, 0.05))
+        plt.yticks(np.arange(0, 5500, 500))
+        plt.grid(True)
+        plt.legend()
+        plt.show()
+
+    def test_scattering_factor_function(self):
+        q = np.linspace(0.001, 2, 500)
+        feq = elem.scattering_factor_function(self.elems)
+        fs = feq(q)
+        for i in range(len(self.elems)):
+            plt.plot(q, fs[i], label=self.labels[i])
+        plt.xlim([0, 2])
+        plt.ylim([0, 20])
+        plt.xticks(np.arange(0, 2.2, 0.2))
+        plt.yticks(np.arange(0, 22, 2))
+        plt.grid(True)
+        plt.legend()
+        plt.show()
+
+    def test_projected_potential(self):
+        vzs = elem.projected_potentials(self.elems, pixel_size=self.voxel_size)
+        _, axes = plt.subplots(ncols=len(self.elems))
+        for i in range(len(self.elems)):
+            axes[i].imshow(vzs[i])
+        plt.show()
 
     def test_protected_potential(self):
         """

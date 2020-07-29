@@ -10,6 +10,152 @@ from .physics import a0, e
 float_type = np.float32
 
 
+def potential_function(elem_numbers: List[int]):
+    """
+    Returns a function that computes atom potential for each element in the elem_numbers List.
+    The computation is based on equation (5.9) in Kirkland.
+
+    Parameters
+    ----------
+    elem_numbers: List[int]
+        the Z number for each element.
+
+    Returns
+    -------
+    Callable
+        the returned function takes spatial coordinates and returns the potential.
+
+    Notes
+    -----
+    the Borh radius a0 and elementary charge e imported from the physics module are in Gaussian units. i.e.
+    a0 is in cm; e is in statCoulomb.
+
+    1 statCoulomb = 1 g^(1/2) cm^(3/2) s^(-1)
+
+    In this unit form, the electical potential is in unit of statVolt
+
+    1 statVolt = 1 g^(1/2) cm^(1/2) s^(-1) = 1e-6 c Volt = 299.792458 Volt, where c is light speed in CGS units.
+
+    Also notice the coefficient from Kirkland Appendix C:
+        ai, bi, ci, di are in units of Angstrom^(-1), Angstrom^(-2), Angstrom, Angstrom^2
+
+    We want the resulted atom potential to be in unit kiloVolt. The resulted converting factor is 1e13 * 299.792458.
+
+    """
+    pms = elem_params(elem_numbers)
+    n_elems = len(elem_numbers)
+
+    def func_(r: np.ndarray):
+        r2 = r*r
+        c1 = 2 * np.pi ** 2 * a0 * e
+        c2 = 2 * pow(np.pi, 5 / 2) * a0 * e
+        vs = np.empty(shape=(n_elems, *r.shape), dtype=float_type)
+        for k in range(n_elems):
+            pm = pms[k]
+            a = pm[1:4]
+            b = pm[4:7]
+            c = pm[7:10]
+            d = pm[10:]
+
+            s1 = c1 * sum([a[i] / r * np.exp(-2 * np.pi * r * np.sqrt(b[i])) for i in range(3)])
+            s2 = c2 * sum([c[i] * pow(d[i], -3 / 2) * np.exp(-(np.pi ** 2) * r2 / d[i]) for i in range(3)])
+            vs[k] = s1 + s2
+        return vs * 299.792458 * 1e13
+    return func_
+
+
+def projected_potential_function(elem_numbers: List[int]):
+    """
+    Returns a function that computes atom projected potential for each element in the elem_numbers List.
+    The computation is based on equation (5.10) in Kirkland.
+
+    Parameters
+    ----------
+    elem_numbers: List[int]
+        the Z number for each element.
+
+    Returns
+    -------
+    Callable
+        the returned function takes spatial coordinates and returns the projected potential.
+
+    Notes
+    -----
+    the Borh radius a0 and elementary charge e imported from the physics module are in Gaussian units. i.e.
+    a0 is in cm; e is in statCoulomb.
+
+    1 statCoulomb = 1 g^(1/2) cm^(3/2) s^(-1)
+
+    In this unit form, the electical potential is in unit of statVolt
+
+    1 statVolt = 1 g^(1/2) cm^(1/2) s^(-1) = 1e-6 c Volt = 299.792458 Volt, where c is light speed in CGS units.
+
+    Also notice the coefficient from Kirkland Appendix C:
+        ai, bi, ci, di are in units of Angstrom^(-1), Angstrom^(-2), Angstrom, Angstrom^2
+
+    We want the resulted atom potential to be in unit kiloVolt. The resulted converting factor is 1e13 * 299.792458.
+    """
+    pms = elem_params(elem_numbers)
+    n_elems = len(elem_numbers)
+
+    def func_(r: np.ndarray):
+        c1 = 4 * np.pi ** 2 * a0 * e
+        c2 = 2 * np.pi ** 2 * a0 * e
+        r2 = r*r
+        vs = np.empty(shape=(n_elems, *r.shape), dtype=float_type)
+        for k in range(n_elems):
+            pm = pms[k]
+            a = pm[1:4]
+            b = pm[4:7]
+            c = pm[7:10]
+            d = pm[10:]
+
+            s1 = c1 * sum([a[i] * kn(0, 2 * np.pi * r * np.sqrt(b[i])) for i in range(3)])
+            s2 = c2 * sum([c[i] / d[i] * np.exp(-(np.pi ** 2) * r2 / d[i]) for i in range(3)])
+            vs[k] = s1 + s2
+        return vs * 299.792458 * 1e13
+    return func_
+
+
+def scattering_factor_function(elem_numbers: List[int]):
+    """
+    Returns a function that computes atom scattering factors for each element in the elem_numbers List.
+    The computation is based on equation (5.17) in Kirkland.
+
+    Parameters
+    ----------
+    elem_numbers: List[int]
+        the Z number for each element.
+
+    Returns
+    -------
+    Callable
+        the returned function takes spatial frequencies and returns the scattering factor.
+
+    Notes
+    -----
+    The resulted scattering factor is in unit Angstrom.
+    """
+    pms = elem_params(elem_numbers)
+    n_elems = len(elem_numbers)
+
+    def func_(q):
+        q2 = q * q
+        mask = q2 < 16
+        scat_fac = np.empty(shape=(n_elems, *q.shape), dtype=float_type)
+        for k in range(n_elems):
+            pm = pms[k]  # the 13 parameters
+            a = pm[1:4]
+            b = pm[4:7]
+            c = pm[7:10]
+            d = pm[10:]
+
+            scat_fac[k] = np.sum([a[i] / (q2 + b[i]) + c[i] * np.exp(-d[i] * q2) for i in range(3)], axis=0)
+            scat_fac[k] = np.where(mask, scat_fac[k], 0.)
+        return scat_fac
+    return func_
+
+
 def potentials(elem_numbers: List[int], voxel_size: float, radius: float = 3.0) -> np.ndarray:
     """
     pre-calculates potentials for each atom specified in elem_numbers.
@@ -42,26 +188,8 @@ def potentials(elem_numbers: List[int], voxel_size: float, radius: float = 3.0) 
     if displacement < 0.5:
         r[singular_point_idx, singular_point_idx, singular_point_idx] = 0.5 * voxel_size
 
-    r2 = r**2
-
-    c1 = 2 * np.pi**2 * a0 * e
-    c2 = 2 * pow(np.pi, 5/2) * a0 * e
-
-    n_atoms = len(elem_numbers)
-    pms = elem_params(elem_numbers)
-    v = np.empty(shape=(n_atoms, *r2.shape), dtype=float_type)
-    for k in range(n_atoms):
-        pm = pms[k]  # the 13 parameters
-        a = pm[1:4]
-        b = pm[4:7]
-        c = pm[7:10]
-        d = pm[10:]
-
-        s1 = c1 * sum([a[i]/r * np.exp(-2*np.pi*r*np.sqrt(b[i])) for i in range(3)])
-        s2 = c2 * sum([c[i]*pow(d[i], -3/2) * np.exp(-(np.pi**2) * r2/d[i]) for i in range(3)])
-
-        v[k] = s1 + s2
-    return v
+    pot_func = potential_function(elem_numbers)
+    return pot_func(r)
 
 
 def projected_potentials(elem_numbers: List[int], pixel_size: float, radius: float = 3.0) -> np.ndarray:
@@ -88,7 +216,6 @@ def projected_potentials(elem_numbers: List[int], pixel_size: float, radius: flo
     -------
     3D array: (n_atoms, len_x, len_y)
     """
-
     r0, r1, n = _potential_rspace_params(radius, pixel_size)
 
     # builds 2D mesh grid for projected potential
@@ -101,27 +228,9 @@ def projected_potentials(elem_numbers: List[int], pixel_size: float, radius: flo
     singular_point_idx, displacement = _find_singular_point(r0, pixel_size, 0)
     if displacement < 0.5:
         r[singular_point_idx, singular_point_idx] = 0.5 * pixel_size
-    r2 = r**2
 
-    c1 = 4 * np.pi**2 * a0 * e
-    c2 = 2 * np.pi**2 * a0 * e
-
-    n_atoms = len(elem_numbers)
-    pms = elem_params(elem_numbers)
-    vz = np.empty(shape=(n_atoms, *r2.shape), dtype=float_type)
-    for k in range(n_atoms):
-        pm = pms[k]  # the 13 parameters
-        a = pm[1:4]
-        b = pm[4:7]
-        c = pm[7:10]
-        d = pm[10:]
-
-        s1 = c1 * sum([a[i]*kn(0, 2*np.pi*r*np.sqrt(b[i])) for i in range(3)])
-        s2 = c2 * sum([c[i]/d[i] * np.exp(-(np.pi**2) * r2/d[i]) for i in range(3)])
-
-        vz[k] = s1 + s2
-
-    return vz
+    proj_pot_func = projected_potential_function(elem_numbers)
+    return proj_pot_func(r)
 
 
 def scattering_factors(elem_numbers: List[int], voxel_size: float, size: Union[int, Tuple[int, int, int]]):
@@ -150,24 +259,8 @@ def scattering_factors(elem_numbers: List[int], voxel_size: float, size: Union[i
     fz_range = np.fft.fftshift(np.fft.fftfreq(size[2], d=voxel_size))
 
     fx, fy, fz = np.meshgrid(fx_range, fy_range, fz_range, indexing="ij")
-    f2 = fx*fx + fy*fy + fz*fz
-    mask = f2 < 16  # use frequency up to 4 A^-1
-
-    n_atoms = len(elem_numbers)
-    pms = elem_params(elem_numbers)
-    scat_fac = np.empty(shape=(n_atoms, *size), dtype=float_type)
-    for k in range(n_atoms):
-        pm = pms[k]  # the 13 parameters
-        a = pm[1:4]
-        b = pm[4:7]
-        c = pm[7:10]
-        d = pm[10:]
-
-        scat_fac[k] = np.sum([a[i] / (f2 + b[i]) + c[i] * np.exp(-d[i] * f2) for i in range(3)], axis=0)
-        scat_fac[k] = np.where(mask, scat_fac[k], 0)
-        scat_fac[k] = np.fft.ifftshift(scat_fac[k])
-
-    return scat_fac
+    f = np.sqrt(fx*fx + fy*fy + fz*fz)
+    return scattering_factor_function(elem_numbers)(f)
 
 
 def scattering_factors2d(elem_numbers: List[int], pixel_size: float, size: Union[int, Tuple[int, int]]):
@@ -193,23 +286,8 @@ def scattering_factors2d(elem_numbers: List[int], pixel_size: float, size: Union
     fy_range = np.fft.fftshift(np.fft.fftfreq(size[1], pixel_size))
 
     fx, fy = np.meshgrid(fx_range, fy_range, indexing="ij")
-    f2 = fx * fx + fy * fy
-    mask = f2 < 16  # use frequency up to 4 A^-1
-
-    n_atoms = len(elem_numbers)
-    pms = elem_params(elem_numbers)
-    scat_fac2d = np.empty(shape=(n_atoms, *size), dtype=float_type)
-    for k in range(n_atoms):
-        pm = pms[k]  # the 13 parameters
-        a = pm[1:4]
-        b = pm[4:7]
-        c = pm[7:10]
-        d = pm[10:]
-
-        scat_fac2d[k] = np.sum([a[i] / (f2 + b[i]) + c[i] * np.exp(-d[i] * f2) for i in range(3)], axis=0)
-        scat_fac2d[k] = np.where(mask, scat_fac2d[k], 0.)
-
-    return scat_fac2d
+    f = np.sqrt(fx*fx + fy*fy)
+    return scattering_factor_function(elem_numbers)(f)
 
 
 def elem_params(elem_numbers: List[int]) -> np.ndarray:
@@ -240,6 +318,8 @@ def _read_elem_parameters(asset_path: Path = None):
     a1, b1, a2, b2,
     a3, b3, c1, d1,
     c2, d2, c3, d3
+
+    a, b, c, d are in unit Angstrom^(−1), Angstrom^(−2), Angstrom, Angstrom^2
 
     Parameters
     ----------
