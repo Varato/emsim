@@ -30,9 +30,7 @@ static PyObject* multislice_propagate_fftw_wrapper(PyObject *self, PyObject *arg
     if(!parse_result) Py_RETURN_NONE;
 
     int n_slices = (int) slices->dimensions[0];
-    npy_intp dims[2] = {(int) slices->dimensions[1], (int) slices->dimensions[2]};
-
-
+    npy_intp dims[2] = {slices->dimensions[1], slices->dimensions[2]};
     PyArrayObject *wave_out = (PyArrayObject *)PyArray_EMPTY(2, dims, NPY_COMPLEX64, 0);
     int succeeded = multislice_propagate_fftw((fftwf_complex *)wave_in->data, (int)dims[0], (int)dims[1],
                                               (float *)slices->data, n_slices,  pixel_size, dz,
@@ -45,10 +43,48 @@ static PyObject* multislice_propagate_fftw_wrapper(PyObject *self, PyObject *arg
 }
 
 
+static PyObject* lens_propagate_fftw_wrapper(PyObject *self, PyObject *args, PyObject *kwds)
+{
+    PyArrayObject *wave_in;
+    float pixel_size, wave_length, cs_mm, defocus, aperture;
+
+    static char *kwlist[] = {
+        (char*)"wave_in",          // O!
+        (char*)"pixel_size",       // f
+        (char*)"wave_length",      // f
+        (char*)"cs_mm",            // f
+        (char*)"defocus",          // f
+        (char*)"aperture",         // f
+        NULL
+    };  
+
+    int parse_result = PyArg_ParseTupleAndKeywords(args, kwds, "O!fffff", kwlist, 
+        &PyArray_Type, &wave_in, 
+        &pixel_size, &wave_length, &cs_mm, &defocus, &aperture
+    );
+    if(!parse_result) Py_RETURN_NONE;
+
+    npy_intp dims[2] = {wave_in->dimensions[0], wave_in->dimensions[1]};
+    PyArrayObject *wave_out = (PyArrayObject *)PyArray_EMPTY(2, dims, NPY_COMPLEX64, 0);
+    int succeeded = lens_propagate_fftw((fftwf_complex *)wave_in->data, (int) dims[0], (int) dims[1], pixel_size,
+                                        wave_length, cs_mm, defocus, aperture,
+                                        (fftwf_complex *) wave_out->data);
+    if (!succeeded) {
+        Py_RETURN_NONE;
+    }
+    return PyArray_Return(wave_out);
+}
+
+
+
 /* Method table, Module definition and Module initialization function */
 static PyMethodDef em_kernel_methods[] = {
     {
         "multislice_propagate_fftw", (PyCFunction)multislice_propagate_fftw_wrapper, METH_VARARGS | METH_KEYWORDS,
+        ""
+    },
+    {
+        "lens_propagate_fftw", (PyCFunction)lens_propagate_fftw_wrapper, METH_VARARGS | METH_KEYWORDS,
         ""
     },
     {NULL, NULL, 0, NULL}

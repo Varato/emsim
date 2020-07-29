@@ -71,7 +71,7 @@ class EM(object):
             psi = self.multislice_propagate_fftw(specimen, wave_in)
         else:
             psi = self.multislice_propagate_np(specimen, wave_in, q_mgrid)
-        return self.lens_propagate(psi, q_mgrid)
+        return self.lens_propagate(psi, specimen.pixel_size)
 
     def multislice_propagate_fftw(self, specimen: Specimen, wave_in: np.ndarray):
         from .ext import em_kernel
@@ -94,11 +94,21 @@ class EM(object):
         t = np.exp(1j * self.relativity_gamma * self.wave_length_angstrom * vz)
         return wave_in * t
 
-    def lens_propagate(self, wave_in: np.ndarray, q_mgrid: np.ndarray):
+    def lens_propagate_(self, wave_in: np.ndarray, q_mgrid: np.ndarray):
         h = self.mtf_(q_mgrid)
-        apper = np.where(q_mgrid < self.aperture / self.wave_length_angstrom, 1., 0.)
-        wave_out = ifft2(ifftshift(h) * fft2(wave_in) * ifftshift(apper))
+        aper = np.where(q_mgrid < self.aperture / self.wave_length_angstrom, 1., 0.)
+        wave_out = ifft2(ifftshift(h) * fft2(wave_in) * ifftshift(aper))
         return wave_out
+
+    def lens_propagate(self, wave_in, pixel_size):
+        from .ext import em_kernel
+        return em_kernel.lens_propagate_fftw(
+            wave_in.astype(np.complex64),
+            pixel_size,
+            self.wave_length_angstrom,
+            self.cs,
+            self.defocus,
+            self.aperture)
 
     @staticmethod
     def _make_mesh_grid_fourier_space(pixel_size: float, size: Tuple[int, int]):
