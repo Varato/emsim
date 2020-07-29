@@ -69,9 +69,10 @@ class EM(object):
 
         if kernel == "fftw":
             psi = self.multislice_propagate_fftw(specimen, wave_in)
+            return self.lens_propagate(psi, specimen.pixel_size)
         else:
             psi = self.multislice_propagate_np(specimen, wave_in, q_mgrid)
-        return self.lens_propagate(psi, specimen.pixel_size)
+            return self.lens_propagate_(psi, q_mgrid)
 
     def multislice_propagate_fftw(self, specimen: Specimen, wave_in: np.ndarray):
         from .ext import em_kernel

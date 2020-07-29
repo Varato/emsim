@@ -286,7 +286,7 @@ def scattering_factors2d(elem_numbers: List[int], pixel_size: float, size: Union
     fy_range = np.fft.fftshift(np.fft.fftfreq(size[1], pixel_size))
 
     fx, fy = np.meshgrid(fx_range, fy_range, indexing="ij")
-    f = np.sqrt(fx*fx + fy*fy)
+    f = np.sqrt(fx * fx + fy * fy)
     return scattering_factor_function(elem_numbers)(f)
 
 
