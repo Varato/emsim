@@ -10,9 +10,15 @@ __global__ void convolve_fourier(cufftComplex *location_phase,
 }
 
 __host__
-int build_slices_fftwf_kernel(float scattering_factors_ifftshifted[], int n_elems,
+int build_slices_cufft_kernel(float scattering_factors[], int n_elems,
                               float atom_histograms[], int n_slices, int n1, int n2,
                               float output[])
+/*
+    Logical dimensions of the input arrays:
+        scattering_factors: (n_elems, n1, n2 // 2+1)
+        atom_histograms:    (n_elems, n_slices, n1, n2)
+    Notice the scattering_factors are halved on theiry last dimension, because it will be used in c2r FFT transforms.
+*/
 
 {
     int n[2] = {n1, n2};
@@ -24,18 +30,17 @@ int build_slices_fftwf_kernel(float scattering_factors_ifftshifted[], int n_elem
     int full_mem_size = sizeof(float) * n_elems * n_slices * n1 * n2;
 
 
-    cufftReal* atom_histograms_device, scattering_factors_device;
+    cufftReal* batch_data, scattering_factors_device;
     cufftComplex* location_phase_device;
     cufftComplex* slices_fourier_device;
-    cudaMalloc((void **)&atom_histograms_device, sizeof(cufftReal)*n_elems*n_slices*n_pix);
-    cudaMalloc((void **)&location_phase_device, sizeof(cufftComplex)*n_elems*n_slices*n_pix_half);
-    cudaMalloc((void **)&slices_fourier_device, sizeof(cufftComplex)*n_elems*n_slices*n_pix_half);
+    cudaMalloc((void **)&batch_data, sizeof(cufftReal)*n_elems*n_slices*n_pix);
     cudaMalloc((void **)&scattering_factors_device, sizeof(cufftReal)*n_elems*n_pix);
 
-    cudaMemcpy(atom_histograms_device, atom_histograms, sizeof(float) * batch * n_pix, cudaMemcpyHostToDevice);
-    cudaMemcpy(scattering_factors_device, scattering_factors_ifftshifted, sizeof(float) * n_elems * n_pix, cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&location_phase_device, sizeof(cufftComplex)*n_elems*n_slices*n_pix_half);
+    cudaMalloc((void **)&slices_fourier_device, sizeof(cufftComplex)*n_elems*n_slices*n_pix_half);
 
-
+    cudaMemcpy(batch_data, atom_histograms, sizeof(float) * batch * n_pix, cudaMemcpyHostToDevice);
+    cudaMemcpy(scattering_factors_device, scattering_factors, sizeof(float) * n_elems * n_pix, cudaMemcpyHostToDevice);
 
     cufftHandle p, ip;
     /*
@@ -54,7 +59,7 @@ int build_slices_fftwf_kernel(float scattering_factors_ifftshifted[], int n_elem
                   NULL, 1, n_pix
                   CUFFT_R2C, n_slices);
 
-    cufftExecR2C(p, (cufftReal *)atom_histograms_device, location_phase_device);
+    cufftExecR2C(p, (cufftReal *)batch_data, location_phase_device);
 
     int threadsPerBlock = 256;
     int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
@@ -63,10 +68,10 @@ int build_slices_fftwf_kernel(float scattering_factors_ifftshifted[], int n_elem
                                                                    n_elems, n_slices, n1, n2,
                                                                    slices_fourier_device);
 
-    cufftExecC2R(ip, slices_fourier, ?);
+    cufftExecC2R(ip, slices_fourier, batch_data);
     cufftDestroy(p);
     cufftDestroy(ip);
-    cudaFree(atom_histograms_device);
+    cudaFree(batch_data);
     cudaFree(location_phase_device);
     cudaFree(slices_fourier_device);
     cudaFree(scattering_factors_device);
