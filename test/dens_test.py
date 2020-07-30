@@ -14,7 +14,7 @@ class DensityTestCase(unittest.TestCase):
     def setUp(self) -> None:
         data_dir = emsim.io.data_dir.get_pdb_data_dir_from_config()
         # pipeline
-        pdb_code = '4ear'
+        pdb_code = '4bed'
         pdb_file = utils.pdb.retrieve_pdb_file(pdb_code, data_dir)
         mol = emsim.utils.pdb.build_biological_unit(pdb_file)
         self.mol = atm.centralize(mol)

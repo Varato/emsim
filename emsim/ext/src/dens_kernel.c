@@ -55,15 +55,15 @@ int build_slices_fftwf_kernel(float scattering_factors_ifftshifted[], int n_elem
     #pragma omp parallel for
     for (s = 0; s < n_slices; ++s) {
         for (int ii = 0; ii < n_pix_half; ++ii) {
-            int i = ii / len_y_half;
-            int j = ii % len_y_half;
+            // int i = ii / len_y_half;
+            // int j = ii % len_y_half;
             slices_flourer[s * n_pix_half + ii][0] = 0;
             slices_flourer[s * n_pix_half + ii][1] = 0;  // (n_slices, n_pix)
 
             for (int k = 0; k < n_elems; ++k){
                 float phase_real = location_phase[k*n_slices*n_pix_half + s*n_pix_half + ii][0];
                 float phase_imag = location_phase[k*n_slices*n_pix_half + s*n_pix_half + ii][1];
-                float scat_fac = scattering_factors_ifftshifted[k*n_pix + i*n2 + j];
+                float scat_fac = scattering_factors_ifftshifted[k*n_pix_half + ii];
                 slices_flourer[s * n_pix_half + ii][0] += phase_real * scat_fac;
                 slices_flourer[s * n_pix_half + ii][1] += phase_imag * scat_fac;
             }

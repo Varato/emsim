@@ -65,6 +65,19 @@ class AtomPotentialTestCase(unittest.TestCase):
             axes[i].imshow(vzs[i])
         plt.show()
 
+    def test_scattering_factors(self):
+        sc = elem.scattering_factors2d(self.elems, pixel_size=self.voxel_size, size=(70, 70))
+        n1, n2 = sc.shape[-2:]
+        print(sc.shape)
+        print(sc[:, :, :n2//2 + 1].shape)
+        print(sc[:, :, :n2//2 + 1].flags)
+        sc2 = np.ascontiguousarray(sc[:, :, :n2//2 + 1])
+        print(sc2.shape)
+        _, (ax1, ax2) = plt.subplots(ncols=2)
+        ax1.imshow(sc2[0])
+        ax2.imshow(np.flip(np.fft.ifftshift(sc2[0], axes=(0,)), axis=1))
+        plt.show()
+
     def test_protected_potential(self):
         """
         test for the fact:

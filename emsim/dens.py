@@ -192,7 +192,9 @@ def _prepare_slices_build(mol: atm.AtomList,
     n_slices = atmv.box_size[0]
 
     scattering_factors = elem.scattering_factors2d(elem_nums, pixel_size, size=(n1, n2)).astype(np.float32)
-    scattering_factors = ifftshift(scattering_factors)
+    scattering_factors = ifftshift(scattering_factors, axes=(-2, -1))
+    scattering_factors = np.ascontiguousarray(scattering_factors[:, :, :dims[2]//2 + 1], dtype=np.float32)
+    # scattering_factors = ifftshift(scattering_factors, axes=(-2, -1))
     return elem_nums, n_slices, n1, n2, atmv, scattering_factors
 
 
