@@ -104,14 +104,54 @@ def build_slices_fourier_np(mol: atm.AtomList,
     elem_nums, n_slices, n1, n2, atmv, scattering_factors = _prepare_slices_build(
         mol, pixel_size, thickness, lateral_size, n_slices, add_water)
 
-    slices = np.zeros(shape=atmv.box_size, dtype=np.float32)
-    for s in range(n_slices):
-        if not np.any(atmv.atom_histograms[:, s, ...]):
-            continue
-        for i, _ in enumerate(elem_nums):
-            # slices[s, ...] += np.fft.ifft2(np.fft.fft2(atmv.atom_histograms[i, s, ...]) * scattering_factors[i]).real
-            slices[s, ...] += irfft2(rfft2(atmv.atom_histograms[i, s, :, :]) *
-                                     scattering_factors[i, :, :n2 // 2 + 1], s=(n1, n2))
+    location_phase = rfft2(atmv.atom_histograms, axes=(-2, -1))  # (n_elems, n_slices, n1, n2//2+1)
+    location_phase *= scattering_factors[:, None, :, :]
+    slices = irfft2(np.sum(location_phase, axis=0), s=(n1, n2))
+
+    np.clip(slices, a_min=1e-7, a_max=None, out=slices)
+    return slices  # * 2 * np.pi * a0 * e / pixel_size**2
+
+
+def build_slices_fourier_cufft(mol: atm.AtomList,
+                               pixel_size: float,
+                               thickness: float,
+                               lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
+                               n_slices: Optional[int] = None,
+                               add_water: bool = False):
+    """
+    builds projected potential slices for EM multi-slice imaging simulation
+
+    Parameters
+    ----------
+    mol
+    pixel_size
+    thickness
+    lateral_size
+    n_slices
+    add_water
+
+    Returns
+    -------
+    array
+        projected potential slices
+
+    Notes
+    -----
+    The first dimension indexes different slices. For example:
+    `slices = build_slices_fourier(...)`, then `slices[i, ...]` is the i-th slice.
+
+    """
+    try:
+        from .ext import dens_kernel_cuda
+    except ImportError:
+        raise ImportError("the extension dens_kernel_cuda cannot be found. use numpy version instead.")
+
+    elem_nums, n_slices, n1, n2, atmv, scattering_factors = _prepare_slices_build(
+        mol, pixel_size, thickness, lateral_size, n_slices, add_water)
+
+    slices = dens_kernel_cuda.build_slices_fourier_cufft(
+        scattering_factors_ifftshifted=scattering_factors,
+        atom_histograms=atmv.atom_histograms.astype(np.float32))
 
     np.clip(slices, a_min=1e-7, a_max=None, out=slices)
     return slices  # * 2 * np.pi * a0 * e / pixel_size**2

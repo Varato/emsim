@@ -8,7 +8,7 @@ int build_slices_fftwf_kernel(float scattering_factors[], int n_elems,
                               float output[])
 /*
     Logical dimensions of the input arrays:
-        scattering_factors: (n_elems, n1, n2 // 2+1)
+        scattering_factors: (n_elems, n1, n2//2 + 1)
         atom_histograms:    (n_elems, n_slices, n1, n2)
     Notice the scattering_factors are halved on theiry last dimension, because it will be used in c2r FFT transforms.
 */
@@ -19,11 +19,11 @@ int build_slices_fftwf_kernel(float scattering_factors[], int n_elems,
     int n[2] = {n1, n2};                   // logical dimensions of each fft transform
     
     fftwf_plan p, ip;
-    fftwf_complex *intermediate;
+    fftwf_complex *data;
 
-    intermediate = (fftwf_complex *) fftwf_malloc(sizeof(fftwf_complex) * n_elems * n_slices * n_pix_half);
+    data = (fftwf_complex *) fftwf_malloc(sizeof(fftwf_complex) * n_elems * n_slices * n_pix_half);
 
-    if(!intermediate){
+    if(!data){
         return 0;
     }
 
@@ -35,12 +35,12 @@ int build_slices_fftwf_kernel(float scattering_factors[], int n_elems,
     p  = fftwf_plan_many_dft_r2c(2, n, n_elems * n_slices,
                                  atom_histograms, NULL,
                                  1, n_pix,
-                                 intermediate, NULL,
+                                 data, NULL,
                                  1, n_pix_half,
                                  FFTW_ESTIMATE);
 
     ip = fftwf_plan_many_dft_c2r(2, n, n_slices,
-                                 intermediate, NULL,
+                                 data, NULL,
                                  1, n_pix_half,
                                  output, NULL,
                                  1, n_pix,
@@ -57,22 +57,22 @@ int build_slices_fftwf_kernel(float scattering_factors[], int n_elems,
             float slices_fourier_imag = 0;
 
             for (int k = 0; k < n_elems; ++k){
-                float phase_real = intermediate[k*n_slices*n_pix_half + s*n_pix_half + ii][0];
-                float phase_imag = intermediate[k*n_slices*n_pix_half + s*n_pix_half + ii][1];
+                float phase_real = data[k*n_slices*n_pix_half + s*n_pix_half + ii][0];
+                float phase_imag = data[k*n_slices*n_pix_half + s*n_pix_half + ii][1];
                 float scat_fac = scattering_factors[k*n_pix_half + ii];
                 slices_fourier_real += phase_real * scat_fac;
                 slices_fourier_imag += phase_imag * scat_fac;
             }
             slices_fourier_real /= (float)n_pix;
             slices_fourier_imag /= (float)n_pix;
-            intermediate[0*n_slices*n_pix_half + s*n_pix_half + ii][0] = slices_fourier_real;
-            intermediate[0*n_slices*n_pix_half + s*n_pix_half + ii][1] = slices_fourier_imag;
+            data[s*n_pix_half + ii][0] = slices_fourier_real;
+            data[s*n_pix_half + ii][1] = slices_fourier_imag;
         }
     }
     fftwf_execute(ip);
     fftwf_destroy_plan(p);
     fftwf_destroy_plan(ip);
-    fftwf_free(intermediate);
+    fftwf_free(data);
 
     return 1;
 }

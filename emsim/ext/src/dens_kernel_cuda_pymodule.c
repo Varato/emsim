@@ -1,13 +1,12 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
-#include <fftw3/fftw3.h>
 #include <stdio.h>
 
-#include "dens_kernel.h"
+#include "dens_kernel.cuh"
 #include "def.h"
 
 
-static PyObject* build_slices_fftw_wrapper(PyObject *self, PyObject *args, PyObject *kwds)
+static PyObject* build_slices_cufft_wrapper(PyObject *self, PyObject *args, PyObject *kwds)
 {
     PyArrayObject *scattering_factors_ifftshifted, *atom_histograms;
 
@@ -27,7 +26,7 @@ static PyObject* build_slices_fftw_wrapper(PyObject *self, PyObject *args, PyObj
     npy_intp dims[3] = {atom_histograms->dimensions[1], atom_histograms->dimensions[2], atom_histograms->dimensions[3]};
 
     PyArrayObject *slices = (PyArrayObject *)PyArray_EMPTY(3, dims, NPY_FLOAT32, 0);
-    int succeeded = build_slices_fftwf_kernel((float *)scattering_factors_ifftshifted->data, n_elems,
+    int succeeded = build_slices_cufft_kernel((float *)scattering_factors_ifftshifted->data, n_elems,
                                               (float *)atom_histograms->data, (int)dims[0], (int)dims[1], (int)dims[2],
                                               (float *)slices->data);
     if (!succeeded) {
@@ -38,29 +37,28 @@ static PyObject* build_slices_fftw_wrapper(PyObject *self, PyObject *args, PyObj
 }
 
 
-
 /* Method table, Module definition and Module initialization function */
-static PyMethodDef dens_kernel_methods[] = {
+static PyMethodDef dens_kernel_cuda_methods[] = {
     {
-        "build_slices_fourier_fftw", (PyCFunction)build_slices_fftw_wrapper, METH_VARARGS | METH_KEYWORDS,
+        "build_slices_fourier_cufft", (PyCFunction)build_slices_cufft_wrapper, METH_VARARGS | METH_KEYWORDS,
         ""
     },
     {NULL, NULL, 0, NULL}
 };
 
 
-static PyModuleDef dens_kernel = {
+static PyModuleDef dens_kernel_cuda = {
     PyModuleDef_HEAD_INIT,
-    "dens_kernel",
+    "dens_kernel_cuda",
     "This module provides core functions buiding specimen densities",
     -1,
-    dens_kernel_methods
+    dens_kernel_cuda_methods
 };
 
-PyMODINIT_FUNC PyInit_dens_kernel(void)
+PyMODINIT_FUNC PyInit_dens_kernel_cuda(void)
 {
     PyObject *module;
-    module = PyModule_Create(&dens_kernel);
+    module = PyModule_Create(&dens_kernel_cuda);
     import_array();
     // import_ufunc();
     return module;

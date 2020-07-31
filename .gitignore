@@ -144,3 +144,6 @@ pyvenv.cfg
 .vscode/
 
 .idea/
+
+*.dll
+*.lib

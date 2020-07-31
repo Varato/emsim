@@ -6,8 +6,8 @@ ext_modules = []
 data_files = []
 
 if platform.system() == "Windows" and platform.machine() == "AMD64":
-    fftw_dlls = ["libfftw3f-3.dll"]
-    data_files.append(("emsim/ext", ["emsim/ext/lib_x86_64-win32/" + dll for dll in fftw_dlls]))
+    dlls = ["libfftw3f-3.dll", "cudart64_101.dll", "cufft64_10.dll"]
+    data_files.append(("emsim/ext", ["emsim/ext/lib_x86_64-win32/" + dll for dll in dlls]))
 
     dens_kernel = Extension(
         "emsim.ext.dens_kernel",
@@ -32,6 +32,17 @@ if platform.system() == "Windows" and platform.machine() == "AMD64":
         extra_compile_args=['/openmp'],
     )
     ext_modules.append(em_kernel)
+
+    dens_kernel_cuda = Extension(
+        "emsim.ext.dens_kernel_cuda",
+        sources=[
+            "emsim/ext/src/dens_kernel_cuda_pymodule.c"],
+        include_dirs=["emsim/ext/include", np.get_include()],
+        library_dirs=["emsim/ext/lib_x86_64-win32"],
+        libraries=['libDensKernelCuda', 'cudart', 'cufft'],
+        extra_compile_args=['/NODEFAULTLIB']
+    )
+    ext_modules.append(dens_kernel_cuda)
 
 
 setup(
