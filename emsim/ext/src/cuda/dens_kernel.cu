@@ -4,8 +4,8 @@
 #include <math.h>
 
 
-#include "rowReduceSum.cuh"
-#include "broadCastMul.cuh"
+#include "row_reduce_sum.cuh"
+#include "broadcast_mul.cuh"
 
 
 extern "C" int build_slices_cufft_kernel(float scattering_factors[], int n_elems,

@@ -9,8 +9,8 @@ find_package(CUDAToolkit REQUIRED)
 
 add_library(libDensKernelCuda STATIC 
     src/cuda/dens_kernel.cu
-    src/cuda/broadCastMul.cu
-    src/cuda/rowReduceSum.cu)
+    src/cuda/broadcast_mul.cu
+    src/cuda/row_reduce_sum.cu)
 
 target_link_libraries(libDensKernelCuda PRIVATE CUDA::cufft CUDA::cudart)
 set_target_properties(libDensKernelCuda PROPERTIES
