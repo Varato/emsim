@@ -76,7 +76,7 @@ __global__ void broadcastMulKernel(cufftComplex *A, cufftReal *v, cufftReal a, i
 void broadCastMul(cufftComplex *A_d, cufftReal *v_d, cufftReal a, int n0, int n1, int n2) {
     cudaDeviceProp prop;
     if(cudaGetDeviceProperties (&prop, 0) != cudaSuccess) {
-        printf("cuda Cannot get device information\n");
+        fprintf(stderr, "cuda Cannot get device information\n");
         return;
     }
     

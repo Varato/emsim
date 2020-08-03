@@ -29,6 +29,8 @@ int multislice_propagate_fftw(fftwf_complex wave_in[], int n1, int n2,
     float f_max = 0.5f / pixel_size;
     float filter = 0.6667f * f_max;
 
+    float factor = wave_length * relativity_gamma;
+
     fftwf_plan p, ip;
 
     fftwf_plan_with_nthreads(omp_get_max_threads());
@@ -37,10 +39,13 @@ int multislice_propagate_fftw(fftwf_complex wave_in[], int n1, int n2,
 
 
     int ii;  // indexing pixels
-    for (ii = 0; ii < n_pix; ++ii) {
-    // printf("wave_in %d = (%f, %f)\n", ii, wave_in[ii][0], wave_in[ii][1]);
-        wave_out[ii][0] = wave_in[ii][0];
-        wave_out[ii][1] = wave_in[ii][1];
+    if (wave_in != wave_out) {
+        #pragma omp parallel for
+        for (ii = 0; ii < n_pix; ++ii) {
+        // printf("wave_in %d = (%f, %f)\n", ii, wave_in[ii][0], wave_in[ii][1]);
+            wave_out[ii][0] = wave_in[ii][0];
+            wave_out[ii][1] = wave_in[ii][1];
+        }
     }
 
     for (int s = 0; s < n_slices; ++s) {
@@ -49,8 +54,8 @@ int multislice_propagate_fftw(fftwf_complex wave_in[], int n1, int n2,
         #pragma omp parallel for
         for (ii = 0; ii < n_pix; ++ii){
             float pix = slices[s*n_pix + ii];
-            float t_real = cosf(pix * wave_length * relativity_gamma);
-            float t_imag = sinf(pix * wave_length * relativity_gamma);
+            float t_real = cosf(pix * factor);
+            float t_imag = sinf(pix * factor);
             // (wave_out[ii][0] + wave_out[ii][1] i) * (t_real + t_imag i)
             float real = wave_out[ii][0] * t_real - wave_out[ii][1] * t_imag;
             float imag = wave_out[ii][0] * t_imag + wave_out[ii][1] * t_real;
@@ -76,13 +81,11 @@ int multislice_propagate_fftw(fftwf_complex wave_in[], int n1, int n2,
                 // construct the spatial propagator;
                 float p_real = cosf(wave_length * PI * dz * f2);
                 float p_imag = -sinf(wave_length * PI * dz * f2);
-                float real = (wave_out[ii][0] * p_real - wave_out[ii][1] * p_imag);
-                float imag = (wave_out[ii][0] * p_imag + wave_out[ii][1] * p_real);
+                float real = wave_out[ii][0] * p_real - wave_out[ii][1] * p_imag;
+                float imag = wave_out[ii][0] * p_imag + wave_out[ii][1] * p_real;
                 wave_out[ii][0] = real / (float)n_pix;
                 wave_out[ii][1] = imag / (float)n_pix;
-            }
-            
-            else {
+            } else {
                 wave_out[ii][0] = 0;
                 wave_out[ii][1] = 0;
             }
@@ -139,8 +142,8 @@ int lens_propagate_fftw(fftwf_complex wave_in[], int n1, int n2, float pixel_siz
             float aberr = c1 * f2 * f2 - c2 * f2;
             float h_real = cosf(aberr);
             float h_imag = -sinf(aberr);
-            float real = (wave_out[ii][0] * h_real - wave_out[ii][1] * h_imag);
-            float imag = (wave_out[ii][0] * h_imag + wave_out[ii][1] * h_real);
+            float real = wave_out[ii][0] * h_real - wave_out[ii][1] * h_imag;
+            float imag = wave_out[ii][0] * h_imag + wave_out[ii][1] * h_real;
             wave_out[ii][0] = real / (float)n_pix;
             wave_out[ii][1] = imag / (float)n_pix;
         } else {

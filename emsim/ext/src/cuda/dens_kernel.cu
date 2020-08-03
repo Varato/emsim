@@ -8,9 +8,9 @@
 #include "broadcast_mul.cuh"
 
 
-extern "C" int build_slices_cufft_kernel(float scattering_factors[], int n_elems,
-                                         float atom_histograms[], int n_slices, int n1, int n2,
-                                         float output[])
+extern "C" void build_slices_cufft_kernel(float scattering_factors[], int n_elems,
+                                          float atom_histograms[], int n_slices, int n1, int n2,
+                                          float output[])
 /*
     Logical dimensions of the input arrays:
         scattering_factors: (n_elems, n1, n2 // 2 + 1)
@@ -31,24 +31,19 @@ extern "C" int build_slices_cufft_kernel(float scattering_factors[], int n_elems
     cufftComplex* location_phase_d;   // to hold intermediate fft result and do computations on it
     if (cudaMalloc((void **)&batch_data_d, sizeof(cufftReal) * batch * n_pix) != cudaSuccess) {
         fprintf(stderr, "CUDA error: %s", cudaGetErrorString(cudaGetLastError()));
-        return 0;
     }
     if (cudaMalloc((void **)&scattering_factors_d, sizeof(cufftReal) * n_elems * n_pix_half) != cudaSuccess) {
         fprintf(stderr, "CUDA error: %s", cudaGetErrorString(cudaGetLastError()));
-        return 0;
     }
     if (cudaMalloc((void **)&location_phase_d, sizeof(cufftComplex) * batch * n_pix_half) != cudaSuccess) {
         fprintf(stderr, "CUDA error: %s", cudaGetErrorString(cudaGetLastError()));
-        return 0;
     }
 
     if (cudaMemcpy(batch_data_d, atom_histograms, sizeof(float) * batch * n_pix, cudaMemcpyHostToDevice) != cudaSuccess) {
         fprintf(stderr, "CUDA error: %s", cudaGetErrorString(cudaGetLastError()));
-        return 0;
     }
     if (cudaMemcpy(scattering_factors_d, scattering_factors, sizeof(float) * n_elems * n_pix_half, cudaMemcpyHostToDevice) != cudaSuccess) {
         fprintf(stderr, "CUDA error: %s", cudaGetErrorString(cudaGetLastError()));
-        return 0;
     }
 
     cufftHandle p, ip;
@@ -63,8 +58,6 @@ extern "C" int build_slices_cufft_kernel(float scattering_factors[], int n_elems
                       NULL, 1, n_pix_half,
                       CUFFT_R2C, batch) != CUFFT_SUCCESS) {
         fprintf(stderr, "CUFFT error: Plan creation failed");
-        return 0;	
-
     }
 
     if (cufftPlanMany(&ip, 2, n,
@@ -72,12 +65,10 @@ extern "C" int build_slices_cufft_kernel(float scattering_factors[], int n_elems
                       NULL, 1, n_pix,
                       CUFFT_C2R, n_slices) != CUFFT_SUCCESS) {
         fprintf(stderr, "CUFFT error: Plan creation failed");
-        return 0;
     }
 
     if (cufftExecR2C(p, (cufftReal *)batch_data_d, location_phase_d) != CUFFT_SUCCESS) {
         fprintf(stderr, "CUFFT error: R2C plan executation failed");
-        return 0;
     }
 
     broadCastMul(location_phase_d, scattering_factors_d, 1.0f/(float)n_pix, n_elems, n_slices, n_pix_half);
@@ -91,13 +82,11 @@ extern "C" int build_slices_cufft_kernel(float scattering_factors[], int n_elems
 
     if (cufftExecC2R(ip, location_phase_d, batch_data_d) != CUFFT_SUCCESS) {
         fprintf(stderr, "CUFFT error: C2R plan executation failed");
-        return 0;
     }
 
 
     if (cudaMemcpy(output, batch_data_d, sizeof(float)*n_slices*n_pix, cudaMemcpyDeviceToHost) != cudaSuccess) {
         fprintf(stderr, "CUDA error: %s", cudaGetErrorString(cudaGetLastError()));
-        return 0;
     }
 
     cufftDestroy(p);
@@ -105,5 +94,4 @@ extern "C" int build_slices_cufft_kernel(float scattering_factors[], int n_elems
     cudaFree(batch_data_d);
     cudaFree(location_phase_d);
     cudaFree(scattering_factors_d);
-    return 1;
 }
