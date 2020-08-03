@@ -81,7 +81,6 @@ __global__ void rowReduceSumKernel(cufftComplex *A, int n0, int n1, cufftComplex
             if (threadIdx.x == 0 && col < n1) {
                 output[(blockIdx.x + girdXSlidingCount * gridDim.x) * n1 + col].x = sA[threadIdx.y].x;
                 output[(blockIdx.x + girdXSlidingCount * gridDim.x) * n1 + col].y = sA[threadIdx.y].y;
-
             }
             
             gridStartRow += rowBatch;
@@ -97,7 +96,7 @@ __global__ void rowReduceSumKernel(cufftComplex *A, int n0, int n1, cufftComplex
 void rowReduceSum(cufftComplex *A_d, int n0, int n1, cufftComplex *output_d) {
     cudaDeviceProp prop;
     if(cudaGetDeviceProperties (&prop, 0) != cudaSuccess) {
-        printf("cuda Cannot get device information\n");
+        fprintf(stderr, "CUDA error: %s\n", cudaGetErrorString(cudaGetLastError()));
         return;
     }
     int nRows = n0;
@@ -117,13 +116,9 @@ void rowReduceSum(cufftComplex *A_d, int n0, int n1, cufftComplex *output_d) {
         int gridDimY = (int)ceilf((float)n1 / (float)blockDimY);
         gridDimX = gridDimX > 65535? 65535: gridDimX;
         gridDimY = gridDimY > 65535? 65535: gridDimY; 
-        // gridDimX = 2;
-        // blockDimX = 2;
         dim3 grid(gridDimX, gridDimY);
         dim3 block(blockDimX, blockDimY);
     
-        printf("grid: (%d, %d). block: (%d, %d)\n", gridDimX, gridDimY, blockDimX, blockDimY);
-
         int threadsPerBlock = block.x * block.y;
         size_t sharedMemSize = sizeof(cufftComplex) * threadsPerBlock;
 

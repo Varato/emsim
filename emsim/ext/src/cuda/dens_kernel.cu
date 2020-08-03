@@ -5,7 +5,7 @@
 
 
 #include "rowReduceSum.cuh"
-#include "broadCast.cuh"
+#include "broadCastMul.cuh"
 
 
 extern "C" int build_slices_cufft_kernel(float scattering_factors[], int n_elems,
@@ -80,10 +80,14 @@ extern "C" int build_slices_cufft_kernel(float scattering_factors[], int n_elems
         return 0;
     }
 
-    broadCastMul(location_phase_d, scattering_factors_d, n_elems, n_slices, n_pix_half);
-    printf("CUDA: %s\n", cudaGetErrorString(cudaGetLastError()));
+    broadCastMul(location_phase_d, scattering_factors_d, 1.0f/(float)n_pix, n_elems, n_slices, n_pix_half);
+    if (cudaGetLastError() != cudaSuccess) {
+        fprintf(stderr, "CUDA error: %s", cudaGetErrorString(cudaGetLastError()));
+    }
     rowReduceSum(location_phase_d, n_elems, n_slices*n_pix_half, location_phase_d);
-    printf("CUDA: %s\n", cudaGetErrorString(cudaGetLastError()));
+    if (cudaGetLastError() != cudaSuccess) {
+        fprintf(stderr, "CUDA error: %s", cudaGetErrorString(cudaGetLastError()));
+    }
 
     if (cufftExecC2R(ip, location_phase_d, batch_data_d) != CUFFT_SUCCESS) {
         fprintf(stderr, "CUFFT error: C2R plan executation failed");
@@ -103,91 +107,3 @@ extern "C" int build_slices_cufft_kernel(float scattering_factors[], int n_elems
     cudaFree(scattering_factors_d);
     return 1;
 }
-
-
-// __global__ void convolve_fourier(cufftComplex *location_phase, 
-//                                  cufftReal *scattering_factors,
-//                                  int n_elems, int n_slices, int n1, int n2)
-// /*
-//  * location_phase:     (n_elems, n_slices, n1, n2 // 2 + 1)
-//  * scattering_factors:           (n_elems, n1, n2 // 2 + 1)
-//  * k indexes elems
-//  * s indexes slices
-//  * ii index pixels
-// */
-// {
-//     int n2_half = n2 / 2 + 1;
-//     int n_pix = n1 * n2;
-//     int n_pix_half = n1 * n2_half;
-//     int batch_size = n_elems * n_slices * n_pix_half;
-//     int n_blocks = gridDim.x;
-//     int n_threads = blockDim.x;
-//     int n_threads_total = n_blocks * n_threads;
-
-//     int works_per_thread = batch_size / n_threads_total;
-//     int works_thread_remainder = batch_size % n_threads_total;
-
-//     int gidx = threadIdx.x + blockDim.x * blockIdx.x;
-
-//     // multiply location phases by scattering factors for each elements
-//     int n_works = works_per_thread;
-//     if (gidx < works_thread_remainder) {
-//         n_works += 1;
-//     }
-
-//     int work_id;  // runs over 0, 1, ..., batch_size
-//     for (int i = 0; i < n_works; ++i) {
-//         // threads is more than works
-//         if (works_per_thread == 0) {
-//             work_id = gidx;
-//         } else {
-//             if (i < works_per_thread) {
-//                 work_id = gidx * works_per_thread + i;
-//             } else {
-//                 work_id = gidx + batch_size - works_thread_remainder;
-//             }
-//         }
-        
-//         int ss = work_id / n_pix_half;
-//         int ii = work_id % n_pix_half;
-//         int k = ss / n_slices;
-//         int s = ss % n_slices;
-
-//         location_phase[k*n_slices*n_pix_half + s*n_pix_half + ii].x *= scattering_factors[k*n_pix_half + ii];
-//         location_phase[k*n_slices*n_pix_half + s*n_pix_half + ii].y *= scattering_factors[k*n_pix_half + ii];
-//     }
-
-//     __syncthreads();
-
-//     // reduce sum over elements
-//     works_per_thread = (n_slices * n_pix_half) / n_threads_total;
-//     works_thread_remainder = (n_slices * n_pix_half) % n_threads_total;
-
-//     n_works = works_per_thread;
-//     if (gidx < works_thread_remainder) {
-//         n_works += 1;
-//     }
-
-//     // work_id runs over 0, 1, ..., n_slices * n_pix_half
-//     for (int i = 0; i < n_works; ++i) {
-//         if (works_per_thread == 0) {
-//             work_id = gidx;
-//         } else {
-//             if (i < works_per_thread) {
-//                 work_id = gidx * works_per_thread + i;
-//             } else {
-//                 work_id = gidx + batch_size - works_thread_remainder;
-//             }
-//         }
-//         int s = work_id / n_pix_half;
-//         int ii = work_id % n_pix_half;
-
-//         // accumulate to k = 0
-//         for (int k = 1; k < n_elems; ++k) {
-//             location_phase[s*n_pix_half + ii].x += location_phase[k*n_slices*n_pix_half + s*n_pix_half + ii].x;
-//             location_phase[s*n_pix_half + ii].y += location_phase[k*n_slices*n_pix_half + s*n_pix_half + ii].y;
-//         }
-//         // location_phase[s*n_pix_half + ii].x = real / (float)n_pix;
-//         // location_phase[s*n_pix_half + ii].y = imag / (float)n_pix;
-//     }
-// }

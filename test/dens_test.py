@@ -48,7 +48,8 @@ class DensityTestCase(unittest.TestCase):
             self.mol, pixel_size=self.voxel_size, thickness=1.2,
             lateral_size=256)
         t3 = time.time()
-        print(type(slices3))
+
+        print("slices shape:", slices.shape)
 
         print("difference np fftw: ", np.abs(slices2 - slices).max())
         print("difference np cufft: ", np.abs(slices - slices3).max())

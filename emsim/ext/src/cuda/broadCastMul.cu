@@ -3,11 +3,11 @@
 #include <stdio.h>
 #include <math.h>
 
-__global__ void broadcastMulKernel(cufftComplex *A, cufftReal *v, int n0, int n1, int n2)
+__global__ void broadcastMulKernel(cufftComplex *A, cufftReal *v, cufftReal a, int n0, int n1, int n2)
 /*
  * A: (n0, n1, n2)
  * v: (n0, n2)
- * In-place computes A * v in a broadcasting way so that the result is in shape (n0, n1, n2). 
+ * In-place computes a*A * v in a broadcasting way so that the result is in shape (n0, n1, n2). 
  * A and v must be C-contiguous
  
  * Thread sliding algorithm:
@@ -57,15 +57,15 @@ __global__ void broadcastMulKernel(cufftComplex *A, cufftReal *v, int n0, int n1
         if (col < n_cols) {
             for (int w = 0; w < block_works_intact; ++w) {            
                 row = start_row + threadIdx.x;
-                A[i*n1*n2 + row*n2 + k].x *= s[threadIdx.y];
-                A[i*n1*n2 + row*n2 + k].y *= s[threadIdx.y];
+                A[i*n1*n2 + row*n2 + k].x *= s[threadIdx.y] * a;
+                A[i*n1*n2 + row*n2 + k].y *= s[threadIdx.y] * a;
                 start_row += rowBatch;
             }
 
             if (threadIdx.x < rows_remained) {
                 row = start_row + threadIdx.x;
-                A[i*n1*n2 + row*n2 + k].x *= s[threadIdx.y];
-                A[i*n1*n2 + row*n2 + k].y *= s[threadIdx.y];
+                A[i*n1*n2 + row*n2 + k].x *= s[threadIdx.y] * a;
+                A[i*n1*n2 + row*n2 + k].y *= s[threadIdx.y] * a;
             }
         }
         gridStartCol += colBatch;
@@ -73,7 +73,7 @@ __global__ void broadcastMulKernel(cufftComplex *A, cufftReal *v, int n0, int n1
 }
 
 
-void broadCastMul(cufftComplex *A_d, cufftReal *v_d, int n0, int n1, int n2) {
+void broadCastMul(cufftComplex *A_d, cufftReal *v_d, cufftReal a, int n0, int n1, int n2) {
     cudaDeviceProp prop;
     if(cudaGetDeviceProperties (&prop, 0) != cudaSuccess) {
         printf("cuda Cannot get device information\n");
@@ -95,5 +95,5 @@ void broadCastMul(cufftComplex *A_d, cufftReal *v_d, int n0, int n1, int n2) {
     // printf("grid: (%d,). block: (%d, %d)\n", gridDimX, blockDimX, blockDimY);
     size_t sharedMemSize = sizeof(cufftReal) * block.y;
 
-    broadcastMulKernel<<<grid, block, sharedMemSize>>>(A_d, v_d, n0, n1, n2);
+    broadcastMulKernel<<<grid, block, sharedMemSize>>>(A_d, v_d, a, n0, n1, n2);
 }
