@@ -2,7 +2,7 @@
 #include <numpy/arrayobject.h>
 #include <stdio.h>
 
-#include "dens_kernel.cuh"
+#include "cuda/dens_kernel.cuh"
 #include "def.h"
 
 

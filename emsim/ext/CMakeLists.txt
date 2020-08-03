@@ -7,7 +7,11 @@ find_package(CUDAToolkit REQUIRED)
 # message("Found Python Runtime Libraries at: ${Python_RUNTIME_LIBRARY_DIRS}")
 # message("Found CudaToolkit Lib Path: ${CUDAToolkit_LIBRARY_DIR}")
 
-add_library(libDensKernelCuda STATIC src/dens_kernel.cu)
+add_library(libDensKernelCuda STATIC 
+    src/cuda/dens_kernel.cu
+    src/cuda/broadCast.cu
+    src/cuda/rowReduceSum.cu)
+    
 target_link_libraries(libDensKernelCuda PRIVATE CUDA::cufft CUDA::cudart)
 set_target_properties(libDensKernelCuda PROPERTIES
     CUDA_ARCHITECTURES 75

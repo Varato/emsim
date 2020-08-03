@@ -29,7 +29,8 @@ class DensityTestCase(unittest.TestCase):
     def test_build_slices_fourier_cufft(self):
         slices = dens.build_slices_fourier_cufft(
             self.mol, pixel_size=self.voxel_size, thickness=1.2,
-            lateral_size=200)
+            lateral_size=200, n_slices=52)
+        print(slices.shape)
         plt.imshow(slices.sum(0))
         plt.show()
 
@@ -37,23 +38,24 @@ class DensityTestCase(unittest.TestCase):
         t0 = time.time()
         slices = dens.build_slices_fourier_np(
             self.mol, pixel_size=self.voxel_size, thickness=1.2,
-            lateral_size=200)
+            lateral_size=256)
         t1 = time.time()
         slices2 = dens.build_slices_fourier_fftw(
             self.mol, pixel_size=self.voxel_size, thickness=1.2,
-            lateral_size=200)
+            lateral_size=256)
         t2 = time.time()
         slices3 = dens.build_slices_fourier_cufft(
             self.mol, pixel_size=self.voxel_size, thickness=1.2,
-            lateral_size=200)
+            lateral_size=256)
         t3 = time.time()
+        print(type(slices3))
 
         print("difference np fftw: ", np.abs(slices2 - slices).max())
         print("difference np cufft: ", np.abs(slices - slices3).max())
         print(f"np time = {t1-t0:.3f}, fftw time = {t2-t1:.3f}, cufft time = {t3-t2:.3f}")
 
         _, (ax1, ax2, ax3) = plt.subplots(ncols=3)
-        ax1.imshow((slices2 - slices3).sum(0))
+        ax1.imshow(slices.sum(0))
         ax2.imshow(slices2.sum(0))
         ax3.imshow(slices3.sum(0))
         plt.show()
