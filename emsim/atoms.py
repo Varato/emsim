@@ -5,18 +5,20 @@ AtomList: Represents a list of atoms specified by their Z, associated with their
 AtomVolume: Represents a list of unique elements specified by their Z, associated with all atoms of this kind binned in
     a 3D histogram according to their (x, y, z) coordiantes.
 """
-from typing import Union, Optional, Tuple, List, Dict, Generator
+from typing import Union, Optional, Tuple, List, Generator
 from functools import reduce
 import math
 import numpy as np
+
 
 from .utils.rot import get_rotation_mattrices
 from .physics import water_num_dens
 
 float_type = np.float32
 
+
 class AtomList(object):
-    def __init__(self, elements: np.ndarray, coordinates: np.ndarray):
+    def __init__(self, elements, coordinates):
         """
         Parameters
         ----------
@@ -32,11 +34,11 @@ class AtomList(object):
 
     @property
     def r_min(self):
-        return np.min(self.coordinates, axis=0)
+        return self.coordinates.min(axis=0)
 
     @property
     def r_max(self):
-        return np.max(self.coordinates, axis=0)
+        return self.coordinates.max(axis=0)
 
     @property
     def space(self):
@@ -46,7 +48,7 @@ class AtomList(object):
 class AtomVolume(object):
     def __init__(self,
                  unique_elements: List[int],
-                 atom_histograms: np.ndarray,
+                 atom_histograms,
                  voxel_size: Union[float, Tuple[float, float, float]]):
         self.unique_elements = unique_elements  # (n_elems, )
         self.atom_histograms = atom_histograms  # (n_elems, *box_size)
@@ -63,7 +65,7 @@ class AtomVolume(object):
         return np.logical_and.reduce(vacs, axis=0)
 
 
-def group_atoms(atom_list: AtomList) -> Dict[int, np.ndarray]:
+def group_atoms(atom_list: AtomList):
     """
     groups atom_list by element kinds.
 
@@ -108,7 +110,7 @@ def sort_atoms(atom_list: AtomList) -> AtomList:
     return AtomList(elements=sorted_elems, coordinates=sorted_coords)
 
 
-def translate(atom_list: AtomList, r: np.ndarray) -> AtomList:
+def translate(atom_list: AtomList, r) -> AtomList:
     """
     translates all atoms by a displacement vector.
 
@@ -116,14 +118,13 @@ def translate(atom_list: AtomList, r: np.ndarray) -> AtomList:
     ----------
     atom_list: AtomList
         the input AtomList.
-    r: np.ndarray
+    r: ndarray
         the displacement vector.
 
     Returns
     -------
     AtomList
         the translated AtomList.
-
     """
     return AtomList(elements=atom_list.elements, coordinates=atom_list.coordinates + r)
 

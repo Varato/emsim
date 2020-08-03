@@ -18,7 +18,7 @@ class DensityTestCase(unittest.TestCase):
         pdb_file = utils.pdb.retrieve_pdb_file(pdb_code, data_dir)
         mol = emsim.utils.pdb.build_biological_unit(pdb_file)
         self.mol = atm.centralize(mol)
-        self.voxel_size = 3.0
+        self.voxel_size = 2.0
 
     def test_build_potential_fourier(self):
         pot = dens.build_potential_fourier(self.mol, self.voxel_size, box_size=70)
@@ -34,11 +34,19 @@ class DensityTestCase(unittest.TestCase):
         plt.imshow(slices.sum(0))
         plt.show()
 
+    def test_build_slices_fourier_cupy(self):
+        slices = dens.build_slices_fourier_cupy(
+            self.mol, pixel_size=self.voxel_size, thickness=1.2,
+            lateral_size=200, n_slices=52)
+        print(slices.device)
+        plt.imshow(slices.sum(0).get())
+        plt.show()
+
     def test_build_slices_fourier(self):
         t0 = time.time()
-        slices = dens.build_slices_fourier_np(
+        slices = dens.build_slices_fourier_cupy(
             self.mol, pixel_size=self.voxel_size, thickness=1.2,
-            lateral_size=256)
+            lateral_size=256).get()
         t1 = time.time()
         slices2 = dens.build_slices_fourier_fftw(
             self.mol, pixel_size=self.voxel_size, thickness=1.2,

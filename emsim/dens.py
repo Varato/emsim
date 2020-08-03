@@ -3,11 +3,14 @@ The functions to build electron density / atomic potential for bio molecules
 """
 from typing import Union, Optional, Tuple
 import numpy as np
-from numpy.fft import fft2, ifft2, rfft2, irfft2, ifftshift
+from numpy.fft import fft2, rfft2, irfft2, ifftshift
 
+from .array import requires_cupy, cp
 from . import atoms as atm
 from . import elem
 from .physics import a0, e
+
+float_type = np.float32
 
 
 def build_potential_fourier(mol: atm.AtomList,
@@ -71,12 +74,12 @@ def build_potential_fourier(mol: atm.AtomList,
     return potential * 2 * np.pi * a0 * e / voxel_size**3
 
 
-def build_slices_fourier_np(mol: atm.AtomList,
-                            pixel_size: float,
-                            thickness: float,
-                            lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
-                            n_slices: Optional[int] = None,
-                            add_water: bool = False):
+def build_slices_fourier(mol: atm.AtomList,
+                         pixel_size: float,
+                         thickness: float,
+                         lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
+                         n_slices: Optional[int] = None,
+                         add_water: bool = False):
     """
     builds projected potential slices for EM multi-slice imaging simulation
 
@@ -110,6 +113,49 @@ def build_slices_fourier_np(mol: atm.AtomList,
 
     np.clip(slices, a_min=1e-7, a_max=None, out=slices)
     return slices  # * 2 * np.pi * a0 * e / pixel_size**2
+
+
+@requires_cupy
+def build_slices_fourier_cupy(mol: atm.AtomList,
+                              pixel_size: float,
+                              thickness: float,
+                              lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
+                              n_slices: Optional[int] = None,
+                              add_water: bool = False):
+    """
+    builds projected potential slices for EM multi-slice imaging simulation
+
+    Parameters
+    ----------
+    mol
+    pixel_size
+    thickness
+    lateral_size
+    n_slices
+    add_water
+
+    Returns
+    -------
+    array
+        projected potential slices
+
+    Notes
+    -----
+    The first dimension indexes different slices. For example:
+    `slices = build_slices_fourier(...)`, then `slices[i, ...]` is the i-th slice.
+
+    """
+
+    elem_nums, n_slices, n1, n2, atmv, scattering_factors = _prepare_slices_build(
+        mol, pixel_size, thickness, lateral_size, n_slices, add_water)
+
+    atom_hists_gpu = cp.asarray(atmv.atom_histograms, dtype=float_type)
+    scat_facs_gpu = cp.asarray(scattering_factors, dtype=float_type)
+    location_phase_gpu = cp.fft.rfft2(atom_hists_gpu, axes=(-2, -1))
+    location_phase_gpu *= scat_facs_gpu[:, None, :, :]
+    slices_gpu = irfft2(cp.sum(location_phase_gpu, axis=0), s=(n1, n2))
+    cp.clip(slices_gpu, a_min=1e-7, a_max=None, out=slices_gpu)
+    return slices_gpu  # * 2 * np.pi * a0 * e / pixel_size**2
 
 
 def build_slices_fourier_cufft(mol: atm.AtomList,
@@ -151,7 +197,7 @@ def build_slices_fourier_cufft(mol: atm.AtomList,
 
     slices = dens_kernel_cuda.build_slices_fourier_cufft(
         scattering_factors_ifftshifted=scattering_factors,
-        atom_histograms=atmv.atom_histograms.astype(np.float32))
+        atom_histograms=atmv.atom_histograms.astype(float_type))
 
     np.clip(slices, a_min=1e-7, a_max=None, out=slices)
     return slices  # * 2 * np.pi * a0 * e / pixel_size**2
