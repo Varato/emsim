@@ -26,12 +26,13 @@ class DensityTestCase(unittest.TestCase):
         plt.imshow(pot.sum(-1))
         plt.show()
 
-    def test_build_slices_fourier_cufft(self):
-        slices = dens.build_slices_fourier_cufft(
+    def test_build_slices_fourier_cuda(self):
+        slices = dens.build_slices_fourier_cuda(
             self.mol, pixel_size=self.voxel_size, thickness=1.2,
-            lateral_size=200, n_slices=52)
+            lateral_size=200, n_slices=52, add_water=True)
         print(slices.shape)
-        plt.imshow(slices.sum(0))
+        print(slices.device)
+        plt.imshow(slices.sum(0).get())
         plt.show()
 
     def test_build_slices_fourier_cupy(self):
@@ -44,29 +45,43 @@ class DensityTestCase(unittest.TestCase):
 
     def test_build_slices_fourier(self):
         t0 = time.time()
-        slices = dens.build_slices_fourier_cupy(
-            self.mol, pixel_size=self.voxel_size, thickness=1.2,
-            lateral_size=256).get()
+        slices_numpy = dens.build_slices_fourier(
+            self.mol, pixel_size=self.voxel_size, thickness=1.,
+            lateral_size=256, add_water=True)
         t1 = time.time()
-        slices2 = dens.build_slices_fourier_fftw(
-            self.mol, pixel_size=self.voxel_size, thickness=1.2,
-            lateral_size=256)
+        slices_cupy = dens.build_slices_fourier_cupy(
+            self.mol, pixel_size=self.voxel_size, thickness=1.,
+            lateral_size=256, add_water=True)
         t2 = time.time()
-        slices3 = dens.build_slices_fourier_cufft(
-            self.mol, pixel_size=self.voxel_size, thickness=1.2,
-            lateral_size=256)
+        slices_fftw = dens.build_slices_fourier_fftw(
+            self.mol, pixel_size=self.voxel_size, thickness=1.,
+            lateral_size=256, add_water=True)
         t3 = time.time()
+        slices_cuda = dens.build_slices_fourier_cuda(
+            self.mol, pixel_size=self.voxel_size, thickness=1.,
+            lateral_size=256, add_water=True)
+        t4 = time.time()
 
-        print("slices shape:", slices.shape)
+        time_numpy = t1 - t0
+        time_cupy = t2 - t1
+        time_fftw = t3 - t1
+        time_cuda = t4 - t3
+        print("slices shape:", slices_numpy.shape)
 
-        print("difference np fftw: ", np.abs(slices2 - slices).max())
-        print("difference np cufft: ", np.abs(slices - slices3).max())
-        print(f"np time = {t1-t0:.3f}, fftw time = {t2-t1:.3f}, cufft time = {t3-t2:.3f}")
+        print(f"numpy time = {time_numpy:.3f}")
+        print(f"fftw time = {time_fftw:.3f}")
+        print(f"cupy time = {time_cupy:.3f}")
+        print(f"cuda time = {time_cuda:.3f}")
 
-        _, (ax1, ax2, ax3) = plt.subplots(ncols=3)
-        ax1.imshow(slices.sum(0))
-        ax2.imshow(slices2.sum(0))
-        ax3.imshow(slices3.sum(0))
+        print("difference np fftw: ", np.abs(slices_numpy - slices_fftw).max())
+        print("difference np cuda: ", np.abs(slices_numpy - slices_cuda.get()).max())
+        print("difference np cupy: ", np.abs(slices_numpy - slices_cupy.get()).max())
+
+        _, (ax1, ax2, ax3, ax4) = plt.subplots(ncols=4, figsize=(8, 2))
+        ax1.imshow(slices_numpy.sum(0))
+        ax2.imshow(slices_fftw.sum(0))
+        ax3.imshow(slices_cuda.sum(0).get())
+        ax4.imshow(slices_cupy.sum(0).get())
         plt.show()
 
     def test_build_potential_fourier_water(self):

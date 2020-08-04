@@ -73,6 +73,7 @@ __global__ void broadcastMulKernel(cufftComplex *A, cufftReal *v, cufftReal a, i
 }
 
 
+// This host function calls broadCastMulKernel after determine grid and block sizes.
 void broadCastMul(cufftComplex *A_d, cufftReal *v_d, cufftReal a, int n0, int n1, int n2) {
     cudaDeviceProp prop;
     if(cudaGetDeviceProperties (&prop, 0) != cudaSuccess) {

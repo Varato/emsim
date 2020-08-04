@@ -36,7 +36,7 @@ if platform.system() == "Windows" and platform.machine() == "AMD64":
     dens_kernel_cuda = Extension(
         "emsim.ext.dens_kernel_cuda",
         sources=[
-            "emsim/ext/src/dens_kernel_cuda_pymodule.c"],
+            "emsim/ext/cusrc/dens_kernel_cuda.c"],
         include_dirs=["emsim/ext/include", np.get_include()],
         library_dirs=["emsim/ext/lib_x86_64-win32"],
         libraries=['libDensKernelCuda', 'cudart', 'cufft'],
@@ -54,6 +54,7 @@ setup(
     install_requires=[],
     package_data = {
         'atom_params': ['emsim/assets/*.txt'],
+        'cuda_kernels': ['emsim/cuda/kernels/*.cu']
     },
     data_files = data_files
 )

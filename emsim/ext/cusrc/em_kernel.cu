@@ -4,11 +4,8 @@
 
 #define PI 3.14159265359f
 
-__global__ void waveSliceTransmit(cufftComplex *wave, 
-                                  cufftReal *slice,
-                                  int nPix,
-                                  float waveLength,
-                                  float relativityGamma)
+__global__ void waveSliceTransmit(cufftComplex *wave,  cufftReal *slice, int nPix, 
+                                  float waveLength, float relativityGamma)
 /* 
  * transmit the wave function in real space through one single slice.
  * waveLength is in Angstroms.

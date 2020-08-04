@@ -158,12 +158,13 @@ def build_slices_fourier_cupy(mol: atm.AtomList,
     return slices_gpu  # * 2 * np.pi * a0 * e / pixel_size**2
 
 
-def build_slices_fourier_cufft(mol: atm.AtomList,
-                               pixel_size: float,
-                               thickness: float,
-                               lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
-                               n_slices: Optional[int] = None,
-                               add_water: bool = False):
+@requires_cupy
+def build_slices_fourier_cuda(mol: atm.AtomList,
+                              pixel_size: float,
+                              thickness: float,
+                              lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
+                              n_slices: Optional[int] = None,
+                              add_water: bool = False):
     """
     builds projected potential slices for EM multi-slice imaging simulation
 
@@ -195,11 +196,14 @@ def build_slices_fourier_cufft(mol: atm.AtomList,
     elem_nums, n_slices, n1, n2, atmv, scattering_factors = _prepare_slices_build(
         mol, pixel_size, thickness, lateral_size, n_slices, add_water)
 
-    slices = dens_kernel_cuda.build_slices_fourier_cufft(
-        scattering_factors_ifftshifted=scattering_factors,
-        atom_histograms=atmv.atom_histograms.astype(float_type))
+    atom_hists_gpu = cp.asarray(atmv.atom_histograms, dtype=float_type)
+    scat_facs_gpu = cp.asarray(scattering_factors, dtype=float_type)
 
-    np.clip(slices, a_min=1e-7, a_max=None, out=slices)
+    slices = dens_kernel_cuda.build_slices_fourier_cuda(
+        scattering_factors=scat_facs_gpu,
+        atom_histograms=atom_hists_gpu)
+
+    cp.clip(slices, a_min=1e-7, a_max=None, out=slices)
     return slices  # * 2 * np.pi * a0 * e / pixel_size**2
 
 
