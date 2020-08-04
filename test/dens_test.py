@@ -29,7 +29,7 @@ class DensityTestCase(unittest.TestCase):
     def test_build_slices_fourier_cuda(self):
         slices = dens.build_slices_fourier_cuda(
             self.mol, pixel_size=self.voxel_size, thickness=1.2,
-            lateral_size=200, n_slices=52, add_water=True)
+            lateral_size=200, add_water=True)
         print(slices.shape)
         print(slices.device)
         plt.imshow(slices.sum(0).get())
@@ -47,19 +47,19 @@ class DensityTestCase(unittest.TestCase):
         t0 = time.time()
         slices_numpy = dens.build_slices_fourier(
             self.mol, pixel_size=self.voxel_size, thickness=1.,
-            lateral_size=256, add_water=True)
+            lateral_size=256, add_water=False)
         t1 = time.time()
         slices_cupy = dens.build_slices_fourier_cupy(
             self.mol, pixel_size=self.voxel_size, thickness=1.,
-            lateral_size=256, add_water=True)
+            lateral_size=256, add_water=False)
         t2 = time.time()
         slices_fftw = dens.build_slices_fourier_fftw(
             self.mol, pixel_size=self.voxel_size, thickness=1.,
-            lateral_size=256, add_water=True)
+            lateral_size=256, add_water=False)
         t3 = time.time()
         slices_cuda = dens.build_slices_fourier_cuda(
             self.mol, pixel_size=self.voxel_size, thickness=1.,
-            lateral_size=256, add_water=True)
+            lateral_size=256, add_water=False)
         t4 = time.time()
 
         time_numpy = t1 - t0

@@ -11,7 +11,6 @@ add_library(libDensKernelCuda STATIC
     cusrc/dens_kernel_cuda.cu
     cusrc/broadcast_mul.cu
     cusrc/row_reduce_sum.cu)
-
 target_link_libraries(libDensKernelCuda PRIVATE CUDA::cufft CUDA::cudart)
 set_target_properties(libDensKernelCuda PROPERTIES
     CUDA_ARCHITECTURES 75
@@ -19,16 +18,40 @@ set_target_properties(libDensKernelCuda PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON)
 
 
-# add_library(dens_kernel_cuda SHARED src/dens_kernel_cuda_pymodule.c)
-# target_link_libraries(dens_kernel_cuda PRIVATE libDensKernelCuda ${Python_LIBRARIES})
-# target_include_directories(dens_kernel_cuda PRIVATE
-#     ${Python_INCLUDE_DIRS}
-#     ${Python_NumPy_INCLUDE_DIRS})
-# set_target_properties(dens_kernel_cuda PROPERTIES
-#     CUDA_ARCHITECTURES 75
-#     CUDA_RESOLVE_DEVICE_SYMBOLS ON
-#     CUDA_SEPARABLE_COMPILATION ON
-#     SUFFIX ".pyd")
+add_library(libEmKernelCuda STATIC
+    cusrc/em_kernel_cuda.cu)
+target_link_libraries(libEmKernelCuda PRIVATE CUDA::cufft CUDA::cudart)
+set_target_properties(libEmKernelCuda PROPERTIES
+    CUDA_ARCHITECTURES 75
+    CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    CUDA_SEPARABLE_COMPILATION ON)
 
-install(TARGETS libDensKernelCuda
-    DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/lib_x86_64-win32)
+
+add_library(dens_kernel_cuda SHARED cusrc/dens_kernel_cuda.c)
+target_link_libraries(dens_kernel_cuda PRIVATE libDensKernelCuda ${Python_LIBRARIES})
+target_include_directories(dens_kernel_cuda PRIVATE
+    ${Python_INCLUDE_DIRS}
+    ${Python_NumPy_INCLUDE_DIRS})
+set_target_properties(dens_kernel_cuda PROPERTIES
+    CUDA_ARCHITECTURES 75
+    CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    CUDA_SEPARABLE_COMPILATION ON
+    SUFFIX ".pyd")
+
+add_library(em_kernel_cuda SHARED cusrc/em_kernel_cuda.c)
+target_include_directories(em_kernel_cuda PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
+target_link_libraries(em_kernel_cuda PRIVATE libEmKernelCuda ${Python_LIBRARIES})
+target_include_directories(em_kernel_cuda PRIVATE
+    ${Python_INCLUDE_DIRS}
+    ${Python_NumPy_INCLUDE_DIRS})
+set_target_properties(em_kernel_cuda PROPERTIES
+    CUDA_ARCHITECTURES 75
+    CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    CUDA_SEPARABLE_COMPILATION ON
+    SUFFIX ".pyd")
+
+# install(TARGETS libDensKernelCuda libEmKernelCuda 
+#     DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/lib_x86_64-win32)
+
+install(TARGETS dens_kernel_cuda em_kernel_cuda
+    DESTINATION ${CMAKE_CURRENT_SOURCE_DIR})

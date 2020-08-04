@@ -56,14 +56,14 @@ class EM(object):
         self.aberr_ = aberration(self.wave_length_angstrom, cs, defocus)
         self.mtf_ = mtf(self.wave_length_angstrom, cs, defocus)
 
-    def make_wave_in(self, pixel_size: float, lateral_size: Tuple[int, int]):
+    def init_wave(self, pixel_size: float, lateral_size: Tuple[int, int]):
         n_e = self.electron_dose * pixel_size ** 2
         wave_in = np.ones(lateral_size, dtype=np.complex64)
         wave_in *= np.sqrt(n_e) / np.abs(wave_in)
         return wave_in
 
     def make_image(self, specimen: Specimen, kernel="fftw"):
-        wave_in = self.make_wave_in(specimen.pixel_size, specimen.lateral_size)
+        wave_in = self.init_wave(specimen.pixel_size, specimen.lateral_size)
         qx, qy = EM._make_mesh_grid_fourier_space(specimen.pixel_size, specimen.lateral_size)
         q_mgrid = np.sqrt(qx*qx + qy*qy)
 

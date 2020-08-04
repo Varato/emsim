@@ -54,7 +54,6 @@ __global__ void waveSpacePropagate(cufftComplex *waveFourier,
 
     float p_real, p_imag;  // spatial propagator
     float w_real, w_imag;  // wave
-    float factor = waveLength * relativityGamma;
     //slide rightwards
     int gridStartIdx = 0;
     while(gridStartIdx < nPix) {
@@ -68,8 +67,8 @@ __global__ void waveSpacePropagate(cufftComplex *waveFourier,
             fy = (float)(js - n2/2) * dfy;
             f2 = fx*fx + fy*fy;
             if (f2 <= filter * filter) {
-                p_real = cosf(wave_length * PI * dz * f2);
-                p_imag = -sinf(wave_length * PI * dz * f2);
+                p_real = cosf(waveLength * PI * dz * f2);
+                p_imag = -sinf(waveLength * PI * dz * f2);
                 w_real = waveFourier[ii].x * p_real - waveFourier[ii].y * p_imag;
                 w_imag = waveFourier[ii].x * p_imag + waveFourier[ii].y * p_real;
                 waveFourier[ii].x = w_real / (float)nPix;
@@ -87,13 +86,13 @@ __global__ void waveSpacePropagate(cufftComplex *waveFourier,
 __global__ void waveLensPropagate(cufftComplex *waveFourier, int n1, int n2, float pixSize, 
                                   float waveLength, float cs_mm, float defocus, float aperture)
 {
+    int batch = gridDim.x * blockDim.x;
     int nPix = n1 * n2;
     float dfx = 1.0f / pixSize / float(n1);
     float dfy = 1.0f / pixSize / float(n2);
-    float fMax = 0.5f / pixSize;
     float fAper = aperture / waveLength;
-    float c1 = 0.5f * PI * cs_mm * 1e7f * wave_length*wave_length*wave_length;
-    float c2 = PI * defocus * wave_length;
+    float c1 = 0.5f * PI * cs_mm * 1e7f * waveLength * waveLength * waveLength;
+    float c2 = PI * defocus * waveLength;
 
     int ii;       // the global index of 2D array
     int i, j;     // the dual index
@@ -133,17 +132,18 @@ __global__ void waveLensPropagate(cufftComplex *waveFourier, int n1, int n2, flo
 }
 
 
-void multislice_propagate_cufft_device(cufftComplex *waveIn_d, int n1, int n2,
-                                       cufftReal *slices_d, int nSlices, float pixSize, float dz,
-                                       float waveLength, float relativityGamma,
-                                       cufftComplex *waveOut_d)
+extern "C" void multislice_propagate_cuda_device(cufftComplex *waveIn_d, int n1, int n2,
+                                                 cufftReal *slices_d, int nSlices, float pixSize, float dz,
+                                                 float waveLength, float relativityGamma,
+                                                 cufftComplex *waveOut_d)
 {
     cufftHandle p;
     if(cufftPlan2d(&p, n1, n2, CUFFT_C2C) != CUFFT_SUCCESS) {
         fprintf(stderr, "CUFFT error: Plan creation failed");
     }
 
-    if(cudaMemcpy(waveOut_d, waveIn_d, cudaMemcpyDeviceToDevice) != cudaSuccess) {
+    size_t memSize = n1 * n2 * sizeof(cufftComplex);
+    if(cudaMemcpy(waveOut_d, waveIn_d, memSize, cudaMemcpyDeviceToDevice) != cudaSuccess) {
         fprintf(stderr, "CUDA error: %s\n", cudaGetErrorString(cudaGetLastError()));
     }
 
@@ -152,7 +152,7 @@ void multislice_propagate_cufft_device(cufftComplex *waveIn_d, int n1, int n2,
         fprintf(stderr, "cuda Cannot get device information\n");
     }
     int nPix = n1 * n2;
-    int blockDimX = prop.maxThreadsPerBlock；
+    int blockDimX = prop.maxThreadsPerBlock;
     if (blockDimX > nPix) blockDimX = nPix;
     int gridDimX = (int)ceilf((float)nPix / (float)blockDimX);
     gridDimX = gridDimX > 2147483647 ? 2147483647 : gridDimX;
@@ -174,9 +174,9 @@ void multislice_propagate_cufft_device(cufftComplex *waveIn_d, int n1, int n2,
 }
 
 
-void lens_propagate_cufft_device(cufftComplex *waveIn_d, int n1, int n2, float pixSize,
-                                 float waveLength, float cs_mm, float defocus, float aperture,
-                                 cufftComplex *waveOut_d)
+extern "C" void lens_propagate_cuda_device(cufftComplex *waveIn_d, int n1, int n2, float pixSize,
+                                           float waveLength, float cs_mm, float defocus, float aperture,
+                                           cufftComplex *waveOut_d)
 {
     cufftHandle p;
     if(cufftPlan2d(&p, n1, n2, CUFFT_C2C) != CUFFT_SUCCESS) {
@@ -186,9 +186,14 @@ void lens_propagate_cufft_device(cufftComplex *waveIn_d, int n1, int n2, float p
     if (cufftExecC2C(p, waveIn_d, waveOut_d, CUFFT_FORWARD) != CUFFT_SUCCESS) {
         fprintf(stderr, "CUFFT error: C2C plan forward executation failed");
     }
+    
+    cudaDeviceProp prop;
+    if(cudaGetDeviceProperties (&prop, 0) != cudaSuccess) {
+        fprintf(stderr, "cuda Cannot get device information\n");
+    }
 
     int nPix = n1 * n2;
-    int blockDimX = prop.maxThreadsPerBlock；
+    int blockDimX = prop.maxThreadsPerBlock;
     if (blockDimX > nPix) blockDimX = nPix;
     int gridDimX = (int)ceilf((float)nPix / (float)blockDimX);
     gridDimX = gridDimX > 2147483647 ? 2147483647 : gridDimX;
