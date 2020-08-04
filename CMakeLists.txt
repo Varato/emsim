@@ -5,5 +5,5 @@ cmake_minimum_required(VERSION 3.17)
 
 project(emsim C CXX CUDA)
 
-add_subdirectory("emsim/ext")
+add_subdirectory("emsim/ext_cuda")
 

@@ -189,7 +189,7 @@ def build_slices_fourier_cuda(mol: atm.AtomList,
 
     """
     try:
-        from .ext import dens_kernel_cuda
+        from .ext_cuda import dens_kernel_cuda
     except ImportError:
         raise ImportError("the extension dens_kernel_cuda cannot be found. use numpy version instead.")
 

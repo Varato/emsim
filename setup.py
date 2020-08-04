@@ -6,11 +6,10 @@ ext_modules = []
 data_files = []
 
 if platform.system() == "Windows" and platform.machine() == "AMD64":
-    dlls = ["libfftw3f-3.dll", "cudart64_101.dll", "cufft64_10.dll"]
-    data_files.append(("emsim/ext", ["emsim/ext/lib_x86_64-win32/" + dll for dll in dlls]))
-
-    internal_lib_dir = "emsim/ext/lib_x86_64-win32"
+    internal_lib_dir = "lib_x86_64-win32"
     internal_include_dir = "emsim/ext/include"
+    dlls = ["libfftw3f-3.dll"]
+    data_files.append(("emsim/ext", [internal_lib_dir + '/' + dll for dll in dlls]))
 
     dens_kernel = Extension(
         "emsim.ext.dens_kernel",
