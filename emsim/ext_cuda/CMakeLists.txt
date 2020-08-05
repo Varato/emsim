@@ -27,7 +27,7 @@ set_target_properties(libEmKernelCuda PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON)
 
 
-add_library(dens_kernel_cuda SHARED cusrc/dens_kernel_cuda.c)
+add_library(dens_kernel_cuda SHARED src/dens_kernel_cuda.cpp)
 target_link_libraries(dens_kernel_cuda PRIVATE libDensKernelCuda ${Python_LIBRARIES})
 target_include_directories(dens_kernel_cuda PRIVATE
     ${Python_INCLUDE_DIRS}
@@ -38,7 +38,7 @@ set_target_properties(dens_kernel_cuda PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
     SUFFIX ".pyd")
 
-add_library(em_kernel_cuda SHARED cusrc/em_kernel_cuda.c)
+add_library(em_kernel_cuda SHARED src/em_kernel_cuda.cpp)
 target_include_directories(em_kernel_cuda PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
 target_link_libraries(em_kernel_cuda PRIVATE libEmKernelCuda ${Python_LIBRARIES})
 target_include_directories(em_kernel_cuda PRIVATE
@@ -54,4 +54,5 @@ set_target_properties(em_kernel_cuda PROPERTIES
 #     DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/lib_x86_64-win32)
 
 install(TARGETS dens_kernel_cuda em_kernel_cuda
+    RUNTIME
     DESTINATION ${CMAKE_CURRENT_SOURCE_DIR})

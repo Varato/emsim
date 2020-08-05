@@ -6,7 +6,7 @@
  * all real length quantities are in unit of Angstroms except explicitly specified (e.g. cs_mm is in mm)
  */
 
-const float PI = 3.14159265359f;
+const float PI = 3.14159265358979324f;
 
 int multislice_propagate_fftw(fftwf_complex wave_in[], int n1, int n2,
                               float slices[], int n_slices,  float pixel_size, float dz,

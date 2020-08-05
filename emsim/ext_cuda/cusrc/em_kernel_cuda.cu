@@ -2,7 +2,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#define PI 3.14159265359f
+#define PI 3.14159265358979324f
 
 __global__ void waveSliceTransmit(cufftComplex *wave,  cufftReal *slice, int nPix, 
                                   float waveLength, float relativityGamma)
@@ -132,10 +132,10 @@ __global__ void waveLensPropagate(cufftComplex *waveFourier, int n1, int n2, flo
 }
 
 
-extern "C" void multislice_propagate_cuda_device(cufftComplex *waveIn_d, int n1, int n2,
-                                                 cufftReal *slices_d, int nSlices, float pixSize, float dz,
-                                                 float waveLength, float relativityGamma,
-                                                 cufftComplex *waveOut_d)
+void multislice_propagate_cuda_device(cufftComplex *waveIn_d, int n1, int n2,
+                                      cufftReal *slices_d, int nSlices, float pixSize, float dz,
+                                      float waveLength, float relativityGamma,
+                                      cufftComplex *waveOut_d)
 {
     cufftHandle p;
     if(cufftPlan2d(&p, n1, n2, CUFFT_C2C) != CUFFT_SUCCESS) {
@@ -174,9 +174,9 @@ extern "C" void multislice_propagate_cuda_device(cufftComplex *waveIn_d, int n1,
 }
 
 
-extern "C" void lens_propagate_cuda_device(cufftComplex *waveIn_d, int n1, int n2, float pixSize,
-                                           float waveLength, float cs_mm, float defocus, float aperture,
-                                           cufftComplex *waveOut_d)
+void lens_propagate_cuda_device(cufftComplex *waveIn_d, int n1, int n2, float pixSize,
+                                float waveLength, float cs_mm, float defocus, float aperture,
+                                cufftComplex *waveOut_d)
 {
     cufftHandle p;
     if(cufftPlan2d(&p, n1, n2, CUFFT_C2C) != CUFFT_SUCCESS) {

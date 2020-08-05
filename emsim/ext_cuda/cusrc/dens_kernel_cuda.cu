@@ -8,9 +8,9 @@
 #include "broadcast_mul.cuh"
 
 
-extern "C" void build_slices_fourier_cuda_device(float scattering_factors_d[], int n_elems,
-                                                 float atom_histograms_d[], int n_slices, int n1, int n2,
-                                                 float output_d[])
+void build_slices_fourier_cuda_device(float scattering_factors_d[], int n_elems,
+                                      float atom_histograms_d[], int n_slices, int n1, int n2,
+                                      float output_d[])
 /*
  * Logical dimensions of the input arrays:
  *     scattering_factors_d: (n_elems, n1, n2 // 2 + 1)

@@ -284,19 +284,33 @@
   #endif
 #endif
 
+#ifndef __cplusplus
+  #error "Cython files generated with the C++ option must be compiled with a C++ compiler."
+#endif
 #ifndef CYTHON_INLINE
   #if defined(__clang__)
     #define CYTHON_INLINE __inline__ __attribute__ ((__unused__))
-  #elif defined(__GNUC__)
-    #define CYTHON_INLINE __inline__
-  #elif defined(_MSC_VER)
-    #define CYTHON_INLINE __inline
-  #elif defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
-    #define CYTHON_INLINE inline
   #else
-    #define CYTHON_INLINE
+    #define CYTHON_INLINE inline
   #endif
 #endif
+template<typename T>
+void __Pyx_call_destructor(T& x) {
+    x.~T();
+}
+template<typename T>
+class __Pyx_FakeReference {
+  public:
+    __Pyx_FakeReference() : ptr(NULL) { }
+    __Pyx_FakeReference(const T& ref) : ptr(const_cast<T*>(&ref)) { }
+    T *operator->() { return ptr; }
+    T *operator&() { return ptr; }
+    operator T&() { return *ptr; }
+    template<typename U> bool operator ==(U other) { return *ptr == other; }
+    template<typename U> bool operator !=(U other) { return *ptr != other; }
+  private:
+    T *ptr;
+};
 
 #if CYTHON_COMPILING_IN_PYPY && PY_VERSION_HEX < 0x02070600 && !defined(Py_OptimizeFlag)
   #define Py_OptimizeFlag 0
@@ -602,10 +616,10 @@ static CYTHON_INLINE float __PYX_NAN() {
   #endif
 #endif
 
-#define __PYX_HAVE__dens_kernel_cuda
-#define __PYX_HAVE_API__dens_kernel_cuda
+#define __PYX_HAVE__em_kernel_cuda
+#define __PYX_HAVE_API__em_kernel_cuda
 /* Early includes */
-#include "dens_kernel_cuda.h"
+#include "em_kernel_cuda.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif /* _OPENMP */
@@ -814,7 +828,7 @@ static const char *__pyx_filename;
 
 
 static const char *__pyx_f[] = {
-  "dens_kernel_cuda.pyx",
+  "em_kernel_cuda.pyx",
 };
 
 /*--- Type declarations ---*/
@@ -1096,14 +1110,16 @@ static int __Pyx_check_binary_version(void);
 static int __Pyx_InitStrings(__Pyx_StringTabEntry *t);
 
 
-/* Module declarations from 'dens_kernel_cuda' */
-static PyObject *__pyx_f_16dens_kernel_cuda_build_slices_fourier_cuda_wrapper(size_t, int, size_t, int, int, int, size_t); /*proto*/
-#define __Pyx_MODULE_NAME "dens_kernel_cuda"
-extern int __pyx_module_is_main_dens_kernel_cuda;
-int __pyx_module_is_main_dens_kernel_cuda = 0;
+/* Module declarations from 'em_kernel_cuda' */
+static PyObject *__pyx_f_14em_kernel_cuda_multislice_propagate_cufft_device_wrapper(size_t, int, int, size_t, int, float, float, float, float, size_t); /*proto*/
+static PyObject *__pyx_f_14em_kernel_cuda_lens_propagate_cuda_device_wrapper(size_t, int, int, float, float, float, float, float, size_t); /*proto*/
+#define __Pyx_MODULE_NAME "em_kernel_cuda"
+extern int __pyx_module_is_main_em_kernel_cuda;
+int __pyx_module_is_main_em_kernel_cuda = 0;
 
-/* Implementation of 'dens_kernel_cuda' */
+/* Implementation of 'em_kernel_cuda' */
 static const char __pyx_k_cp[] = "cp";
+static const char __pyx_k_dz[] = "dz";
 static const char __pyx_k_n1[] = "n1";
 static const char __pyx_k_n2[] = "n2";
 static const char __pyx_k_np[] = "np";
@@ -1113,81 +1129,103 @@ static const char __pyx_k_data[] = "data";
 static const char __pyx_k_main[] = "__main__";
 static const char __pyx_k_name[] = "__name__";
 static const char __pyx_k_test[] = "__test__";
+static const char __pyx_k_cs_mm[] = "cs_mm";
 static const char __pyx_k_dtype[] = "dtype";
 static const char __pyx_k_empty[] = "empty";
 static const char __pyx_k_numpy[] = "numpy";
 static const char __pyx_k_shape[] = "shape";
 static const char __pyx_k_import[] = "__import__";
-static const char __pyx_k_output[] = "output";
-static const char __pyx_k_float32[] = "float32";
-static const char __pyx_k_n_elems[] = "n_elems";
+static const char __pyx_k_slices[] = "slices";
+static const char __pyx_k_defocus[] = "defocus";
+static const char __pyx_k_wave_in[] = "wave_in";
+static const char __pyx_k_aperture[] = "aperture";
 static const char __pyx_k_n_slices[] = "n_slices";
-static const char __pyx_k_atom_histograms[] = "atom_histograms";
-static const char __pyx_k_dens_kernel_cuda[] = "dens_kernel_cuda";
+static const char __pyx_k_wave_out[] = "wave_out";
+static const char __pyx_k_complex64[] = "complex64";
+static const char __pyx_k_pixel_size[] = "pixel_size";
+static const char __pyx_k_slices_ptr[] = "slices_ptr";
+static const char __pyx_k_wave_in_ptr[] = "wave_in_ptr";
+static const char __pyx_k_wave_length[] = "wave_length";
+static const char __pyx_k_wave_out_ptr[] = "wave_out_ptr";
+static const char __pyx_k_em_kernel_cuda[] = "em_kernel_cuda";
+static const char __pyx_k_relativity_gamma[] = "relativity_gamma";
 static const char __pyx_k_cline_in_traceback[] = "cline_in_traceback";
-static const char __pyx_k_scattering_factors[] = "scattering_factors";
-static const char __pyx_k_dens_kernel_cuda_pyx[] = "dens_kernel_cuda.pyx";
-static const char __pyx_k_build_slices_fourier_cuda[] = "build_slices_fourier_cuda";
-static PyObject *__pyx_n_s_atom_histograms;
-static PyObject *__pyx_n_s_build_slices_fourier_cuda;
+static const char __pyx_k_em_kernel_cuda_pyx[] = "em_kernel_cuda.pyx";
+static const char __pyx_k_lens_propagate_cuda[] = "lens_propagate_cuda";
+static const char __pyx_k_multislice_propagate_cuda[] = "multislice_propagate_cuda";
+static PyObject *__pyx_n_s_aperture;
 static PyObject *__pyx_n_s_cline_in_traceback;
+static PyObject *__pyx_n_s_complex64;
 static PyObject *__pyx_n_s_cp;
+static PyObject *__pyx_n_s_cs_mm;
 static PyObject *__pyx_n_s_cupy;
 static PyObject *__pyx_n_s_data;
-static PyObject *__pyx_n_s_dens_kernel_cuda;
-static PyObject *__pyx_kp_s_dens_kernel_cuda_pyx;
+static PyObject *__pyx_n_s_defocus;
 static PyObject *__pyx_n_s_dtype;
+static PyObject *__pyx_n_s_dz;
+static PyObject *__pyx_n_s_em_kernel_cuda;
+static PyObject *__pyx_kp_s_em_kernel_cuda_pyx;
 static PyObject *__pyx_n_s_empty;
-static PyObject *__pyx_n_s_float32;
 static PyObject *__pyx_n_s_import;
+static PyObject *__pyx_n_s_lens_propagate_cuda;
 static PyObject *__pyx_n_s_main;
+static PyObject *__pyx_n_s_multislice_propagate_cuda;
 static PyObject *__pyx_n_s_n1;
 static PyObject *__pyx_n_s_n2;
-static PyObject *__pyx_n_s_n_elems;
 static PyObject *__pyx_n_s_n_slices;
 static PyObject *__pyx_n_s_name;
 static PyObject *__pyx_n_s_np;
 static PyObject *__pyx_n_s_numpy;
-static PyObject *__pyx_n_s_output;
+static PyObject *__pyx_n_s_pixel_size;
 static PyObject *__pyx_n_s_ptr;
-static PyObject *__pyx_n_s_scattering_factors;
+static PyObject *__pyx_n_s_relativity_gamma;
 static PyObject *__pyx_n_s_shape;
+static PyObject *__pyx_n_s_slices;
+static PyObject *__pyx_n_s_slices_ptr;
 static PyObject *__pyx_n_s_test;
-static PyObject *__pyx_pf_16dens_kernel_cuda_build_slices_fourier_cuda(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_scattering_factors, PyObject *__pyx_v_atom_histograms); /* proto */
-static PyObject *__pyx_int_2;
+static PyObject *__pyx_n_s_wave_in;
+static PyObject *__pyx_n_s_wave_in_ptr;
+static PyObject *__pyx_n_s_wave_length;
+static PyObject *__pyx_n_s_wave_out;
+static PyObject *__pyx_n_s_wave_out_ptr;
+static PyObject *__pyx_pf_14em_kernel_cuda_multislice_propagate_cuda(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_wave_in, PyObject *__pyx_v_slices, PyObject *__pyx_v_pixel_size, PyObject *__pyx_v_dz, PyObject *__pyx_v_wave_length, PyObject *__pyx_v_relativity_gamma); /* proto */
+static PyObject *__pyx_pf_14em_kernel_cuda_2lens_propagate_cuda(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_wave_in, PyObject *__pyx_v_pixel_size, PyObject *__pyx_v_wave_length, PyObject *__pyx_v_cs_mm, PyObject *__pyx_v_defocus, PyObject *__pyx_v_aperture); /* proto */
+static PyObject *__pyx_int_1;
 static PyObject *__pyx_slice_;
 static PyObject *__pyx_tuple__2;
+static PyObject *__pyx_tuple__4;
 static PyObject *__pyx_codeobj__3;
+static PyObject *__pyx_codeobj__5;
 /* Late includes */
 
-/* "dens_kernel_cuda.pyx":10
+/* "em_kernel_cuda.pyx":25
  * 
  * 
- * cdef build_slices_fourier_cuda_wrapper(size_t scattering_factors_ptr, int n_elems,             # <<<<<<<<<<<<<<
- *                                        size_t atom_histograms_ptr, int n_slices, int n1, int n2,
- *                                        size_t output_ptr):
+ * cdef multislice_propagate_cufft_device_wrapper(size_t waveIn_d_ptr, int n1, int n2,             # <<<<<<<<<<<<<<
+ *                                                size_t slices_d_ptr, int nSlices, float pixSize, float dz,
+ *                                                float waveLength, float relativityGamma,
  */
 
-static PyObject *__pyx_f_16dens_kernel_cuda_build_slices_fourier_cuda_wrapper(size_t __pyx_v_scattering_factors_ptr, int __pyx_v_n_elems, size_t __pyx_v_atom_histograms_ptr, int __pyx_v_n_slices, int __pyx_v_n1, int __pyx_v_n2, size_t __pyx_v_output_ptr) {
+static PyObject *__pyx_f_14em_kernel_cuda_multislice_propagate_cufft_device_wrapper(size_t __pyx_v_waveIn_d_ptr, int __pyx_v_n1, int __pyx_v_n2, size_t __pyx_v_slices_d_ptr, int __pyx_v_nSlices, float __pyx_v_pixSize, float __pyx_v_dz, float __pyx_v_waveLength, float __pyx_v_relativityGamma, size_t __pyx_v_waveOut_d_ptr) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("build_slices_fourier_cuda_wrapper", 0);
+  __Pyx_RefNannySetupContext("multislice_propagate_cufft_device_wrapper", 0);
 
-  /* "dens_kernel_cuda.pyx":13
- *                                        size_t atom_histograms_ptr, int n_slices, int n1, int n2,
- *                                        size_t output_ptr):
- *     build_slices_fourier_cuda_device(             # <<<<<<<<<<<<<<
- *         <float*>scattering_factors_ptr, n_elems,
- *         <float*>atom_histograms_ptr, n_slices, n1, n2,
+  /* "em_kernel_cuda.pyx":29
+ *                                                float waveLength, float relativityGamma,
+ *                                                size_t waveOut_d_ptr):
+ *     multislice_propagate_cuda_device(             # <<<<<<<<<<<<<<
+ *         <cufftComplex *>waveIn_d_ptr, n1, n2,
+ *         <cufftReal *>slices_d_ptr, nSlices, pixSize, dz,
  */
-  build_slices_fourier_cuda_device(((float *)__pyx_v_scattering_factors_ptr), __pyx_v_n_elems, ((float *)__pyx_v_atom_histograms_ptr), __pyx_v_n_slices, __pyx_v_n1, __pyx_v_n2, ((float *)__pyx_v_output_ptr));
+  multislice_propagate_cuda_device(((cufftComplex *)__pyx_v_waveIn_d_ptr), __pyx_v_n1, __pyx_v_n2, ((cufftReal *)__pyx_v_slices_d_ptr), __pyx_v_nSlices, __pyx_v_pixSize, __pyx_v_dz, __pyx_v_waveLength, __pyx_v_relativityGamma, ((cufftComplex *)__pyx_v_waveOut_d_ptr));
 
-  /* "dens_kernel_cuda.pyx":10
+  /* "em_kernel_cuda.pyx":25
  * 
  * 
- * cdef build_slices_fourier_cuda_wrapper(size_t scattering_factors_ptr, int n_elems,             # <<<<<<<<<<<<<<
- *                                        size_t atom_histograms_ptr, int n_slices, int n1, int n2,
- *                                        size_t output_ptr):
+ * cdef multislice_propagate_cufft_device_wrapper(size_t waveIn_d_ptr, int n1, int n2,             # <<<<<<<<<<<<<<
+ *                                                size_t slices_d_ptr, int nSlices, float pixSize, float dz,
+ *                                                float waveLength, float relativityGamma,
  */
 
   /* function exit code */
@@ -1197,33 +1235,82 @@ static PyObject *__pyx_f_16dens_kernel_cuda_build_slices_fourier_cuda_wrapper(si
   return __pyx_r;
 }
 
-/* "dens_kernel_cuda.pyx":20
+/* "em_kernel_cuda.pyx":37
  * 
  * 
- * def build_slices_fourier_cuda(scattering_factors, atom_histograms):             # <<<<<<<<<<<<<<
- *     n_elems = atom_histograms.shape[0]
- *     n_slices = atom_histograms.shape[1]
+ * cdef lens_propagate_cuda_device_wrapper(size_t waveIn_d_ptr, int n1, int n2, float pixSize,             # <<<<<<<<<<<<<<
+ *                                         float waveLength, float cs_mm, float defocus, float aperture,
+ *                                         size_t waveOut_d_ptr):
+ */
+
+static PyObject *__pyx_f_14em_kernel_cuda_lens_propagate_cuda_device_wrapper(size_t __pyx_v_waveIn_d_ptr, int __pyx_v_n1, int __pyx_v_n2, float __pyx_v_pixSize, float __pyx_v_waveLength, float __pyx_v_cs_mm, float __pyx_v_defocus, float __pyx_v_aperture, size_t __pyx_v_waveOut_d_ptr) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("lens_propagate_cuda_device_wrapper", 0);
+
+  /* "em_kernel_cuda.pyx":41
+ *                                         size_t waveOut_d_ptr):
+ * 
+ *     lens_propagate_cuda_device(             # <<<<<<<<<<<<<<
+ *         <cufftComplex *>waveIn_d_ptr, n1, n2, pixSize,
+ *         waveLength, cs_mm, defocus, aperture,
+ */
+  lens_propagate_cuda_device(((cufftComplex *)__pyx_v_waveIn_d_ptr), __pyx_v_n1, __pyx_v_n2, __pyx_v_pixSize, __pyx_v_waveLength, __pyx_v_cs_mm, __pyx_v_defocus, __pyx_v_aperture, ((cufftComplex *)__pyx_v_waveOut_d_ptr));
+
+  /* "em_kernel_cuda.pyx":37
+ * 
+ * 
+ * cdef lens_propagate_cuda_device_wrapper(size_t waveIn_d_ptr, int n1, int n2, float pixSize,             # <<<<<<<<<<<<<<
+ *                                         float waveLength, float cs_mm, float defocus, float aperture,
+ *                                         size_t waveOut_d_ptr):
+ */
+
+  /* function exit code */
+  __pyx_r = Py_None; __Pyx_INCREF(Py_None);
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "em_kernel_cuda.pyx":48
+ * 
+ * 
+ * def multislice_propagate_cuda(wave_in, slices, pixel_size, dz, wave_length, relativity_gamma):             # <<<<<<<<<<<<<<
+ *     n_slices = slices.shape[0]
+ *     n1, n2 = slices.shape[1:]
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_16dens_kernel_cuda_1build_slices_fourier_cuda(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyMethodDef __pyx_mdef_16dens_kernel_cuda_1build_slices_fourier_cuda = {"build_slices_fourier_cuda", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_16dens_kernel_cuda_1build_slices_fourier_cuda, METH_VARARGS|METH_KEYWORDS, 0};
-static PyObject *__pyx_pw_16dens_kernel_cuda_1build_slices_fourier_cuda(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  PyObject *__pyx_v_scattering_factors = 0;
-  PyObject *__pyx_v_atom_histograms = 0;
+static PyObject *__pyx_pw_14em_kernel_cuda_1multislice_propagate_cuda(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyMethodDef __pyx_mdef_14em_kernel_cuda_1multislice_propagate_cuda = {"multislice_propagate_cuda", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_14em_kernel_cuda_1multislice_propagate_cuda, METH_VARARGS|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_14em_kernel_cuda_1multislice_propagate_cuda(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+  PyObject *__pyx_v_wave_in = 0;
+  PyObject *__pyx_v_slices = 0;
+  PyObject *__pyx_v_pixel_size = 0;
+  PyObject *__pyx_v_dz = 0;
+  PyObject *__pyx_v_wave_length = 0;
+  PyObject *__pyx_v_relativity_gamma = 0;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("build_slices_fourier_cuda (wrapper)", 0);
+  __Pyx_RefNannySetupContext("multislice_propagate_cuda (wrapper)", 0);
   {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_scattering_factors,&__pyx_n_s_atom_histograms,0};
-    PyObject* values[2] = {0,0};
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_wave_in,&__pyx_n_s_slices,&__pyx_n_s_pixel_size,&__pyx_n_s_dz,&__pyx_n_s_wave_length,&__pyx_n_s_relativity_gamma,0};
+    PyObject* values[6] = {0,0,0,0,0,0};
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
       const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
       switch (pos_args) {
+        case  6: values[5] = PyTuple_GET_ITEM(__pyx_args, 5);
+        CYTHON_FALLTHROUGH;
+        case  5: values[4] = PyTuple_GET_ITEM(__pyx_args, 4);
+        CYTHON_FALLTHROUGH;
+        case  4: values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
+        CYTHON_FALLTHROUGH;
+        case  3: values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
+        CYTHON_FALLTHROUGH;
         case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
         CYTHON_FALLTHROUGH;
         case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
@@ -1234,48 +1321,82 @@ static PyObject *__pyx_pw_16dens_kernel_cuda_1build_slices_fourier_cuda(PyObject
       kw_args = PyDict_Size(__pyx_kwds);
       switch (pos_args) {
         case  0:
-        if (likely((values[0] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_scattering_factors)) != 0)) kw_args--;
+        if (likely((values[0] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_wave_in)) != 0)) kw_args--;
         else goto __pyx_L5_argtuple_error;
         CYTHON_FALLTHROUGH;
         case  1:
-        if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_atom_histograms)) != 0)) kw_args--;
+        if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_slices)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("build_slices_fourier_cuda", 1, 2, 2, 1); __PYX_ERR(0, 20, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("multislice_propagate_cuda", 1, 6, 6, 1); __PYX_ERR(0, 48, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  2:
+        if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_pixel_size)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("multislice_propagate_cuda", 1, 6, 6, 2); __PYX_ERR(0, 48, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  3:
+        if (likely((values[3] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_dz)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("multislice_propagate_cuda", 1, 6, 6, 3); __PYX_ERR(0, 48, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  4:
+        if (likely((values[4] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_wave_length)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("multislice_propagate_cuda", 1, 6, 6, 4); __PYX_ERR(0, 48, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  5:
+        if (likely((values[5] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_relativity_gamma)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("multislice_propagate_cuda", 1, 6, 6, 5); __PYX_ERR(0, 48, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "build_slices_fourier_cuda") < 0)) __PYX_ERR(0, 20, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "multislice_propagate_cuda") < 0)) __PYX_ERR(0, 48, __pyx_L3_error)
       }
-    } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 6) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
       values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
+      values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
+      values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
+      values[4] = PyTuple_GET_ITEM(__pyx_args, 4);
+      values[5] = PyTuple_GET_ITEM(__pyx_args, 5);
     }
-    __pyx_v_scattering_factors = values[0];
-    __pyx_v_atom_histograms = values[1];
+    __pyx_v_wave_in = values[0];
+    __pyx_v_slices = values[1];
+    __pyx_v_pixel_size = values[2];
+    __pyx_v_dz = values[3];
+    __pyx_v_wave_length = values[4];
+    __pyx_v_relativity_gamma = values[5];
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("build_slices_fourier_cuda", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 20, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("multislice_propagate_cuda", 1, 6, 6, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 48, __pyx_L3_error)
   __pyx_L3_error:;
-  __Pyx_AddTraceback("dens_kernel_cuda.build_slices_fourier_cuda", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("em_kernel_cuda.multislice_propagate_cuda", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_16dens_kernel_cuda_build_slices_fourier_cuda(__pyx_self, __pyx_v_scattering_factors, __pyx_v_atom_histograms);
+  __pyx_r = __pyx_pf_14em_kernel_cuda_multislice_propagate_cuda(__pyx_self, __pyx_v_wave_in, __pyx_v_slices, __pyx_v_pixel_size, __pyx_v_dz, __pyx_v_wave_length, __pyx_v_relativity_gamma);
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_16dens_kernel_cuda_build_slices_fourier_cuda(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_scattering_factors, PyObject *__pyx_v_atom_histograms) {
-  PyObject *__pyx_v_n_elems = NULL;
+static PyObject *__pyx_pf_14em_kernel_cuda_multislice_propagate_cuda(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_wave_in, PyObject *__pyx_v_slices, PyObject *__pyx_v_pixel_size, PyObject *__pyx_v_dz, PyObject *__pyx_v_wave_length, PyObject *__pyx_v_relativity_gamma) {
   PyObject *__pyx_v_n_slices = NULL;
   PyObject *__pyx_v_n1 = NULL;
   PyObject *__pyx_v_n2 = NULL;
-  PyObject *__pyx_v_output = NULL;
+  PyObject *__pyx_v_wave_in_ptr = NULL;
+  PyObject *__pyx_v_slices_ptr = NULL;
+  PyObject *__pyx_v_wave_out = NULL;
+  PyObject *__pyx_v_wave_out_ptr = NULL;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -1285,94 +1406,82 @@ static PyObject *__pyx_pf_16dens_kernel_cuda_build_slices_fourier_cuda(CYTHON_UN
   PyObject *(*__pyx_t_5)(PyObject *);
   size_t __pyx_t_6;
   int __pyx_t_7;
-  size_t __pyx_t_8;
-  int __pyx_t_9;
+  int __pyx_t_8;
+  size_t __pyx_t_9;
   int __pyx_t_10;
-  int __pyx_t_11;
-  size_t __pyx_t_12;
+  float __pyx_t_11;
+  float __pyx_t_12;
+  float __pyx_t_13;
+  float __pyx_t_14;
+  size_t __pyx_t_15;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("build_slices_fourier_cuda", 0);
+  __Pyx_RefNannySetupContext("multislice_propagate_cuda", 0);
 
-  /* "dens_kernel_cuda.pyx":21
+  /* "em_kernel_cuda.pyx":49
  * 
- * def build_slices_fourier_cuda(scattering_factors, atom_histograms):
- *     n_elems = atom_histograms.shape[0]             # <<<<<<<<<<<<<<
- *     n_slices = atom_histograms.shape[1]
- *     n1, n2 = atom_histograms.shape[2:]
+ * def multislice_propagate_cuda(wave_in, slices, pixel_size, dz, wave_length, relativity_gamma):
+ *     n_slices = slices.shape[0]             # <<<<<<<<<<<<<<
+ *     n1, n2 = slices.shape[1:]
+ *     wave_in_ptr = wave_in.data.ptr
  */
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_atom_histograms, __pyx_n_s_shape); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 21, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_slices, __pyx_n_s_shape); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 49, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_GetItemInt(__pyx_t_1, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 21, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_GetItemInt(__pyx_t_1, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 49, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_v_n_elems = __pyx_t_2;
+  __pyx_v_n_slices = __pyx_t_2;
   __pyx_t_2 = 0;
 
-  /* "dens_kernel_cuda.pyx":22
- * def build_slices_fourier_cuda(scattering_factors, atom_histograms):
- *     n_elems = atom_histograms.shape[0]
- *     n_slices = atom_histograms.shape[1]             # <<<<<<<<<<<<<<
- *     n1, n2 = atom_histograms.shape[2:]
- * 
+  /* "em_kernel_cuda.pyx":50
+ * def multislice_propagate_cuda(wave_in, slices, pixel_size, dz, wave_length, relativity_gamma):
+ *     n_slices = slices.shape[0]
+ *     n1, n2 = slices.shape[1:]             # <<<<<<<<<<<<<<
+ *     wave_in_ptr = wave_in.data.ptr
+ *     slices_ptr = slices.data.ptr
  */
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_atom_histograms, __pyx_n_s_shape); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 22, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_slices, __pyx_n_s_shape); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 50, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = __Pyx_GetItemInt(__pyx_t_2, 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 22, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_GetSlice(__pyx_t_2, 1, 0, NULL, NULL, &__pyx_slice_, 1, 0, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 50, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_v_n_slices = __pyx_t_1;
-  __pyx_t_1 = 0;
-
-  /* "dens_kernel_cuda.pyx":23
- *     n_elems = atom_histograms.shape[0]
- *     n_slices = atom_histograms.shape[1]
- *     n1, n2 = atom_histograms.shape[2:]             # <<<<<<<<<<<<<<
- * 
- *     output = cp.empty(shape=(n_slices, n1, n2), dtype=np.float32)
- */
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_atom_histograms, __pyx_n_s_shape); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 23, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_GetSlice(__pyx_t_1, 2, 0, NULL, NULL, &__pyx_slice_, 1, 0, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 23, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  if ((likely(PyTuple_CheckExact(__pyx_t_2))) || (PyList_CheckExact(__pyx_t_2))) {
-    PyObject* sequence = __pyx_t_2;
+  if ((likely(PyTuple_CheckExact(__pyx_t_1))) || (PyList_CheckExact(__pyx_t_1))) {
+    PyObject* sequence = __pyx_t_1;
     Py_ssize_t size = __Pyx_PySequence_SIZE(sequence);
     if (unlikely(size != 2)) {
       if (size > 2) __Pyx_RaiseTooManyValuesError(2);
       else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
-      __PYX_ERR(0, 23, __pyx_L1_error)
+      __PYX_ERR(0, 50, __pyx_L1_error)
     }
     #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
     if (likely(PyTuple_CheckExact(sequence))) {
-      __pyx_t_1 = PyTuple_GET_ITEM(sequence, 0); 
+      __pyx_t_2 = PyTuple_GET_ITEM(sequence, 0); 
       __pyx_t_3 = PyTuple_GET_ITEM(sequence, 1); 
     } else {
-      __pyx_t_1 = PyList_GET_ITEM(sequence, 0); 
+      __pyx_t_2 = PyList_GET_ITEM(sequence, 0); 
       __pyx_t_3 = PyList_GET_ITEM(sequence, 1); 
     }
-    __Pyx_INCREF(__pyx_t_1);
+    __Pyx_INCREF(__pyx_t_2);
     __Pyx_INCREF(__pyx_t_3);
     #else
-    __pyx_t_1 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 23, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_3 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 23, __pyx_L1_error)
+    __pyx_t_2 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 50, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_t_3 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 50, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     #endif
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   } else {
     Py_ssize_t index = -1;
-    __pyx_t_4 = PyObject_GetIter(__pyx_t_2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 23, __pyx_L1_error)
+    __pyx_t_4 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 50, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     __pyx_t_5 = Py_TYPE(__pyx_t_4)->tp_iternext;
-    index = 0; __pyx_t_1 = __pyx_t_5(__pyx_t_4); if (unlikely(!__pyx_t_1)) goto __pyx_L3_unpacking_failed;
-    __Pyx_GOTREF(__pyx_t_1);
+    index = 0; __pyx_t_2 = __pyx_t_5(__pyx_t_4); if (unlikely(!__pyx_t_2)) goto __pyx_L3_unpacking_failed;
+    __Pyx_GOTREF(__pyx_t_2);
     index = 1; __pyx_t_3 = __pyx_t_5(__pyx_t_4); if (unlikely(!__pyx_t_3)) goto __pyx_L3_unpacking_failed;
     __Pyx_GOTREF(__pyx_t_3);
-    if (__Pyx_IternextUnpackEndCheck(__pyx_t_5(__pyx_t_4), 2) < 0) __PYX_ERR(0, 23, __pyx_L1_error)
+    if (__Pyx_IternextUnpackEndCheck(__pyx_t_5(__pyx_t_4), 2) < 0) __PYX_ERR(0, 50, __pyx_L1_error)
     __pyx_t_5 = NULL;
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     goto __pyx_L4_unpacking_done;
@@ -1380,130 +1489,168 @@ static PyObject *__pyx_pf_16dens_kernel_cuda_build_slices_fourier_cuda(CYTHON_UN
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __pyx_t_5 = NULL;
     if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
-    __PYX_ERR(0, 23, __pyx_L1_error)
+    __PYX_ERR(0, 50, __pyx_L1_error)
     __pyx_L4_unpacking_done:;
   }
-  __pyx_v_n1 = __pyx_t_1;
-  __pyx_t_1 = 0;
+  __pyx_v_n1 = __pyx_t_2;
+  __pyx_t_2 = 0;
   __pyx_v_n2 = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "dens_kernel_cuda.pyx":25
- *     n1, n2 = atom_histograms.shape[2:]
+  /* "em_kernel_cuda.pyx":51
+ *     n_slices = slices.shape[0]
+ *     n1, n2 = slices.shape[1:]
+ *     wave_in_ptr = wave_in.data.ptr             # <<<<<<<<<<<<<<
+ *     slices_ptr = slices.data.ptr
  * 
- *     output = cp.empty(shape=(n_slices, n1, n2), dtype=np.float32)             # <<<<<<<<<<<<<<
- * 
- *     build_slices_fourier_cuda_wrapper(
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_cp); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 25, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_empty); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 25, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 25, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = PyTuple_New(3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 25, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_wave_in, __pyx_n_s_data); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 51, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_INCREF(__pyx_v_n_slices);
-  __Pyx_GIVEREF(__pyx_v_n_slices);
-  PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_v_n_slices);
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_ptr); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 51, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_v_wave_in_ptr = __pyx_t_3;
+  __pyx_t_3 = 0;
+
+  /* "em_kernel_cuda.pyx":52
+ *     n1, n2 = slices.shape[1:]
+ *     wave_in_ptr = wave_in.data.ptr
+ *     slices_ptr = slices.data.ptr             # <<<<<<<<<<<<<<
+ * 
+ *     wave_out = cp.empty(shape=(n1, n2), dtype=np.complex64)
+ */
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_slices, __pyx_n_s_data); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 52, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_ptr); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 52, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_v_slices_ptr = __pyx_t_1;
+  __pyx_t_1 = 0;
+
+  /* "em_kernel_cuda.pyx":54
+ *     slices_ptr = slices.data.ptr
+ * 
+ *     wave_out = cp.empty(shape=(n1, n2), dtype=np.complex64)             # <<<<<<<<<<<<<<
+ *     wave_out_ptr = wave_out.data.ptr
+ * 
+ */
+  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_cp); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 54, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_empty); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 54, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_t_1 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 54, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_2 = PyTuple_New(2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 54, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
   __Pyx_INCREF(__pyx_v_n1);
   __Pyx_GIVEREF(__pyx_v_n1);
-  PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_v_n1);
+  PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_v_n1);
   __Pyx_INCREF(__pyx_v_n2);
   __Pyx_GIVEREF(__pyx_v_n2);
-  PyTuple_SET_ITEM(__pyx_t_1, 2, __pyx_v_n2);
-  if (PyDict_SetItem(__pyx_t_2, __pyx_n_s_shape, __pyx_t_1) < 0) __PYX_ERR(0, 25, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 25, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_float32); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 25, __pyx_L1_error)
+  PyTuple_SET_ITEM(__pyx_t_2, 1, __pyx_v_n2);
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_shape, __pyx_t_2) < 0) __PYX_ERR(0, 54, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 54, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_complex64); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 54, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  if (PyDict_SetItem(__pyx_t_2, __pyx_n_s_dtype, __pyx_t_4) < 0) __PYX_ERR(0, 25, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_dtype, __pyx_t_4) < 0) __PYX_ERR(0, 54, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_4 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_empty_tuple, __pyx_t_2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 25, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_empty_tuple, __pyx_t_1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 54, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_v_output = __pyx_t_4;
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_v_wave_out = __pyx_t_4;
   __pyx_t_4 = 0;
 
-  /* "dens_kernel_cuda.pyx":28
+  /* "em_kernel_cuda.pyx":55
  * 
- *     build_slices_fourier_cuda_wrapper(
- *         scattering_factors.data.ptr, n_elems,             # <<<<<<<<<<<<<<
- *         atom_histograms.data.ptr, n_slices, n1, n2,
- *         output.data.ptr)
- */
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_scattering_factors, __pyx_n_s_data); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 28, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_ptr); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 28, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_6 = __Pyx_PyInt_As_size_t(__pyx_t_2); if (unlikely((__pyx_t_6 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 28, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_7 = __Pyx_PyInt_As_int(__pyx_v_n_elems); if (unlikely((__pyx_t_7 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 28, __pyx_L1_error)
-
-  /* "dens_kernel_cuda.pyx":29
- *     build_slices_fourier_cuda_wrapper(
- *         scattering_factors.data.ptr, n_elems,
- *         atom_histograms.data.ptr, n_slices, n1, n2,             # <<<<<<<<<<<<<<
- *         output.data.ptr)
- *     return output
- */
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_atom_histograms, __pyx_n_s_data); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 29, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_ptr); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 29, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_8 = __Pyx_PyInt_As_size_t(__pyx_t_4); if (unlikely((__pyx_t_8 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 29, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_9 = __Pyx_PyInt_As_int(__pyx_v_n_slices); if (unlikely((__pyx_t_9 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 29, __pyx_L1_error)
-  __pyx_t_10 = __Pyx_PyInt_As_int(__pyx_v_n1); if (unlikely((__pyx_t_10 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 29, __pyx_L1_error)
-  __pyx_t_11 = __Pyx_PyInt_As_int(__pyx_v_n2); if (unlikely((__pyx_t_11 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 29, __pyx_L1_error)
-
-  /* "dens_kernel_cuda.pyx":30
- *         scattering_factors.data.ptr, n_elems,
- *         atom_histograms.data.ptr, n_slices, n1, n2,
- *         output.data.ptr)             # <<<<<<<<<<<<<<
- *     return output
- */
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_output, __pyx_n_s_data); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 30, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_ptr); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 30, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_12 = __Pyx_PyInt_As_size_t(__pyx_t_2); if (unlikely((__pyx_t_12 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 30, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-
-  /* "dens_kernel_cuda.pyx":27
- *     output = cp.empty(shape=(n_slices, n1, n2), dtype=np.float32)
+ *     wave_out = cp.empty(shape=(n1, n2), dtype=np.complex64)
+ *     wave_out_ptr = wave_out.data.ptr             # <<<<<<<<<<<<<<
  * 
- *     build_slices_fourier_cuda_wrapper(             # <<<<<<<<<<<<<<
- *         scattering_factors.data.ptr, n_elems,
- *         atom_histograms.data.ptr, n_slices, n1, n2,
+ *     multislice_propagate_cufft_device_wrapper(
  */
-  __pyx_t_2 = __pyx_f_16dens_kernel_cuda_build_slices_fourier_cuda_wrapper(__pyx_t_6, __pyx_t_7, __pyx_t_8, __pyx_t_9, __pyx_t_10, __pyx_t_11, __pyx_t_12); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 27, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_wave_out, __pyx_n_s_data); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 55, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_ptr); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 55, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __pyx_v_wave_out_ptr = __pyx_t_1;
+  __pyx_t_1 = 0;
 
-  /* "dens_kernel_cuda.pyx":31
- *         atom_histograms.data.ptr, n_slices, n1, n2,
- *         output.data.ptr)
- *     return output             # <<<<<<<<<<<<<<
+  /* "em_kernel_cuda.pyx":58
+ * 
+ *     multislice_propagate_cufft_device_wrapper(
+ *         wave_in_ptr, n1, n2,             # <<<<<<<<<<<<<<
+ *         slices_ptr, n_slices, pixel_size, dz,
+ *         wave_length, relativity_gamma,
+ */
+  __pyx_t_6 = __Pyx_PyInt_As_size_t(__pyx_v_wave_in_ptr); if (unlikely((__pyx_t_6 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 58, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyInt_As_int(__pyx_v_n1); if (unlikely((__pyx_t_7 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 58, __pyx_L1_error)
+  __pyx_t_8 = __Pyx_PyInt_As_int(__pyx_v_n2); if (unlikely((__pyx_t_8 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 58, __pyx_L1_error)
+
+  /* "em_kernel_cuda.pyx":59
+ *     multislice_propagate_cufft_device_wrapper(
+ *         wave_in_ptr, n1, n2,
+ *         slices_ptr, n_slices, pixel_size, dz,             # <<<<<<<<<<<<<<
+ *         wave_length, relativity_gamma,
+ *         wave_out_ptr
+ */
+  __pyx_t_9 = __Pyx_PyInt_As_size_t(__pyx_v_slices_ptr); if (unlikely((__pyx_t_9 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_10 = __Pyx_PyInt_As_int(__pyx_v_n_slices); if (unlikely((__pyx_t_10 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_11 = __pyx_PyFloat_AsFloat(__pyx_v_pixel_size); if (unlikely((__pyx_t_11 == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_12 = __pyx_PyFloat_AsFloat(__pyx_v_dz); if (unlikely((__pyx_t_12 == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+
+  /* "em_kernel_cuda.pyx":60
+ *         wave_in_ptr, n1, n2,
+ *         slices_ptr, n_slices, pixel_size, dz,
+ *         wave_length, relativity_gamma,             # <<<<<<<<<<<<<<
+ *         wave_out_ptr
+ *     )
+ */
+  __pyx_t_13 = __pyx_PyFloat_AsFloat(__pyx_v_wave_length); if (unlikely((__pyx_t_13 == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 60, __pyx_L1_error)
+  __pyx_t_14 = __pyx_PyFloat_AsFloat(__pyx_v_relativity_gamma); if (unlikely((__pyx_t_14 == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 60, __pyx_L1_error)
+
+  /* "em_kernel_cuda.pyx":61
+ *         slices_ptr, n_slices, pixel_size, dz,
+ *         wave_length, relativity_gamma,
+ *         wave_out_ptr             # <<<<<<<<<<<<<<
+ *     )
+ *     return wave_out
+ */
+  __pyx_t_15 = __Pyx_PyInt_As_size_t(__pyx_v_wave_out_ptr); if (unlikely((__pyx_t_15 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 61, __pyx_L1_error)
+
+  /* "em_kernel_cuda.pyx":57
+ *     wave_out_ptr = wave_out.data.ptr
+ * 
+ *     multislice_propagate_cufft_device_wrapper(             # <<<<<<<<<<<<<<
+ *         wave_in_ptr, n1, n2,
+ *         slices_ptr, n_slices, pixel_size, dz,
+ */
+  __pyx_t_1 = __pyx_f_14em_kernel_cuda_multislice_propagate_cufft_device_wrapper(__pyx_t_6, __pyx_t_7, __pyx_t_8, __pyx_t_9, __pyx_t_10, __pyx_t_11, __pyx_t_12, __pyx_t_13, __pyx_t_14, __pyx_t_15); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 57, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+
+  /* "em_kernel_cuda.pyx":63
+ *         wave_out_ptr
+ *     )
+ *     return wave_out             # <<<<<<<<<<<<<<
+ * 
+ * 
  */
   __Pyx_XDECREF(__pyx_r);
-  __Pyx_INCREF(__pyx_v_output);
-  __pyx_r = __pyx_v_output;
+  __Pyx_INCREF(__pyx_v_wave_out);
+  __pyx_r = __pyx_v_wave_out;
   goto __pyx_L0;
 
-  /* "dens_kernel_cuda.pyx":20
+  /* "em_kernel_cuda.pyx":48
  * 
  * 
- * def build_slices_fourier_cuda(scattering_factors, atom_histograms):             # <<<<<<<<<<<<<<
- *     n_elems = atom_histograms.shape[0]
- *     n_slices = atom_histograms.shape[1]
+ * def multislice_propagate_cuda(wave_in, slices, pixel_size, dz, wave_length, relativity_gamma):             # <<<<<<<<<<<<<<
+ *     n_slices = slices.shape[0]
+ *     n1, n2 = slices.shape[1:]
  */
 
   /* function exit code */
@@ -1512,14 +1659,369 @@ static PyObject *__pyx_pf_16dens_kernel_cuda_build_slices_fourier_cuda(CYTHON_UN
   __Pyx_XDECREF(__pyx_t_2);
   __Pyx_XDECREF(__pyx_t_3);
   __Pyx_XDECREF(__pyx_t_4);
-  __Pyx_AddTraceback("dens_kernel_cuda.build_slices_fourier_cuda", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("em_kernel_cuda.multislice_propagate_cuda", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
-  __Pyx_XDECREF(__pyx_v_n_elems);
   __Pyx_XDECREF(__pyx_v_n_slices);
   __Pyx_XDECREF(__pyx_v_n1);
   __Pyx_XDECREF(__pyx_v_n2);
-  __Pyx_XDECREF(__pyx_v_output);
+  __Pyx_XDECREF(__pyx_v_wave_in_ptr);
+  __Pyx_XDECREF(__pyx_v_slices_ptr);
+  __Pyx_XDECREF(__pyx_v_wave_out);
+  __Pyx_XDECREF(__pyx_v_wave_out_ptr);
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "em_kernel_cuda.pyx":66
+ * 
+ * 
+ * def lens_propagate_cuda(wave_in, pixel_size, wave_length, cs_mm, defocus, aperture):             # <<<<<<<<<<<<<<
+ *     n1, n2 = wave_in.shape
+ * 
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_14em_kernel_cuda_3lens_propagate_cuda(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyMethodDef __pyx_mdef_14em_kernel_cuda_3lens_propagate_cuda = {"lens_propagate_cuda", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_14em_kernel_cuda_3lens_propagate_cuda, METH_VARARGS|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_14em_kernel_cuda_3lens_propagate_cuda(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+  PyObject *__pyx_v_wave_in = 0;
+  PyObject *__pyx_v_pixel_size = 0;
+  PyObject *__pyx_v_wave_length = 0;
+  PyObject *__pyx_v_cs_mm = 0;
+  PyObject *__pyx_v_defocus = 0;
+  PyObject *__pyx_v_aperture = 0;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("lens_propagate_cuda (wrapper)", 0);
+  {
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_wave_in,&__pyx_n_s_pixel_size,&__pyx_n_s_wave_length,&__pyx_n_s_cs_mm,&__pyx_n_s_defocus,&__pyx_n_s_aperture,0};
+    PyObject* values[6] = {0,0,0,0,0,0};
+    if (unlikely(__pyx_kwds)) {
+      Py_ssize_t kw_args;
+      const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
+      switch (pos_args) {
+        case  6: values[5] = PyTuple_GET_ITEM(__pyx_args, 5);
+        CYTHON_FALLTHROUGH;
+        case  5: values[4] = PyTuple_GET_ITEM(__pyx_args, 4);
+        CYTHON_FALLTHROUGH;
+        case  4: values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
+        CYTHON_FALLTHROUGH;
+        case  3: values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
+        CYTHON_FALLTHROUGH;
+        case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
+        CYTHON_FALLTHROUGH;
+        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+        CYTHON_FALLTHROUGH;
+        case  0: break;
+        default: goto __pyx_L5_argtuple_error;
+      }
+      kw_args = PyDict_Size(__pyx_kwds);
+      switch (pos_args) {
+        case  0:
+        if (likely((values[0] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_wave_in)) != 0)) kw_args--;
+        else goto __pyx_L5_argtuple_error;
+        CYTHON_FALLTHROUGH;
+        case  1:
+        if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_pixel_size)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("lens_propagate_cuda", 1, 6, 6, 1); __PYX_ERR(0, 66, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  2:
+        if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_wave_length)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("lens_propagate_cuda", 1, 6, 6, 2); __PYX_ERR(0, 66, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  3:
+        if (likely((values[3] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_cs_mm)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("lens_propagate_cuda", 1, 6, 6, 3); __PYX_ERR(0, 66, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  4:
+        if (likely((values[4] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_defocus)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("lens_propagate_cuda", 1, 6, 6, 4); __PYX_ERR(0, 66, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  5:
+        if (likely((values[5] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_aperture)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("lens_propagate_cuda", 1, 6, 6, 5); __PYX_ERR(0, 66, __pyx_L3_error)
+        }
+      }
+      if (unlikely(kw_args > 0)) {
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "lens_propagate_cuda") < 0)) __PYX_ERR(0, 66, __pyx_L3_error)
+      }
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 6) {
+      goto __pyx_L5_argtuple_error;
+    } else {
+      values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+      values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
+      values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
+      values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
+      values[4] = PyTuple_GET_ITEM(__pyx_args, 4);
+      values[5] = PyTuple_GET_ITEM(__pyx_args, 5);
+    }
+    __pyx_v_wave_in = values[0];
+    __pyx_v_pixel_size = values[1];
+    __pyx_v_wave_length = values[2];
+    __pyx_v_cs_mm = values[3];
+    __pyx_v_defocus = values[4];
+    __pyx_v_aperture = values[5];
+  }
+  goto __pyx_L4_argument_unpacking_done;
+  __pyx_L5_argtuple_error:;
+  __Pyx_RaiseArgtupleInvalid("lens_propagate_cuda", 1, 6, 6, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 66, __pyx_L3_error)
+  __pyx_L3_error:;
+  __Pyx_AddTraceback("em_kernel_cuda.lens_propagate_cuda", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_RefNannyFinishContext();
+  return NULL;
+  __pyx_L4_argument_unpacking_done:;
+  __pyx_r = __pyx_pf_14em_kernel_cuda_2lens_propagate_cuda(__pyx_self, __pyx_v_wave_in, __pyx_v_pixel_size, __pyx_v_wave_length, __pyx_v_cs_mm, __pyx_v_defocus, __pyx_v_aperture);
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_14em_kernel_cuda_2lens_propagate_cuda(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_wave_in, PyObject *__pyx_v_pixel_size, PyObject *__pyx_v_wave_length, PyObject *__pyx_v_cs_mm, PyObject *__pyx_v_defocus, PyObject *__pyx_v_aperture) {
+  PyObject *__pyx_v_n1 = NULL;
+  PyObject *__pyx_v_n2 = NULL;
+  PyObject *__pyx_v_wave_in_ptr = NULL;
+  PyObject *__pyx_v_wave_out = NULL;
+  PyObject *__pyx_v_wave_out_ptr = NULL;
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  PyObject *__pyx_t_2 = NULL;
+  PyObject *__pyx_t_3 = NULL;
+  PyObject *__pyx_t_4 = NULL;
+  PyObject *(*__pyx_t_5)(PyObject *);
+  size_t __pyx_t_6;
+  int __pyx_t_7;
+  int __pyx_t_8;
+  float __pyx_t_9;
+  float __pyx_t_10;
+  float __pyx_t_11;
+  float __pyx_t_12;
+  float __pyx_t_13;
+  size_t __pyx_t_14;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("lens_propagate_cuda", 0);
+
+  /* "em_kernel_cuda.pyx":67
+ * 
+ * def lens_propagate_cuda(wave_in, pixel_size, wave_length, cs_mm, defocus, aperture):
+ *     n1, n2 = wave_in.shape             # <<<<<<<<<<<<<<
+ * 
+ *     wave_in_ptr = wave_in.data.ptr
+ */
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_wave_in, __pyx_n_s_shape); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 67, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  if ((likely(PyTuple_CheckExact(__pyx_t_1))) || (PyList_CheckExact(__pyx_t_1))) {
+    PyObject* sequence = __pyx_t_1;
+    Py_ssize_t size = __Pyx_PySequence_SIZE(sequence);
+    if (unlikely(size != 2)) {
+      if (size > 2) __Pyx_RaiseTooManyValuesError(2);
+      else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
+      __PYX_ERR(0, 67, __pyx_L1_error)
+    }
+    #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+    if (likely(PyTuple_CheckExact(sequence))) {
+      __pyx_t_2 = PyTuple_GET_ITEM(sequence, 0); 
+      __pyx_t_3 = PyTuple_GET_ITEM(sequence, 1); 
+    } else {
+      __pyx_t_2 = PyList_GET_ITEM(sequence, 0); 
+      __pyx_t_3 = PyList_GET_ITEM(sequence, 1); 
+    }
+    __Pyx_INCREF(__pyx_t_2);
+    __Pyx_INCREF(__pyx_t_3);
+    #else
+    __pyx_t_2 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 67, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_t_3 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 67, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_3);
+    #endif
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  } else {
+    Py_ssize_t index = -1;
+    __pyx_t_4 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 67, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_4);
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __pyx_t_5 = Py_TYPE(__pyx_t_4)->tp_iternext;
+    index = 0; __pyx_t_2 = __pyx_t_5(__pyx_t_4); if (unlikely(!__pyx_t_2)) goto __pyx_L3_unpacking_failed;
+    __Pyx_GOTREF(__pyx_t_2);
+    index = 1; __pyx_t_3 = __pyx_t_5(__pyx_t_4); if (unlikely(!__pyx_t_3)) goto __pyx_L3_unpacking_failed;
+    __Pyx_GOTREF(__pyx_t_3);
+    if (__Pyx_IternextUnpackEndCheck(__pyx_t_5(__pyx_t_4), 2) < 0) __PYX_ERR(0, 67, __pyx_L1_error)
+    __pyx_t_5 = NULL;
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+    goto __pyx_L4_unpacking_done;
+    __pyx_L3_unpacking_failed:;
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+    __pyx_t_5 = NULL;
+    if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
+    __PYX_ERR(0, 67, __pyx_L1_error)
+    __pyx_L4_unpacking_done:;
+  }
+  __pyx_v_n1 = __pyx_t_2;
+  __pyx_t_2 = 0;
+  __pyx_v_n2 = __pyx_t_3;
+  __pyx_t_3 = 0;
+
+  /* "em_kernel_cuda.pyx":69
+ *     n1, n2 = wave_in.shape
+ * 
+ *     wave_in_ptr = wave_in.data.ptr             # <<<<<<<<<<<<<<
+ * 
+ *     wave_out = cp.empty(shape=(n1, n2), dtype=np.complex64)
+ */
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_wave_in, __pyx_n_s_data); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 69, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_ptr); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 69, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_v_wave_in_ptr = __pyx_t_3;
+  __pyx_t_3 = 0;
+
+  /* "em_kernel_cuda.pyx":71
+ *     wave_in_ptr = wave_in.data.ptr
+ * 
+ *     wave_out = cp.empty(shape=(n1, n2), dtype=np.complex64)             # <<<<<<<<<<<<<<
+ *     wave_out_ptr = wave_out.data.ptr
+ * 
+ */
+  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_cp); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 71, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_empty); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 71, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_t_3 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 71, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_2 = PyTuple_New(2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 71, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_INCREF(__pyx_v_n1);
+  __Pyx_GIVEREF(__pyx_v_n1);
+  PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_v_n1);
+  __Pyx_INCREF(__pyx_v_n2);
+  __Pyx_GIVEREF(__pyx_v_n2);
+  PyTuple_SET_ITEM(__pyx_t_2, 1, __pyx_v_n2);
+  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_shape, __pyx_t_2) < 0) __PYX_ERR(0, 71, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 71, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_complex64); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 71, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_dtype, __pyx_t_4) < 0) __PYX_ERR(0, 71, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __pyx_t_4 = __Pyx_PyObject_Call(__pyx_t_1, __pyx_empty_tuple, __pyx_t_3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 71, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_v_wave_out = __pyx_t_4;
+  __pyx_t_4 = 0;
+
+  /* "em_kernel_cuda.pyx":72
+ * 
+ *     wave_out = cp.empty(shape=(n1, n2), dtype=np.complex64)
+ *     wave_out_ptr = wave_out.data.ptr             # <<<<<<<<<<<<<<
+ * 
+ *     lens_propagate_cuda_device_wrapper(
+ */
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_wave_out, __pyx_n_s_data); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 72, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_ptr); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 72, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __pyx_v_wave_out_ptr = __pyx_t_3;
+  __pyx_t_3 = 0;
+
+  /* "em_kernel_cuda.pyx":75
+ * 
+ *     lens_propagate_cuda_device_wrapper(
+ *         wave_in_ptr, n1, n2, pixel_size,             # <<<<<<<<<<<<<<
+ *         wave_length, cs_mm, defocus, aperture,
+ *         wave_out_ptr
+ */
+  __pyx_t_6 = __Pyx_PyInt_As_size_t(__pyx_v_wave_in_ptr); if (unlikely((__pyx_t_6 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 75, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyInt_As_int(__pyx_v_n1); if (unlikely((__pyx_t_7 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 75, __pyx_L1_error)
+  __pyx_t_8 = __Pyx_PyInt_As_int(__pyx_v_n2); if (unlikely((__pyx_t_8 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 75, __pyx_L1_error)
+  __pyx_t_9 = __pyx_PyFloat_AsFloat(__pyx_v_pixel_size); if (unlikely((__pyx_t_9 == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 75, __pyx_L1_error)
+
+  /* "em_kernel_cuda.pyx":76
+ *     lens_propagate_cuda_device_wrapper(
+ *         wave_in_ptr, n1, n2, pixel_size,
+ *         wave_length, cs_mm, defocus, aperture,             # <<<<<<<<<<<<<<
+ *         wave_out_ptr
+ *     )
+ */
+  __pyx_t_10 = __pyx_PyFloat_AsFloat(__pyx_v_wave_length); if (unlikely((__pyx_t_10 == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 76, __pyx_L1_error)
+  __pyx_t_11 = __pyx_PyFloat_AsFloat(__pyx_v_cs_mm); if (unlikely((__pyx_t_11 == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 76, __pyx_L1_error)
+  __pyx_t_12 = __pyx_PyFloat_AsFloat(__pyx_v_defocus); if (unlikely((__pyx_t_12 == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 76, __pyx_L1_error)
+  __pyx_t_13 = __pyx_PyFloat_AsFloat(__pyx_v_aperture); if (unlikely((__pyx_t_13 == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 76, __pyx_L1_error)
+
+  /* "em_kernel_cuda.pyx":77
+ *         wave_in_ptr, n1, n2, pixel_size,
+ *         wave_length, cs_mm, defocus, aperture,
+ *         wave_out_ptr             # <<<<<<<<<<<<<<
+ *     )
+ * 
+ */
+  __pyx_t_14 = __Pyx_PyInt_As_size_t(__pyx_v_wave_out_ptr); if (unlikely((__pyx_t_14 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 77, __pyx_L1_error)
+
+  /* "em_kernel_cuda.pyx":74
+ *     wave_out_ptr = wave_out.data.ptr
+ * 
+ *     lens_propagate_cuda_device_wrapper(             # <<<<<<<<<<<<<<
+ *         wave_in_ptr, n1, n2, pixel_size,
+ *         wave_length, cs_mm, defocus, aperture,
+ */
+  __pyx_t_3 = __pyx_f_14em_kernel_cuda_lens_propagate_cuda_device_wrapper(__pyx_t_6, __pyx_t_7, __pyx_t_8, __pyx_t_9, __pyx_t_10, __pyx_t_11, __pyx_t_12, __pyx_t_13, __pyx_t_14); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 74, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+
+  /* "em_kernel_cuda.pyx":80
+ *     )
+ * 
+ *     return wave_out             # <<<<<<<<<<<<<<
+ */
+  __Pyx_XDECREF(__pyx_r);
+  __Pyx_INCREF(__pyx_v_wave_out);
+  __pyx_r = __pyx_v_wave_out;
+  goto __pyx_L0;
+
+  /* "em_kernel_cuda.pyx":66
+ * 
+ * 
+ * def lens_propagate_cuda(wave_in, pixel_size, wave_length, cs_mm, defocus, aperture):             # <<<<<<<<<<<<<<
+ *     n1, n2 = wave_in.shape
+ * 
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_XDECREF(__pyx_t_3);
+  __Pyx_XDECREF(__pyx_t_4);
+  __Pyx_AddTraceback("em_kernel_cuda.lens_propagate_cuda", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XDECREF(__pyx_v_n1);
+  __Pyx_XDECREF(__pyx_v_n2);
+  __Pyx_XDECREF(__pyx_v_wave_in_ptr);
+  __Pyx_XDECREF(__pyx_v_wave_out);
+  __Pyx_XDECREF(__pyx_v_wave_out_ptr);
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
@@ -1532,17 +2034,17 @@ static PyMethodDef __pyx_methods[] = {
 #if PY_MAJOR_VERSION >= 3
 #if CYTHON_PEP489_MULTI_PHASE_INIT
 static PyObject* __pyx_pymod_create(PyObject *spec, PyModuleDef *def); /*proto*/
-static int __pyx_pymod_exec_dens_kernel_cuda(PyObject* module); /*proto*/
+static int __pyx_pymod_exec_em_kernel_cuda(PyObject* module); /*proto*/
 static PyModuleDef_Slot __pyx_moduledef_slots[] = {
   {Py_mod_create, (void*)__pyx_pymod_create},
-  {Py_mod_exec, (void*)__pyx_pymod_exec_dens_kernel_cuda},
+  {Py_mod_exec, (void*)__pyx_pymod_exec_em_kernel_cuda},
   {0, NULL}
 };
 #endif
 
 static struct PyModuleDef __pyx_moduledef = {
     PyModuleDef_HEAD_INIT,
-    "dens_kernel_cuda",
+    "em_kernel_cuda",
     0, /* m_doc */
   #if CYTHON_PEP489_MULTI_PHASE_INIT
     0, /* m_size */
@@ -1571,31 +2073,41 @@ static struct PyModuleDef __pyx_moduledef = {
 #endif
 
 static __Pyx_StringTabEntry __pyx_string_tab[] = {
-  {&__pyx_n_s_atom_histograms, __pyx_k_atom_histograms, sizeof(__pyx_k_atom_histograms), 0, 0, 1, 1},
-  {&__pyx_n_s_build_slices_fourier_cuda, __pyx_k_build_slices_fourier_cuda, sizeof(__pyx_k_build_slices_fourier_cuda), 0, 0, 1, 1},
+  {&__pyx_n_s_aperture, __pyx_k_aperture, sizeof(__pyx_k_aperture), 0, 0, 1, 1},
   {&__pyx_n_s_cline_in_traceback, __pyx_k_cline_in_traceback, sizeof(__pyx_k_cline_in_traceback), 0, 0, 1, 1},
+  {&__pyx_n_s_complex64, __pyx_k_complex64, sizeof(__pyx_k_complex64), 0, 0, 1, 1},
   {&__pyx_n_s_cp, __pyx_k_cp, sizeof(__pyx_k_cp), 0, 0, 1, 1},
+  {&__pyx_n_s_cs_mm, __pyx_k_cs_mm, sizeof(__pyx_k_cs_mm), 0, 0, 1, 1},
   {&__pyx_n_s_cupy, __pyx_k_cupy, sizeof(__pyx_k_cupy), 0, 0, 1, 1},
   {&__pyx_n_s_data, __pyx_k_data, sizeof(__pyx_k_data), 0, 0, 1, 1},
-  {&__pyx_n_s_dens_kernel_cuda, __pyx_k_dens_kernel_cuda, sizeof(__pyx_k_dens_kernel_cuda), 0, 0, 1, 1},
-  {&__pyx_kp_s_dens_kernel_cuda_pyx, __pyx_k_dens_kernel_cuda_pyx, sizeof(__pyx_k_dens_kernel_cuda_pyx), 0, 0, 1, 0},
+  {&__pyx_n_s_defocus, __pyx_k_defocus, sizeof(__pyx_k_defocus), 0, 0, 1, 1},
   {&__pyx_n_s_dtype, __pyx_k_dtype, sizeof(__pyx_k_dtype), 0, 0, 1, 1},
+  {&__pyx_n_s_dz, __pyx_k_dz, sizeof(__pyx_k_dz), 0, 0, 1, 1},
+  {&__pyx_n_s_em_kernel_cuda, __pyx_k_em_kernel_cuda, sizeof(__pyx_k_em_kernel_cuda), 0, 0, 1, 1},
+  {&__pyx_kp_s_em_kernel_cuda_pyx, __pyx_k_em_kernel_cuda_pyx, sizeof(__pyx_k_em_kernel_cuda_pyx), 0, 0, 1, 0},
   {&__pyx_n_s_empty, __pyx_k_empty, sizeof(__pyx_k_empty), 0, 0, 1, 1},
-  {&__pyx_n_s_float32, __pyx_k_float32, sizeof(__pyx_k_float32), 0, 0, 1, 1},
   {&__pyx_n_s_import, __pyx_k_import, sizeof(__pyx_k_import), 0, 0, 1, 1},
+  {&__pyx_n_s_lens_propagate_cuda, __pyx_k_lens_propagate_cuda, sizeof(__pyx_k_lens_propagate_cuda), 0, 0, 1, 1},
   {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
+  {&__pyx_n_s_multislice_propagate_cuda, __pyx_k_multislice_propagate_cuda, sizeof(__pyx_k_multislice_propagate_cuda), 0, 0, 1, 1},
   {&__pyx_n_s_n1, __pyx_k_n1, sizeof(__pyx_k_n1), 0, 0, 1, 1},
   {&__pyx_n_s_n2, __pyx_k_n2, sizeof(__pyx_k_n2), 0, 0, 1, 1},
-  {&__pyx_n_s_n_elems, __pyx_k_n_elems, sizeof(__pyx_k_n_elems), 0, 0, 1, 1},
   {&__pyx_n_s_n_slices, __pyx_k_n_slices, sizeof(__pyx_k_n_slices), 0, 0, 1, 1},
   {&__pyx_n_s_name, __pyx_k_name, sizeof(__pyx_k_name), 0, 0, 1, 1},
   {&__pyx_n_s_np, __pyx_k_np, sizeof(__pyx_k_np), 0, 0, 1, 1},
   {&__pyx_n_s_numpy, __pyx_k_numpy, sizeof(__pyx_k_numpy), 0, 0, 1, 1},
-  {&__pyx_n_s_output, __pyx_k_output, sizeof(__pyx_k_output), 0, 0, 1, 1},
+  {&__pyx_n_s_pixel_size, __pyx_k_pixel_size, sizeof(__pyx_k_pixel_size), 0, 0, 1, 1},
   {&__pyx_n_s_ptr, __pyx_k_ptr, sizeof(__pyx_k_ptr), 0, 0, 1, 1},
-  {&__pyx_n_s_scattering_factors, __pyx_k_scattering_factors, sizeof(__pyx_k_scattering_factors), 0, 0, 1, 1},
+  {&__pyx_n_s_relativity_gamma, __pyx_k_relativity_gamma, sizeof(__pyx_k_relativity_gamma), 0, 0, 1, 1},
   {&__pyx_n_s_shape, __pyx_k_shape, sizeof(__pyx_k_shape), 0, 0, 1, 1},
+  {&__pyx_n_s_slices, __pyx_k_slices, sizeof(__pyx_k_slices), 0, 0, 1, 1},
+  {&__pyx_n_s_slices_ptr, __pyx_k_slices_ptr, sizeof(__pyx_k_slices_ptr), 0, 0, 1, 1},
   {&__pyx_n_s_test, __pyx_k_test, sizeof(__pyx_k_test), 0, 0, 1, 1},
+  {&__pyx_n_s_wave_in, __pyx_k_wave_in, sizeof(__pyx_k_wave_in), 0, 0, 1, 1},
+  {&__pyx_n_s_wave_in_ptr, __pyx_k_wave_in_ptr, sizeof(__pyx_k_wave_in_ptr), 0, 0, 1, 1},
+  {&__pyx_n_s_wave_length, __pyx_k_wave_length, sizeof(__pyx_k_wave_length), 0, 0, 1, 1},
+  {&__pyx_n_s_wave_out, __pyx_k_wave_out, sizeof(__pyx_k_wave_out), 0, 0, 1, 1},
+  {&__pyx_n_s_wave_out_ptr, __pyx_k_wave_out_ptr, sizeof(__pyx_k_wave_out_ptr), 0, 0, 1, 1},
   {0, 0, 0, 0, 0, 0, 0}
 };
 static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
@@ -1606,28 +2118,40 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__Pyx_InitCachedConstants", 0);
 
-  /* "dens_kernel_cuda.pyx":23
- *     n_elems = atom_histograms.shape[0]
- *     n_slices = atom_histograms.shape[1]
- *     n1, n2 = atom_histograms.shape[2:]             # <<<<<<<<<<<<<<
- * 
- *     output = cp.empty(shape=(n_slices, n1, n2), dtype=np.float32)
+  /* "em_kernel_cuda.pyx":50
+ * def multislice_propagate_cuda(wave_in, slices, pixel_size, dz, wave_length, relativity_gamma):
+ *     n_slices = slices.shape[0]
+ *     n1, n2 = slices.shape[1:]             # <<<<<<<<<<<<<<
+ *     wave_in_ptr = wave_in.data.ptr
+ *     slices_ptr = slices.data.ptr
  */
-  __pyx_slice_ = PySlice_New(__pyx_int_2, Py_None, Py_None); if (unlikely(!__pyx_slice_)) __PYX_ERR(0, 23, __pyx_L1_error)
+  __pyx_slice_ = PySlice_New(__pyx_int_1, Py_None, Py_None); if (unlikely(!__pyx_slice_)) __PYX_ERR(0, 50, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_slice_);
   __Pyx_GIVEREF(__pyx_slice_);
 
-  /* "dens_kernel_cuda.pyx":20
+  /* "em_kernel_cuda.pyx":48
  * 
  * 
- * def build_slices_fourier_cuda(scattering_factors, atom_histograms):             # <<<<<<<<<<<<<<
- *     n_elems = atom_histograms.shape[0]
- *     n_slices = atom_histograms.shape[1]
+ * def multislice_propagate_cuda(wave_in, slices, pixel_size, dz, wave_length, relativity_gamma):             # <<<<<<<<<<<<<<
+ *     n_slices = slices.shape[0]
+ *     n1, n2 = slices.shape[1:]
  */
-  __pyx_tuple__2 = PyTuple_Pack(7, __pyx_n_s_scattering_factors, __pyx_n_s_atom_histograms, __pyx_n_s_n_elems, __pyx_n_s_n_slices, __pyx_n_s_n1, __pyx_n_s_n2, __pyx_n_s_output); if (unlikely(!__pyx_tuple__2)) __PYX_ERR(0, 20, __pyx_L1_error)
+  __pyx_tuple__2 = PyTuple_Pack(13, __pyx_n_s_wave_in, __pyx_n_s_slices, __pyx_n_s_pixel_size, __pyx_n_s_dz, __pyx_n_s_wave_length, __pyx_n_s_relativity_gamma, __pyx_n_s_n_slices, __pyx_n_s_n1, __pyx_n_s_n2, __pyx_n_s_wave_in_ptr, __pyx_n_s_slices_ptr, __pyx_n_s_wave_out, __pyx_n_s_wave_out_ptr); if (unlikely(!__pyx_tuple__2)) __PYX_ERR(0, 48, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__2);
   __Pyx_GIVEREF(__pyx_tuple__2);
-  __pyx_codeobj__3 = (PyObject*)__Pyx_PyCode_New(2, 0, 7, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__2, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_dens_kernel_cuda_pyx, __pyx_n_s_build_slices_fourier_cuda, 20, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__3)) __PYX_ERR(0, 20, __pyx_L1_error)
+  __pyx_codeobj__3 = (PyObject*)__Pyx_PyCode_New(6, 0, 13, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__2, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_em_kernel_cuda_pyx, __pyx_n_s_multislice_propagate_cuda, 48, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__3)) __PYX_ERR(0, 48, __pyx_L1_error)
+
+  /* "em_kernel_cuda.pyx":66
+ * 
+ * 
+ * def lens_propagate_cuda(wave_in, pixel_size, wave_length, cs_mm, defocus, aperture):             # <<<<<<<<<<<<<<
+ *     n1, n2 = wave_in.shape
+ * 
+ */
+  __pyx_tuple__4 = PyTuple_Pack(11, __pyx_n_s_wave_in, __pyx_n_s_pixel_size, __pyx_n_s_wave_length, __pyx_n_s_cs_mm, __pyx_n_s_defocus, __pyx_n_s_aperture, __pyx_n_s_n1, __pyx_n_s_n2, __pyx_n_s_wave_in_ptr, __pyx_n_s_wave_out, __pyx_n_s_wave_out_ptr); if (unlikely(!__pyx_tuple__4)) __PYX_ERR(0, 66, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__4);
+  __Pyx_GIVEREF(__pyx_tuple__4);
+  __pyx_codeobj__5 = (PyObject*)__Pyx_PyCode_New(6, 0, 11, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__4, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_em_kernel_cuda_pyx, __pyx_n_s_lens_propagate_cuda, 66, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__5)) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -1637,7 +2161,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
 
 static CYTHON_SMALL_CODE int __Pyx_InitGlobals(void) {
   if (__Pyx_InitStrings(__pyx_string_tab) < 0) __PYX_ERR(0, 1, __pyx_L1_error);
-  __pyx_int_2 = PyInt_FromLong(2); if (unlikely(!__pyx_int_2)) __PYX_ERR(0, 1, __pyx_L1_error)
+  __pyx_int_1 = PyInt_FromLong(1); if (unlikely(!__pyx_int_1)) __PYX_ERR(0, 1, __pyx_L1_error)
   return 0;
   __pyx_L1_error:;
   return -1;
@@ -1726,11 +2250,11 @@ static int __Pyx_modinit_function_import_code(void) {
 
 
 #if PY_MAJOR_VERSION < 3
-__Pyx_PyMODINIT_FUNC initdens_kernel_cuda(void) CYTHON_SMALL_CODE; /*proto*/
-__Pyx_PyMODINIT_FUNC initdens_kernel_cuda(void)
+__Pyx_PyMODINIT_FUNC initem_kernel_cuda(void) CYTHON_SMALL_CODE; /*proto*/
+__Pyx_PyMODINIT_FUNC initem_kernel_cuda(void)
 #else
-__Pyx_PyMODINIT_FUNC PyInit_dens_kernel_cuda(void) CYTHON_SMALL_CODE; /*proto*/
-__Pyx_PyMODINIT_FUNC PyInit_dens_kernel_cuda(void)
+__Pyx_PyMODINIT_FUNC PyInit_em_kernel_cuda(void) CYTHON_SMALL_CODE; /*proto*/
+__Pyx_PyMODINIT_FUNC PyInit_em_kernel_cuda(void)
 #if CYTHON_PEP489_MULTI_PHASE_INIT
 {
   return PyModuleDef_Init(&__pyx_moduledef);
@@ -1797,7 +2321,7 @@ bad:
 }
 
 
-static CYTHON_SMALL_CODE int __pyx_pymod_exec_dens_kernel_cuda(PyObject *__pyx_pyinit_module)
+static CYTHON_SMALL_CODE int __pyx_pymod_exec_em_kernel_cuda(PyObject *__pyx_pyinit_module)
 #endif
 #endif
 {
@@ -1809,7 +2333,7 @@ static CYTHON_SMALL_CODE int __pyx_pymod_exec_dens_kernel_cuda(PyObject *__pyx_p
   #if CYTHON_PEP489_MULTI_PHASE_INIT
   if (__pyx_m) {
     if (__pyx_m == __pyx_pyinit_module) return 0;
-    PyErr_SetString(PyExc_RuntimeError, "Module 'dens_kernel_cuda' has already been imported. Re-initialisation is not supported.");
+    PyErr_SetString(PyExc_RuntimeError, "Module 'em_kernel_cuda' has already been imported. Re-initialisation is not supported.");
     return -1;
   }
   #elif PY_MAJOR_VERSION >= 3
@@ -1824,7 +2348,7 @@ if (!__Pyx_RefNanny) {
       Py_FatalError("failed to import 'refnanny' module");
 }
 #endif
-  __Pyx_RefNannySetupContext("__Pyx_PyMODINIT_FUNC PyInit_dens_kernel_cuda(void)", 0);
+  __Pyx_RefNannySetupContext("__Pyx_PyMODINIT_FUNC PyInit_em_kernel_cuda(void)", 0);
   if (__Pyx_check_binary_version() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #ifdef __Pxy_PyFrame_Initialize_Offsets
   __Pxy_PyFrame_Initialize_Offsets();
@@ -1863,7 +2387,7 @@ if (!__Pyx_RefNanny) {
   Py_INCREF(__pyx_m);
   #else
   #if PY_MAJOR_VERSION < 3
-  __pyx_m = Py_InitModule4("dens_kernel_cuda", __pyx_methods, 0, 0, PYTHON_API_VERSION); Py_XINCREF(__pyx_m);
+  __pyx_m = Py_InitModule4("em_kernel_cuda", __pyx_methods, 0, 0, PYTHON_API_VERSION); Py_XINCREF(__pyx_m);
   #else
   __pyx_m = PyModule_Create(&__pyx_moduledef);
   #endif
@@ -1881,14 +2405,14 @@ if (!__Pyx_RefNanny) {
   #if PY_MAJOR_VERSION < 3 && (__PYX_DEFAULT_STRING_ENCODING_IS_ASCII || __PYX_DEFAULT_STRING_ENCODING_IS_DEFAULT)
   if (__Pyx_init_sys_getdefaultencoding_params() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
-  if (__pyx_module_is_main_dens_kernel_cuda) {
+  if (__pyx_module_is_main_em_kernel_cuda) {
     if (PyObject_SetAttr(__pyx_m, __pyx_n_s_name, __pyx_n_s_main) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   }
   #if PY_MAJOR_VERSION >= 3
   {
     PyObject *modules = PyImport_GetModuleDict(); if (unlikely(!modules)) __PYX_ERR(0, 1, __pyx_L1_error)
-    if (!PyDict_GetItemString(modules, "dens_kernel_cuda")) {
-      if (unlikely(PyDict_SetItemString(modules, "dens_kernel_cuda", __pyx_m) < 0)) __PYX_ERR(0, 1, __pyx_L1_error)
+    if (!PyDict_GetItemString(modules, "em_kernel_cuda")) {
+      if (unlikely(PyDict_SetItemString(modules, "em_kernel_cuda", __pyx_m) < 0)) __PYX_ERR(0, 1, __pyx_L1_error)
     }
   }
   #endif
@@ -1909,7 +2433,7 @@ if (!__Pyx_RefNanny) {
   if (__Pyx_patch_abc() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
 
-  /* "dens_kernel_cuda.pyx":1
+  /* "em_kernel_cuda.pyx":1
  * import cupy as cp             # <<<<<<<<<<<<<<
  * import numpy as np
  * 
@@ -1919,30 +2443,42 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_cp, __pyx_t_1) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "dens_kernel_cuda.pyx":2
+  /* "em_kernel_cuda.pyx":2
  * import cupy as cp
  * import numpy as np             # <<<<<<<<<<<<<<
  * 
- * cdef extern from "dens_kernel_cuda.h":
+ * 
  */
   __pyx_t_1 = __Pyx_Import(__pyx_n_s_numpy, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 2, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_1) < 0) __PYX_ERR(0, 2, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "dens_kernel_cuda.pyx":20
+  /* "em_kernel_cuda.pyx":48
  * 
  * 
- * def build_slices_fourier_cuda(scattering_factors, atom_histograms):             # <<<<<<<<<<<<<<
- *     n_elems = atom_histograms.shape[0]
- *     n_slices = atom_histograms.shape[1]
+ * def multislice_propagate_cuda(wave_in, slices, pixel_size, dz, wave_length, relativity_gamma):             # <<<<<<<<<<<<<<
+ *     n_slices = slices.shape[0]
+ *     n1, n2 = slices.shape[1:]
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_16dens_kernel_cuda_1build_slices_fourier_cuda, NULL, __pyx_n_s_dens_kernel_cuda); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 20, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_14em_kernel_cuda_1multislice_propagate_cuda, NULL, __pyx_n_s_em_kernel_cuda); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 48, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_build_slices_fourier_cuda, __pyx_t_1) < 0) __PYX_ERR(0, 20, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_multislice_propagate_cuda, __pyx_t_1) < 0) __PYX_ERR(0, 48, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "dens_kernel_cuda.pyx":1
+  /* "em_kernel_cuda.pyx":66
+ * 
+ * 
+ * def lens_propagate_cuda(wave_in, pixel_size, wave_length, cs_mm, defocus, aperture):             # <<<<<<<<<<<<<<
+ *     n1, n2 = wave_in.shape
+ * 
+ */
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_14em_kernel_cuda_3lens_propagate_cuda, NULL, __pyx_n_s_em_kernel_cuda); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 66, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_lens_propagate_cuda, __pyx_t_1) < 0) __PYX_ERR(0, 66, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+
+  /* "em_kernel_cuda.pyx":1
  * import cupy as cp             # <<<<<<<<<<<<<<
  * import numpy as np
  * 
@@ -1959,11 +2495,11 @@ if (!__Pyx_RefNanny) {
   __Pyx_XDECREF(__pyx_t_1);
   if (__pyx_m) {
     if (__pyx_d) {
-      __Pyx_AddTraceback("init dens_kernel_cuda", __pyx_clineno, __pyx_lineno, __pyx_filename);
+      __Pyx_AddTraceback("init em_kernel_cuda", __pyx_clineno, __pyx_lineno, __pyx_filename);
     }
     Py_CLEAR(__pyx_m);
   } else if (!PyErr_Occurred()) {
-    PyErr_SetString(PyExc_ImportError, "init dens_kernel_cuda");
+    PyErr_SetString(PyExc_ImportError, "init em_kernel_cuda");
   }
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();

@@ -2,12 +2,16 @@ import cupy as cp
 import numpy as np
 
 
-cdef extern from "<cufft.h>":
+# cdef extern from "<cufft.h>":
+#     ctypedef float cufftReal
+#     struct float2
+#     ctypedef float2 cufftComplex
+    
+cdef extern from "em_kernel_cuda.h":
     ctypedef float cufftReal
     struct float2
     ctypedef float2 cufftComplex
-    
-cdef extern from "em_kernel_cuda.h":
+
     void multislice_propagate_cuda_device(cufftComplex *waveIn_d, int n1, int n2,
                                           cufftReal *slices_d, int nSlices, float pixSize, float dz,
                                           float waveLength, float relativityGamma,
