@@ -91,7 +91,9 @@ def aberration(wave_length_angstrom: float, cs_mm: float, defocus_angstrom: floa
 
 
 def mtf(wave_length_angstrom: float, cs_mm: float, defocus_angstrom: float):
-    """Modulation Transfer Function"""
+    """
+    Modulation Transfer Function
+    """
     def mtf_(k):
         aberr = aberration(wave_length_angstrom, cs_mm, defocus_angstrom)
         return np.exp(-1j * aberr(k))
@@ -103,11 +105,6 @@ def ctf(wave_length_angstrom: float, cs_mm: float, defocus_angstrom: float):
     Contrast Transfer Function: the imaginary part of MTF.
     """
     def ctf_(k):
-        aberr = aberr = aberration(wave_length_angstrom, cs_mm, defocus_angstrom)
+        aberr = aberration(wave_length_angstrom, cs_mm, defocus_angstrom)
         return np.sin(aberr(k))
     return ctf_
-
-
-if __name__ == "__main__":
-    print(hc_keV_Ang, hbar_c_keV_Ang)
-

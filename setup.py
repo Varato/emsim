@@ -39,13 +39,13 @@ if platform.system() == "Windows" and platform.machine() == "AMD64":
 setup(
     name="emsim",
     version="0.0.0",
-    ext_modules = ext_modules,
+    ext_modules=ext_modules,
     packages=find_packages(where='.'),
     scripts=[],
     install_requires=[],
-    package_data = {
+    package_data={
         'atom_params': ['emsim/assets/*.txt'],
         'cuda_kernels': ['emsim/cuda/kernels/*.cu']
     },
-    data_files = data_files
+    data_files=data_files
 )

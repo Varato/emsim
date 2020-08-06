@@ -5,7 +5,8 @@ from typing import Union, Optional, Tuple
 import numpy as np
 from numpy.fft import fft2, rfft2, irfft2, ifftshift
 
-from .array import requires_cupy, cp
+from . import back_end
+from .back_end import requires_cuda_ext, requires_c_ext
 from . import atoms as atm
 from . import elem
 from .physics import a0, e
@@ -115,7 +116,7 @@ def build_slices_fourier(mol: atm.AtomList,
     return slices  # * 2 * np.pi * a0 * e / pixel_size**2
 
 
-@requires_cupy
+@requires_cuda_ext
 def build_slices_fourier_cupy(mol: atm.AtomList,
                               pixel_size: float,
                               thickness: float,
@@ -145,7 +146,7 @@ def build_slices_fourier_cupy(mol: atm.AtomList,
     `slices = build_slices_fourier(...)`, then `slices[i, ...]` is the i-th slice.
 
     """
-
+    cp = back_end.cp
     elem_nums, n_slices, n1, n2, atmv, scattering_factors = _prepare_slices_build(
         mol, pixel_size, thickness, lateral_size, n_slices, add_water)
 
@@ -158,7 +159,7 @@ def build_slices_fourier_cupy(mol: atm.AtomList,
     return slices_gpu  # * 2 * np.pi * a0 * e / pixel_size**2
 
 
-@requires_cupy
+@requires_cuda_ext
 def build_slices_fourier_cuda(mol: atm.AtomList,
                               pixel_size: float,
                               thickness: float,
@@ -188,10 +189,7 @@ def build_slices_fourier_cuda(mol: atm.AtomList,
     `slices = build_slices_fourier(...)`, then `slices[i, ...]` is the i-th slice.
 
     """
-    try:
-        from .ext_cuda import dens_kernel_cuda
-    except ImportError:
-        raise ImportError("the extension dens_kernel_cuda cannot be found. use numpy version instead.")
+    cp = back_end.cp
 
     elem_nums, n_slices, n1, n2, atmv, scattering_factors = _prepare_slices_build(
         mol, pixel_size, thickness, lateral_size, n_slices, add_water)
@@ -199,7 +197,7 @@ def build_slices_fourier_cuda(mol: atm.AtomList,
     atom_hists_gpu = cp.asarray(atmv.atom_histograms, dtype=float_type)
     scat_facs_gpu = cp.asarray(scattering_factors, dtype=float_type)
 
-    slices = dens_kernel_cuda.build_slices_fourier_cuda(
+    slices = back_end.dens_kernel_cuda.build_slices_fourier_cuda(
         scattering_factors=scat_facs_gpu,
         atom_histograms=atom_hists_gpu)
 
@@ -207,6 +205,7 @@ def build_slices_fourier_cuda(mol: atm.AtomList,
     return slices  # * 2 * np.pi * a0 * e / pixel_size**2
 
 
+@requires_c_ext
 def build_slices_fourier_fftw(mol: atm.AtomList,
                               pixel_size: float,
                               thickness: float,
@@ -236,15 +235,10 @@ def build_slices_fourier_fftw(mol: atm.AtomList,
     `slices = build_slices_fourier(...)`, then `slices[i, ...]` is the i-th slice.
 
     """
-    try:
-        from .ext import dens_kernel
-    except ImportError:
-        raise ImportError("the extension dens_kernel cannot be found. use numpy version instead.")
-
     elem_nums, n_slices, n1, n2, atmv, scattering_factors = _prepare_slices_build(
         mol, pixel_size, thickness, lateral_size, n_slices, add_water)
 
-    slices = dens_kernel.build_slices_fourier_fftw(
+    slices = back_end.dens_kernel.build_slices_fourier_fftw(
         scattering_factors_ifftshifted=scattering_factors,
         atom_histograms=atmv.atom_histograms.astype(np.float32))
 

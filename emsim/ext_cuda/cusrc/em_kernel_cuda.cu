@@ -158,7 +158,7 @@ void multislice_propagate_cuda_device(cufftComplex *waveIn_d, int n1, int n2,
     gridDimX = gridDimX > 2147483647 ? 2147483647 : gridDimX;
 
     for (int s = 0; s < nSlices; ++s) {
-        waveSliceTransmit<<<gridDimX, blockDimX>>>(waveOut_d, slices_d + s, nPix, waveLength, relativityGamma);
+        waveSliceTransmit<<<gridDimX, blockDimX>>>(waveOut_d, slices_d + s * nPix, nPix, waveLength, relativityGamma);
         if (cufftExecC2C(p, waveOut_d, waveOut_d, CUFFT_FORWARD) != CUFFT_SUCCESS) {
             fprintf(stderr, "CUFFT error: C2C plan forward executation failed");
         }
