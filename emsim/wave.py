@@ -59,7 +59,7 @@ def lens_propagate(wave_in: np.ndarray, pixel_size: float,
     return ifft2(ifftshift(h) * fft2(wave_in) * ifftshift(aper))
 
 
-# @requires_c_ext
+@requires_c_ext
 def multislice_propagate_fftw(wave_in: np.ndarray,
                               slices: np.ndarray, pixel_size: float, dz: float,
                               wave_length: float, relativity_gamma: float):
@@ -68,7 +68,7 @@ def multislice_propagate_fftw(wave_in: np.ndarray,
         pixel_size, dz, wave_length, relativity_gamma)
 
 
-# @requires_c_ext
+@requires_c_ext
 def lens_propagate_fftw(wave_in: np.ndarray, pixel_size: float,
                         wave_length: float, cs_mm: float, defocus: float, aperture: float):
     return back_end.em_kernel.lens_propagate_fftw(

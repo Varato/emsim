@@ -35,8 +35,15 @@ class MultislicePipe(object):
         self._pixel_size = 0.5 * res
         self._resolution = res
 
-    def run(self):
-        pass
+    def run(self, back_end='cuda'):
+        if back_end == 'cuda':
+            return self._image_cuda()
+        elif back_end == 'numpy':
+            return self._image_np()
+        elif back_end == "fftw":
+            return self._image_fftw()
+        else:
+            raise ValueError(f"unrecognized backend {back_end}. back_end must be one of `cuda`, `numpy` or `fftw`")
 
     def _exit_wave_np(self):
         slices = dens.build_slices_fourier(self.mol,
@@ -60,7 +67,7 @@ class MultislicePipe(object):
 
     def _image_np(self):
         image_wave = self._image_wave_np()
-        return np.abs(image_wave)**2
+        return image_wave.real ** 2 + image_wave.imag ** 2
 
     def _exit_wave_fftw(self):
         slices = dens.build_slices_fourier_fftw(self.mol,
@@ -90,7 +97,7 @@ class MultislicePipe(object):
         image_wave = self._image_wave_fftw()
         return image_wave.real ** 2 + image_wave.imag ** 2
 
-    def _exit_wave_gpu(self):
+    def _exit_wave_cuda(self):
         slices = dens.build_slices_fourier_cuda(self.mol,
                                                 self._pixel_size,
                                                 self.slice_thickness,
@@ -105,8 +112,8 @@ class MultislicePipe(object):
                                                    self.microscope.wave_length, self.microscope.relativity_gamma)
         return exit_wave
 
-    def _image_wave_gpu(self):
-        exit_wave = self._exit_wave_gpu()
+    def _image_wave_cuda(self):
+        exit_wave = self._exit_wave_cuda()
         image_wave = wave.lens_propagate_cuda(exit_wave, self._pixel_size,
                                               self.microscope.wave_length,
                                               self.microscope.cs_mm,
@@ -114,8 +121,8 @@ class MultislicePipe(object):
                                               self.microscope.aperture)
         return image_wave
 
-    def _image_gpu(self):
-        image_wave = self._image_wave_gpu()
+    def _image_cuda(self):
+        image_wave = self._image_wave_cuda()
         return image_wave.real ** 2 + image_wave.imag ** 2
 
 
