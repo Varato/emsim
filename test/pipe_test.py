@@ -62,13 +62,14 @@ class MultislicePipeTestCase(unittest.TestCase):
         print(f"fftw time = {t2-t1:.3f}")
         print(f"cuda time = {t3-t2:.3f}")
 
-        print(f"diff numpy fftw: {np.abs(imgs[0] - imgs[1]).max()}")
-        print(f"diff numpy cuda: {np.abs(imgs[0] - imgs[2]).max()}")
-        print(f"diff fftw  cuda: {np.abs(imgs[1] - imgs[2]).max()}")
+        print(f"mse numpy fftw: {np.mean((imgs[0] - imgs[1])**2)}")
+        print(f"mse numpy cuda: {np.mean((imgs[0] - imgs[2])**2)}")
+        print(f"mse fftw  cuda: {np.mean((imgs[1] - imgs[2])**2)}")
 
-        _, axes = plt.subplots(ncols=3)
+        _, axes = plt.subplots(ncols=4)
         for i in range(3):
-            axes[i].imshow(imgs[i])
+            axes[i].imshow(imgs[i], cmap="gray")
+        axes[3].imshow(imgs[0] - imgs[2])
         plt.show()
 
 
