@@ -1,6 +1,5 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
-#include <fftw3/fftw3.h>
 #include <stdio.h>
 
 #include "dens_kernel.h"

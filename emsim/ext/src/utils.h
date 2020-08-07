@@ -1,7 +1,7 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-#include <fftw3/fftw3.h>
+typedef float fftwf_complex[2];
 
 void fftshift2d(const fftwf_complex *unshifted, fftwf_complex *shifted, int n0, int n1);
 void ifftshift2d(const fftwf_complex *shifted, fftwf_complex *unshifted, int n0, int n1);

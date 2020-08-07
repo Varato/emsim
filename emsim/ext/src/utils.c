@@ -1,8 +1,9 @@
-#include <fftw3/fftw3.h>
 #include <omp.h>
 
+typedef float fftwf_complex[2];
 
-void fftshift2d(const fftwf_complex *in, fftw_complex *shifted, int n0, int n1)
+
+void fftshift2d(const fftwf_complex *in, fftwf_complex *shifted, int n0, int n1)
 /* fftshift2d for fftw data. n0 and n1 are logical dimensions of the array.*/
 {
     int I, II;
@@ -22,7 +23,7 @@ void fftshift2d(const fftwf_complex *in, fftw_complex *shifted, int n0, int n1)
     }
 }
 
-void ifftshift2d(const fftwf_complex *in, fftw_complex *unshifted, int n0, int n1)
+void ifftshift2d(const fftwf_complex *in, fftwf_complex *unshifted, int n0, int n1)
 {
     int I, II;
     int i, j, ii, jj;
@@ -43,7 +44,7 @@ void ifftshift2d(const fftwf_complex *in, fftw_complex *unshifted, int n0, int n
 }
 
 
-void fftshift3d(const fftwf_complex *in, fftw_complex *shifted, int n0, int n1, int n2)
+void fftshift3d(const fftwf_complex *in, fftwf_complex *shifted, int n0, int n1, int n2)
 /* fftshift2d for fftw data. n0 and n1 are logical dimensions of the array.*/
 {
     int I, II;
@@ -65,7 +66,7 @@ void fftshift3d(const fftwf_complex *in, fftw_complex *shifted, int n0, int n1, 
     }
 }
 
-void ifftshift3d(const fftwf_complex *in, fftw_complex *unshifted, int n0, int n1, int n2)
+void ifftshift3d(const fftwf_complex *in, fftwf_complex *unshifted, int n0, int n1, int n2)
 {
     int I, II;
     int i, j, k, ii, jj, kk;

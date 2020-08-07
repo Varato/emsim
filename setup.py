@@ -1,6 +1,7 @@
-from setuptools import setup, find_packages, Extension
 import platform
 import numpy as np
+from setuptools import setup, find_packages, Extension
+
 
 ext_modules = []
 data_files = []

@@ -1,7 +1,7 @@
 #ifndef EM_KERNEL_H_
 #define EM_KERNEL_H_
 
-#include <fftw3/fftw3.h>
+typedef float fftwf_complex[2];
 
 int multislice_propagate_fftw(fftwf_complex wave_in[], int n1, int n2, 
                               float slices[], int n_slices,  float pixel_size, float dz,
