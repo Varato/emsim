@@ -27,7 +27,6 @@ set_target_properties(libEmKernelCuda PROPERTIES
 # Python extension modules
 add_library(dens_kernel_cuda MODULE src/dens_kernel_cuda.cpp)
 target_link_libraries(dens_kernel_cuda libDensKernelCuda)
-# target_link_libraries(dens_kernel_cuda PRIVATE ${Python_LIBRARIES})
 target_include_directories(dens_kernel_cuda PRIVATE
     ${Python_INCLUDE_DIRS}
     ${Python_NumPy_INCLUDE_DIRS})
@@ -40,7 +39,6 @@ set_target_properties(dens_kernel_cuda PROPERTIES
 add_library(em_kernel_cuda MODULE src/em_kernel_cuda.cpp)
 target_include_directories(em_kernel_cuda PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
 target_link_libraries(em_kernel_cuda libEmKernelCuda)
-# target_link_libraries(em_kernel_cuda PRIVATE ${Python_LIBRARIES})
 target_include_directories(em_kernel_cuda PRIVATE
     ${Python_INCLUDE_DIRS}
     ${Python_NumPy_INCLUDE_DIRS})
@@ -73,8 +71,12 @@ endif()
 # if use scikit-build
 if(SKBUILD)
     find_package(PythonExtensions REQUIRED)
+    # scikit-build will link libpython here
     python_extension_module(dens_kernel_cuda)
     python_extension_module(em_kernel_cuda)
+else()
+    target_link_libraries(dens_kernel_cuda ${Python_LIBRARIES})
+    target_link_libraries(em_kernel_cuda ${Python_LIBRARIES})
 endif()
 
 install(TARGETS dens_kernel_cuda em_kernel_cuda

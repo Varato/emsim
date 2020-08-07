@@ -39,12 +39,10 @@ add_library(em_kernel MODULE
 target_include_directories(dens_kernel PRIVATE 
     ${Python_NumPy_INCLUDE_DIRS}
     ${Python_INCLUDE_DIRS})
-target_link_libraries(dens_kernel PRIVATE ${Python_LIBRARIES})
 
 target_include_directories(em_kernel PRIVATE 
     ${Python_NumPy_INCLUDE_DIRS}
     ${Python_INCLUDE_DIRS})
-target_link_libraries(em_kernel PRIVATE ${Python_LIBRARIES})
 
 if(WIN32)
     # Assume fftw3 is compiled with --with-combined-threads option on Windows systems,
@@ -52,8 +50,8 @@ if(WIN32)
     if( NOT FFTW_FLOAT_LIB_FOUND )
         message(FATAL_ERROR "libfftw3f not found. Try to provide FFTW_ROOT to cmake")
     endif()
-    target_link_libraries(dens_kernel PRIVATE FFTW::Float)
-    target_link_libraries(em_kernel PRIVATE FFTW::Float)
+    target_link_libraries(dens_kernel FFTW::Float)
+    target_link_libraries(em_kernel FFTW::Float)
 
     set_target_properties(dens_kernel PROPERTIES SUFFIX ".pyd")
     set_target_properties(em_kernel PROPERTIES SUFFIX ".pyd")
@@ -77,8 +75,12 @@ endif(WIN32)
 # if use scikit-build
 if(SKBUILD)
     find_package(PythonExtensions REQUIRED)
-    python_extension_module(dens_kernel_cuda)
-    python_extension_module(em_kernel_cuda)
+    # scikit-build will link libpython here
+    python_extension_module(dens_kernel)
+    python_extension_module(em_kernel)
+else()
+    target_link_libraries(dens_kernel ${Python_LIBRARIES})
+    target_link_libraries(em_kernel ${Python_LIBRARIES})
 endif()
 
 
