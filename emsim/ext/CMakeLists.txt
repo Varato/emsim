@@ -55,10 +55,14 @@ if(WIN32)
     target_link_libraries(dens_kernel PRIVATE FFTW::Float)
     target_link_libraries(em_kernel PRIVATE FFTW::Float)
 
-    set_target_properties(dens_kernel PROPERTIES
-        SUFFIX ".pyd")
-    set_target_properties(em_kernel PROPERTIES
-        SUFFIX ".pyd")
+    set_target_properties(dens_kernel PROPERTIES SUFFIX ".pyd")
+    set_target_properties(em_kernel PROPERTIES SUFFIX ".pyd")
+
+    # copy dll to the pyd directory
+    add_custom_command(TARGET dens_kernel POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/bin/libfftw3f-3.dll" $<TARGET_FILE_DIR:dens_kernel>)
+    add_custom_command(TARGET em_kernel POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/bin/libfftw3f-3.dll" $<TARGET_FILE_DIR:em_kernel>)
 
 else()
     if( NOT FFTW_FLOAT_THREADS_LIB_FOUND )
@@ -69,6 +73,20 @@ else()
     target_link_libraries(em_kernel PRIVATE FFTW::FloatThreads)
 endif(WIN32)
 
+
+# if use scikit-build
+if(SKBUILD)
+    find_package(PythonExtensions REQUIRED)
+    python_extension_module(dens_kernel_cuda)
+    python_extension_module(em_kernel_cuda)
+endif()
+
+
 install(TARGETS dens_kernel em_kernel
     LIBRARY
-    DESTINATION ${CMAKE_CURRENT_SOURCE_DIR})
+    DESTINATION "emsim/ext")
+
+if (WIN32)
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/bin/libfftw3f-3.dll"
+        DESTINATION "emsim/ext")
+endif()
