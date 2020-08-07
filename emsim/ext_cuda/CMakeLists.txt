@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.17)
+
 find_package(Python COMPONENTS Interpreter Development NumPy REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 
@@ -49,9 +51,6 @@ set_target_properties(em_kernel_cuda PROPERTIES
     CUDA_RESOLVE_DEVICE_SYMBOLS ON
     CUDA_SEPARABLE_COMPILATION ON
     SUFFIX ".pyd")
-
-# install(TARGETS libDensKernelCuda libEmKernelCuda 
-#     DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/lib_x86_64-win32)
 
 install(TARGETS dens_kernel_cuda em_kernel_cuda
     RUNTIME
