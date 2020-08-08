@@ -32,6 +32,10 @@ class AtomList(object):
         self.elements = elements
         self.coordinates = coordinates.astype(float_type)
 
+        self._sorted = False
+        self._unique_elements = None
+        self._unique_elements_count = None
+
     @property
     def r_min(self):
         return self.coordinates.min(axis=0)
@@ -43,6 +47,37 @@ class AtomList(object):
     @property
     def space(self):
         return self.r_max - self.r_min
+
+    @property
+    def unique_elements(self):
+        self.sort()
+        return self._unique_elements
+
+    @property
+    def unique_elements_count(self):
+        self.sort()
+        return self._unique_elements_count
+
+    def sort(self):
+        if not self._sorted:
+            idx = np.argsort(self.elements)
+            self.elements = self.elements[idx]
+            self.coordinates = self.coordinates[idx]
+            self._unique_elements, self._unique_elements_count = np.unique(self.elements, return_counts=True)
+            self._sorted = True
+        return self
+
+    def translate(self, r):
+        atml = AtomList(elements=self.elements, coordinates=self.coordinates + r)
+        atml._sorted = self._sorted
+        return atml
+
+    def rotate(self, quat):
+        rot = get_rotation_mattrices(quat)
+        rot_coords = np.matmul(rot, self.coordinates[..., None]).squeeze()
+        atml = AtomList(elements=self.elements, coordinates=rot_coords)
+        atml._sorted = self._sorted
+        return atml
 
 
 class AtomVolume(object):
@@ -65,30 +100,6 @@ class AtomVolume(object):
         return np.logical_and.reduce(vacs, axis=0)
 
 
-def group_atoms(atom_list: AtomList):
-    """
-    groups atom_list by element kinds.
-
-    Parameters
-    ----------
-    atom_list: AtomList.
-
-    Returns
-    -------
-    dict
-        Keys are element numbers Z, values are all x,y,z coordinates of this kind.
-    """
-    atml = sort_atoms(atom_list)
-    elems, elem_count = np.unique(atml.elements, return_counts=True)
-    elem_dict = {}
-    m = 0
-    for i, z in enumerate(elems):
-        n = elem_count[i]
-        elem_dict[z] = atml.coordinates[m:m+n]
-        m += n
-    return elem_dict
-
-
 def sort_atoms(atom_list: AtomList) -> AtomList:
     """
     sorts and AtomList according to element numbers.
@@ -104,11 +115,8 @@ def sort_atoms(atom_list: AtomList) -> AtomList:
         the sorted AtomList.
 
     """
-    idx = np.argsort(atom_list.elements)
-    sorted_elems = atom_list.elements[idx]
-    sorted_coords = atom_list.coordinates[idx]
-    return AtomList(elements=sorted_elems, coordinates=sorted_coords)
-
+    return atom_list.sort()
+    
 
 def translate(atom_list: AtomList, r) -> AtomList:
     """
@@ -126,7 +134,7 @@ def translate(atom_list: AtomList, r) -> AtomList:
     AtomList
         the translated AtomList.
     """
-    return AtomList(elements=atom_list.elements, coordinates=atom_list.coordinates + r)
+    return atom_list.translate(r)
 
 
 def centralize(atom_list: AtomList) -> AtomList:
@@ -168,14 +176,9 @@ def rotate(atom_list: AtomList, quat: np.ndarray, set_center: bool = False) -> A
     AtomList
         the rotated AtomList.
     """
-
-    if quat.shape != (4,):
-        raise ValueError('wrong quaternion ship')
-    rot = get_rotation_mattrices(quat)
     if set_center:
         atom_list = centralize(atom_list)
-    rot_coords = np.matmul(rot, atom_list.coordinates[..., None]).squeeze()
-    return AtomList(elements=atom_list.elements, coordinates=rot_coords)
+    return atom_list.rotate(quat)
 
 
 def orientations_gen(atom_list: AtomList, quats: np.ndarray, set_center: bool = False) \
@@ -200,12 +203,8 @@ def orientations_gen(atom_list: AtomList, quats: np.ndarray, set_center: bool = 
         Yields rotated AtomLists.
 
     """
-    rots = get_rotation_mattrices(quats)
-    if set_center:
-        atom_list = centralize(atom_list)
-    for rot in rots:
-        rot_coords = np.matmul(rot, atom_list.coordinates[..., None]).squeeze()
-        yield AtomList(elements=atom_list.elements, coordinates=rot_coords)
+    for quat in quats:
+        yield rotate(atom_list, quat, set_center)
 
 
 def bin_atoms(mol: AtomList,
@@ -240,15 +239,18 @@ def bin_atoms(mol: AtomList,
     space = np.where(mol.space < 1e-3, 3.0, mol.space)
     bins = _find_bin_edges(voxel_size, space, box_size)
     num_bins = [len(bins[d]) - 1 for d in range(3)]
-    elem_dict = group_atoms(mol)
 
-    z_values = list(elem_dict.keys())
+    z_values = mol.unique_elements
+    count = mol.unique_elements_count
     n_elems = len(z_values)
 
     volumes = np.empty(shape=(n_elems, *num_bins), dtype=np.int)
 
-    for i, z in enumerate(z_values):
-        volumes[i, ...], _ = np.histogramdd(elem_dict[z], bins=bins)
+    m = 0
+    for i in range(n_elems):
+        n = count[i]
+        volumes[i, ...], _ = np.histogramdd(mol.coordinates[m:m+n], bins=bins)
+        m += n
 
     return AtomVolume(unique_elements=z_values, atom_histograms=volumes, voxel_size=voxel_size)
 

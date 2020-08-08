@@ -123,6 +123,9 @@ def get_rotation_mattrices(quat: np.ndarray) -> np.ndarray:
     elif quat.ndim > 2:
         raise ValueError("ndim of quat must be 1 or 2")
 
+    if quat.shape[1] != 4:
+        raise ValueError("quaternion must be 4D vector")
+
     n_rot = quat.shape[0]
 
     rot = np.empty(shape=(n_rot, 3, 3), dtype=np.float64)

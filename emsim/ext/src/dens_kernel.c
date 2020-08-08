@@ -2,6 +2,10 @@
 #include <omp.h>
 #include <stdio.h>
 
+int bin_atoms(float atom_list, float dx, float dy, float dz, int n0, int n1, int n2) {
+
+}
+
 
 int build_slices_fftwf_kernel(float scattering_factors[], int n_elems,
                               float atom_histograms[], int n_slices, int n1, int n2,
