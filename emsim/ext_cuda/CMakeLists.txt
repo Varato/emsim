@@ -4,39 +4,37 @@ find_package(Python COMPONENTS Interpreter Development NumPy REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 
 
-add_library(libDensKernelCuda STATIC 
-    cusrc/dens_kernel_cuda.cu
-    cusrc/broadcast_mul.cu
-    cusrc/row_reduce_sum.cu)
-target_link_libraries(libDensKernelCuda PRIVATE CUDA::cufft CUDA::cudart)
+add_library(libDensKernelCuda STATIC
+    src/SliceBuilder.cpp
+    src/SliceBuilder.h
+    src/SliceBuilder_kernel.cu
+    src/utils.cu)
+target_link_libraries(libDensKernelCuda PRIVATE CUDA::cufft)
 set_target_properties(libDensKernelCuda PROPERTIES
     CUDA_ARCHITECTURES 75
-    CUDA_RESOLVE_DEVICE_SYMBOLS ON
     CUDA_SEPARABLE_COMPILATION ON)
 
 
 add_library(libEmKernelCuda STATIC
-    cusrc/em_kernel_cuda.cu)
-target_link_libraries(libEmKernelCuda PRIVATE CUDA::cufft CUDA::cudart)
+        src/em_kernel_cuda.cu)
+target_link_libraries(libEmKernelCuda PRIVATE CUDA::cufft)
 set_target_properties(libEmKernelCuda PROPERTIES
     CUDA_ARCHITECTURES 75
-    CUDA_RESOLVE_DEVICE_SYMBOLS ON
     CUDA_SEPARABLE_COMPILATION ON)
 
 
 # Python extension modules
-add_library(dens_kernel_cuda MODULE src/dens_kernel_cuda.cpp)
+add_library(dens_kernel_cuda MODULE cython_src/dens_kernel_cuda.cpp)
 target_link_libraries(dens_kernel_cuda libDensKernelCuda)
 target_include_directories(dens_kernel_cuda PRIVATE
     ${Python_INCLUDE_DIRS}
     ${Python_NumPy_INCLUDE_DIRS})
 set_target_properties(dens_kernel_cuda PROPERTIES
     CUDA_ARCHITECTURES 75
-    CUDA_RESOLVE_DEVICE_SYMBOLS ON
     CUDA_SEPARABLE_COMPILATION ON)
 
 
-add_library(em_kernel_cuda MODULE src/em_kernel_cuda.cpp)
+add_library(em_kernel_cuda MODULE cython_src/em_kernel_cuda.cpp)
 target_include_directories(em_kernel_cuda PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
 target_link_libraries(em_kernel_cuda libEmKernelCuda)
 target_include_directories(em_kernel_cuda PRIVATE
@@ -44,7 +42,6 @@ target_include_directories(em_kernel_cuda PRIVATE
     ${Python_NumPy_INCLUDE_DIRS})
 set_target_properties(em_kernel_cuda PROPERTIES
     CUDA_ARCHITECTURES 75
-    CUDA_RESOLVE_DEVICE_SYMBOLS ON
     CUDA_SEPARABLE_COMPILATION ON)
 
 if(WIN32)

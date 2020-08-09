@@ -18,7 +18,7 @@ float_type = np.float32
 
 
 class AtomList(object):
-    def __init__(self, elements, coordinates):
+    def __init__(self, elements: np.ndarray, coordinates: np.ndarray):
         """
         Parameters
         ----------
@@ -32,7 +32,7 @@ class AtomList(object):
         self.elements = elements
         self.coordinates = coordinates.astype(float_type)
 
-        self._sorted = False
+        self._elems_sorted = False
         self._unique_elements = None
         self._unique_elements_count = None
 
@@ -50,33 +50,54 @@ class AtomList(object):
 
     @property
     def unique_elements(self):
-        self.sort()
+        self.sort_by_elems()
         return self._unique_elements
 
     @property
     def unique_elements_count(self):
-        self.sort()
+        self.sort_by_elems()
         return self._unique_elements_count
 
-    def sort(self):
-        if not self._sorted:
+    def sort_by_elems(self, all_unique_elements=None):
+        if not self._elems_sorted:
+            # sort by element numbers
             idx = np.argsort(self.elements)
             self.elements = self.elements[idx]
             self.coordinates = self.coordinates[idx]
+
+            # np.unique returned values are sorted
             self._unique_elements, self._unique_elements_count = np.unique(self.elements, return_counts=True)
-            self._sorted = True
+            if all_unique_elements is not None:
+                all_unique_elements = np.array(all_unique_elements)
+                all_unique_elements.sort()
+                count = np.zeros(shape=(len(all_unique_elements)), dtype=np.int)
+                for e, c in zip(self._unique_elements, self._unique_elements_count):
+                    k = np.argwhere(all_unique_elements == e).squeeze()
+                    if k.size > 0:
+                        count[k] = c
+                self._unique_elements = all_unique_elements
+                self._unique_elements_count = count
+
+            self._elems_sorted = True
         return self
+
+    def sort_by_coordinates(self, axis: int = 0):
+        key_coord = self.coordinates.T[axis]
+        idx = np.argsort(key_coord)
+        self.elements = self.elements[idx]
+        self.coordinates = self.coordinates[idx]
+        self._elems_sorted = False
 
     def translate(self, r):
         atml = AtomList(elements=self.elements, coordinates=self.coordinates + r)
-        atml._sorted = self._sorted
+        atml._elems_sorted = self._elems_sorted
         return atml
 
     def rotate(self, quat):
         rot = get_rotation_mattrices(quat)
         rot_coords = np.matmul(rot, self.coordinates[..., None]).squeeze()
         atml = AtomList(elements=self.elements, coordinates=rot_coords)
-        atml._sorted = self._sorted
+        atml._elems_sorted = self._elems_sorted
         return atml
 
 
@@ -100,23 +121,11 @@ class AtomVolume(object):
         return np.logical_and.reduce(vacs, axis=0)
 
 
-def sort_atoms(atom_list: AtomList) -> AtomList:
-    """
-    sorts and AtomList according to element numbers.
+def concatenate(atmls: List[AtomList]):
+    elems_concat = np.concatenate([atml.elements for atml in atmls])
+    coord_concat = np.concatenate([atml.coordinates for atml in atmls])
+    return AtomList(elements=elems_concat, coordinates=coord_concat)
 
-    Parameters
-    ----------
-    atom_list: AtomList
-        the input AtomList.
-
-    Returns
-    -------
-    AtomList
-        the sorted AtomList.
-
-    """
-    return atom_list.sort()
-    
 
 def translate(atom_list: AtomList, r) -> AtomList:
     """
@@ -240,9 +249,9 @@ def bin_atoms(mol: AtomList,
     bins = _find_bin_edges(voxel_size, space, box_size)
     num_bins = [len(bins[d]) - 1 for d in range(3)]
 
-    z_values = mol.unique_elements
+    elems = mol.unique_elements
     count = mol.unique_elements_count
-    n_elems = len(z_values)
+    n_elems = len(elems)
 
     volumes = np.empty(shape=(n_elems, *num_bins), dtype=np.int)
 
@@ -252,7 +261,51 @@ def bin_atoms(mol: AtomList,
         volumes[i, ...], _ = np.histogramdd(mol.coordinates[m:m+n], bins=bins)
         m += n
 
-    return AtomVolume(unique_elements=z_values, atom_histograms=volumes, voxel_size=voxel_size)
+    return AtomVolume(unique_elements=elems, atom_histograms=volumes, voxel_size=voxel_size)
+
+
+def find_slices(mol: AtomList, thickness: float, n_slices: int = None, axis: int = 0) -> List[AtomList]:
+    """
+    groups atoms by which slices they belong to. The grouped atoms form seperate AtomLists
+
+    Parameters
+    ----------
+    mol: AtomList
+        the input atoms to be divided into slices
+    thickness: float
+        the thickness in Angstrom of each slice
+    n_slices: int
+        specifies how many slices to be grouped to.
+    axis: int
+        must be 0, 1, 2. Specifies along which axis the slices are divided
+
+    Returns
+    -------
+    List[AtomLists]
+        each element in the list is a slice
+    """
+    all_unique_elements = mol.unique_elements
+    mol.sort_by_coordinates(axis)
+
+    bin_edges = _find_bin_edges1(thickness, mol.space[axis], n_slices)
+    n_bins = len(bin_edges) - 1
+    key_coord = mol.coordinates.T[axis]
+
+    # digitize returns 0 if the value is out of the left boundary
+    # returns len(bin_edges) if the value is out of the right boundary
+    slc_idx = np.digitize(key_coord, bin_edges, right=False)  # idx
+    unique_slc_idx, unique_slc_cnt = np.unique(slc_idx, return_counts=True)
+
+    slices = []
+    m = 0
+    for i, s in enumerate(unique_slc_idx):
+        n = unique_slc_cnt[i]
+        if not (s == 0 or s == n_bins):
+            coord_in_slc = mol.coordinates[m:m+n]
+            elems_in_slc = mol.elements[m:m+n]
+            slices.append(AtomList(elements=elems_in_slc, coordinates=coord_in_slc).sort_by_elems(all_unique_elements))
+        m += n
+    return slices
 
 
 def index_atoms(mol: AtomList,
@@ -293,7 +346,7 @@ def index_atoms(mol: AtomList,
                                     atom_idx[:, 1] < num_bins[1],
                                     atom_idx[:, 2] < num_bins[2]))
     if not np.any(valid):
-        raise ValueError("No atoms in roi, or the thickness_nm is too small")
+        raise ValueError("No atoms in roi, or the thickness is too small")
 
     return mol.elements[valid], atom_idx[valid]
 

@@ -282,6 +282,17 @@ def _prepare_slices_build(mol: atm.AtomList,
     return elem_nums, n_slices, n1, n2, atmv, scattering_factors
 
 
+def slice_generator(mol: atm.AtomList,
+                    pixel_size: float,
+                    thickness: float,
+                    lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
+                    n_slices: Optional[int] = None,
+                    add_water: bool = False):
+    mol = atm.centralize(mol)
+    atom_slice = atm.find_slices(mol, thickness, n_slices, axis=0)
+    # TODO
+
+
 # def build_slices_patchins(mol: atm.AtomList,
 #                           pixel_size: float,
 #                           thickness: float,

@@ -145,6 +145,7 @@ pyvenv.cfg
 .vscode/
 
 .idea/
+cmake-build-debug/
 
 *.dll
 *.lib

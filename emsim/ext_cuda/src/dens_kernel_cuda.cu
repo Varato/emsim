@@ -1,21 +1,23 @@
 #include <cuda_runtime.h>
+//#include <thrust/device_vector.h>
 #include <cufft.h>
 #include <stdio.h>
 #include <math.h>
 
 
-#include "row_reduce_sum.cuh"
-#include "broadcast_mul.cuh"
+#include "utils.h"
+
+
 
 
 void build_slices_fourier_cuda_device(float scattering_factors_d[], int n_elems,
                                       float atom_histograms_d[], int n_slices, int n1, int n2,
                                       float output_d[])
 /*
- * Logical dimensions of the input arrays:
+ * Logical dimensions of the arrays:
  *     scattering_factors_d: (n_elems, n1, n2 // 2 + 1)
- *     scattering_factors_d: (n_elems, n_slices, n1, n2)
- *     outpus_d            : (n_slices, n1, n2)
+ *     atom_histograms_d:    (n_elems, n_slices, n1, n2)
+ *     output_d            : (n_slices, n1, n2)
  * They must be in device memory.
  * 
  * Notice the scattering_factors are halved on their last dimension, because it will be used in c2r FFT transforms.
@@ -27,6 +29,7 @@ void build_slices_fourier_cuda_device(float scattering_factors_d[], int n_elems,
     int n_pix = n1 * n2;
     int n_pix_half = n1 * n2_half;
 
+    //TODO use thurst vector here
     cufftComplex* location_phase_d;   // to hold intermediate fft result and do computations on it
 
     if (cudaMalloc((void **)&location_phase_d, sizeof(cufftComplex) * n_elems * n_slices * n_pix_half) != cudaSuccess) {
