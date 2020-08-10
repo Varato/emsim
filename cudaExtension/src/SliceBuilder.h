@@ -5,30 +5,18 @@
 #ifndef EMSIM_SLICEBUILDER_H
 #define EMSIM_SLICEBUILDER_H
 
+#include <tuple>
 #include <thrust/device_ptr.h>
 
 typedef int cufftHandle;
 
 namespace emsim {
-
+    /*
+     * For single slice build
+     */
     class SliceBuilder {
-    private:
-        cufftHandle m_p, m_ip;
-        int m_n1, m_n2;  // dimensions of the slice
-        float m_pixelSize;    // pixel size of the slice
-        int m_n2Half, m_nPix, m_nPixHalf;
-
-        /* SliceBuilder does not own the following data */
-        thrust::device_ptr<float> m_scatteringFactors;  // pre-computed scattering factors for all elements needed
-        int m_nElems;                                   // the length of m_uniqueElements
-
-        /*
-         * m_scatteringFactors is a c-contiguous 3D array in logical dimension (m_nElems, m_n1, m_n2 / 2 + 1).
-         * The last dimension is halved because CUFFT_R2C is used here, so that we only need halved array in Fourier
-         * space.
-         * */
-
     public:
+        SliceBuilder() = default;
         SliceBuilder(float *scatteringFactors, int nElems,
                      int n1, int n2, float pixelSize);
         ~SliceBuilder();
@@ -49,11 +37,38 @@ namespace emsim {
         void binAtomsWithinSlice(float const atomCoordinates[], unsigned nAtoms,
                                  unsigned const uniqueElemsCount[],
                                  float output[]) const;
+        std::tuple<int, int> getDims() const {return {m_n1, m_n2};}
+        float getPixSize() const {return m_pixelSize;}
+        int getNElems() const {return m_nElems;}
 
+    private:
+        cufftHandle m_p, m_ip;
+        int m_n1, m_n2;  // dimensions of the slice
+        float m_pixelSize;    // pixel size of the slice
+        int m_n2Half, m_nPix, m_nPixHalf;
+
+        /* SliceBuilder does not own the following data */
+        float* m_scatteringFactors;  // pre-computed scattering factors for all elements needed
+        int m_nElems;                // the length of m_uniqueElements
+
+        /*
+         * m_scatteringFactors is a c-contiguous 3D array in logical dimension (m_nElems, m_n1, m_n2 / 2 + 1).
+         * The last dimension is halved because CUFFT_R2C is used here, so that we only need halved array in Fourier
+         * space.
+         * */
     };
 
 
+    /*
+     * For batch slice build
+     * */
     class SliceBuilderBatch {
+    public:
+        SliceBuilderBatch(float *scatteringFactors, int nElems,
+                          int nSlices, int n1, int n2, float pixelSize);
+        ~SliceBuilderBatch();
+
+        void sliceGenBatch(float atomHist[], int n_slices, float output[]) const;
     private:
         cufftHandle m_p, m_ip;
         int m_nSlices;
@@ -64,12 +79,6 @@ namespace emsim {
         /* SliceBuilder does not own the following data */
         thrust::device_ptr<float> m_scatteringFactors;  // pre-computed scattering factors for all elements needed
         int m_nElems;                                   // the length of m_uniqueElements
-    public:
-        SliceBuilderBatch(float *scatteringFactors, int nElems,
-                          int nSlices, int n1, int n2, float pixelSize);
-        ~SliceBuilderBatch();
-
-        void sliceGenBatch(float atomHist[], int n_slices, float output[]) const;
     };
 }
 

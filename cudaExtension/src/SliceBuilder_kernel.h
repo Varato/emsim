@@ -8,6 +8,6 @@
 void binAtomsWithinSlice_(float const atomCoordinates[], unsigned nAtoms,
                          unsigned const uniqueElemsCount[], unsigned nElems,
                          unsigned n1, unsigned n2, float pixSize,
-                         float output[])
+                         float output[]);
 
 #endif //EMSIM_SLICEBUILDER_KERNEL_H

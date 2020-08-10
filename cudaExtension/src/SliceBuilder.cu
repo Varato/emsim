@@ -7,7 +7,6 @@
 #include "utils.h"
 
 namespace emsim {
-
     SliceBuilder::SliceBuilder(float *scatteringFactors, int nElems,
                                int n1, int n2, float pixelSize)
         : m_scatteringFactors(scatteringFactors), m_nElems(nElems),
@@ -45,7 +44,7 @@ namespace emsim {
 
         }
 
-        broadCastMul(locationPhasePtr, thrust::raw_pointer_cast(m_scatteringFactors),
+        broadCastMul(locationPhasePtr, m_scatteringFactors,
                      1.0f/(float)m_nPix, m_nElems, 1, m_nPixHalf);
         if (cudaGetLastError() != cudaSuccess) {
             fprintf(stderr, "CUDA error: %s", cudaGetErrorString(cudaGetLastError()));
@@ -68,6 +67,8 @@ namespace emsim {
 
         binAtomsWithinSlice_(atomCoordinates, nAtoms, uniqueElemsCount, m_nElems, m_n1, m_n2, m_pixelSize,output);
     }
+
+
 
 
     SliceBuilderBatch::SliceBuilderBatch(float *scatteringFactors, int nElems,
