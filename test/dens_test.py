@@ -14,6 +14,7 @@ class DensityTestCase(unittest.TestCase):
     def setUp(self) -> None:
         data_dir = emsim.io.data_dir.get_pdb_data_dir_from_config()
         # pipeline
+        # mol = atm.AtomList(elements=np.array([6, 6]), coordinates=np.array([[0, -2, -2], [0, 2, 2]], dtype=np.float32))
         pdb_code = '4bed'
         pdb_file = utils.pdb.retrieve_pdb_file(pdb_code, data_dir)
         mol = emsim.utils.pdb.build_biological_unit(pdb_file)
@@ -27,11 +28,10 @@ class DensityTestCase(unittest.TestCase):
         plt.show()
 
     def test_build_slices_fourier_cuda(self):
+
         slices = dens.build_slices_fourier_cuda(
-            self.mol, pixel_size=self.voxel_size, thickness=1.2,
-            lateral_size=200, add_water=True)
-        print(slices.shape)
-        print(slices.device)
+            self.mol, pixel_size=self.voxel_size, thickness=4,
+            lateral_size=50, add_water=True)
         plt.imshow(slices.sum(0).get())
         plt.show()
 
@@ -46,20 +46,20 @@ class DensityTestCase(unittest.TestCase):
     def test_build_slices_fourier(self):
         t0 = time.time()
         slices_numpy = dens.build_slices_fourier(
-            self.mol, pixel_size=self.voxel_size, thickness=1.,
-            lateral_size=256, add_water=False)
+            self.mol, pixel_size=self.voxel_size, thickness=4.,
+            lateral_size=128, add_water=False)
         t1 = time.time()
         slices_cupy = dens.build_slices_fourier_cupy(
-            self.mol, pixel_size=self.voxel_size, thickness=1.,
-            lateral_size=256, add_water=False)
+            self.mol, pixel_size=self.voxel_size, thickness=4.,
+            lateral_size=128, add_water=False)
         t2 = time.time()
         slices_fftw = dens.build_slices_fourier_fftw(
-            self.mol, pixel_size=self.voxel_size, thickness=1.,
-            lateral_size=256, add_water=False)
+            self.mol, pixel_size=self.voxel_size, thickness=4.,
+            lateral_size=128, add_water=False)
         t3 = time.time()
         slices_cuda = dens.build_slices_fourier_cuda(
-            self.mol, pixel_size=self.voxel_size, thickness=1.,
-            lateral_size=256, add_water=False)
+            self.mol, pixel_size=self.voxel_size, thickness=4.,
+            lateral_size=128, add_water=False)
         t4 = time.time()
 
         time_numpy = t1 - t0

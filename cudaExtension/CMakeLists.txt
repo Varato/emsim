@@ -17,3 +17,7 @@ set_target_properties(libSliceCuda PROPERTIES
 
 pybind11_add_module(dens_kernel_cuda src/dens_kernel_cuda.cpp)
 target_link_libraries(dens_kernel_cuda PRIVATE libSliceCuda)
+
+install(TARGETS dens_kernel_cuda
+        LIBRARY
+        DESTINATION ${CMAKE_SOURCE_DIR}/emsim/ext_cuda)

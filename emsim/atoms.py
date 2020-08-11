@@ -50,15 +50,15 @@ class AtomList(object):
 
     @property
     def unique_elements(self):
-        self.sort_by_elems()
-        return self._unique_elements
+        self.sort_by_elements()
+        return self._unique_elements.tolist()
 
     @property
     def unique_elements_count(self):
-        self.sort_by_elems()
-        return self._unique_elements_count
+        self.sort_by_elements()
+        return self._unique_elements_count.tolist()
 
-    def sort_by_elems(self, all_unique_elements=None):
+    def sort_by_elements(self, all_unique_elements=None):
         if not self._elems_sorted:
             # sort by element numbers
             idx = np.argsort(self.elements)
@@ -87,9 +87,13 @@ class AtomList(object):
         self.elements = self.elements[idx]
         self.coordinates = self.coordinates[idx]
         self._elems_sorted = False
+        self._unique_elements = None
+        self._unique_elements_count = None
 
     def translate(self, r):
         atml = AtomList(elements=self.elements, coordinates=self.coordinates + r)
+        atml._unique_elements = self._unique_elements
+        atml._unique_elements_count = self._unique_elements_count
         atml._elems_sorted = self._elems_sorted
         return atml
 
@@ -97,6 +101,8 @@ class AtomList(object):
         rot = get_rotation_mattrices(quat)
         rot_coords = np.matmul(rot, self.coordinates[..., None]).squeeze()
         atml = AtomList(elements=self.elements, coordinates=rot_coords)
+        atml._unique_elements = self._unique_elements
+        atml._unique_elements_count = self._unique_elements_count
         atml._elems_sorted = self._elems_sorted
         return atml
 
@@ -216,10 +222,21 @@ def orientations_gen(atom_list: AtomList, quats: np.ndarray, set_center: bool = 
         yield rotate(atom_list, quat, set_center)
 
 
+def determine_box_size(space: Tuple[float, float, float],
+                       voxel_size: Union[float, Tuple[float, float, float]],
+                       box_size: Tuple[Union[None, int], Union[None, int], Union[None, int]]):
+    space = [3.0 if space[d] < 1e-3 else space[d] for d in range(3)]
+    if type(voxel_size) is float:
+        voxel_size = (voxel_size, voxel_size, voxel_size)
+
+    box = [int(math.ceil((length/d))) for length, d in zip(space, voxel_size)]
+    box_final = tuple(box[d] if box_size[d] is None else box_size[d] for d in range(3))
+    return box_final
+
+
 def bin_atoms(mol: AtomList,
               voxel_size: Union[float, Tuple[float, float, float]],
-              box_size: Tuple[Union[None, int], Union[None, int], Union[None, int]]) \
-        -> AtomVolume:
+              box_size: Tuple[Union[None, int], Union[None, int], Union[None, int]]) -> AtomVolume:
     """
     puts atoms in bins (3D histogram). The process is applied to each kind of element separately.
     The bins are determined by voxel_size and molecule size / box_size.
@@ -232,6 +249,8 @@ def bin_atoms(mol: AtomList,
         specifies the 3 dimensions of the resulted histogram box.
         Whenever a dimension is given as None, this dimension is selected to be
         a minimum value that just covers the system.
+    dry_run: bool
+        if set true, only returns parameters for binning atoms
 
     Returns
     -------
@@ -253,7 +272,7 @@ def bin_atoms(mol: AtomList,
     count = mol.unique_elements_count
     n_elems = len(elems)
 
-    volumes = np.empty(shape=(n_elems, *num_bins), dtype=np.int)
+    volumes = np.empty(shape=(n_elems, *num_bins), dtype=np.float32)
 
     m = 0
     for i in range(n_elems):
@@ -303,7 +322,7 @@ def find_slices(mol: AtomList, thickness: float, n_slices: int = None, axis: int
         if not (s == 0 or s == n_bins):
             coord_in_slc = mol.coordinates[m:m+n]
             elems_in_slc = mol.elements[m:m+n]
-            slices.append(AtomList(elements=elems_in_slc, coordinates=coord_in_slc).sort_by_elems(all_unique_elements))
+            slices.append(AtomList(elements=elems_in_slc, coordinates=coord_in_slc).sort_by_elements(all_unique_elements))
         m += n
     return slices
 

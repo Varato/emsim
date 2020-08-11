@@ -14,6 +14,244 @@ from .physics import a0, e
 float_type = np.float32
 
 
+def build_slices_fourier(mol: atm.AtomList,
+                         pixel_size: float,
+                         thickness: float,
+                         lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
+                         n_slices: Optional[int] = None,
+                         add_water: bool = False):
+    """
+    builds projected potential slices for EM multi-slice imaging simulation
+
+    Parameters
+    ----------
+    mol
+    pixel_size
+    thickness
+    lateral_size
+    n_slices
+    add_water
+
+    Returns
+    -------
+    array
+        projected potential slices
+
+    Notes
+    -----
+    The first dimension indexes different slices. For example:
+    `slices = build_slices_fourier(...)`, then `slices[i, ...]` is the i-th slice.
+
+    """
+
+    elem_nums, n_slices, n1, n2, scattering_factors = _prepare_slices_build(
+        mol, pixel_size, thickness, lateral_size, n_slices)
+
+    mol = atm.centralize(mol)
+    atmv = atm.bin_atoms(mol, voxel_size=(thickness, pixel_size, pixel_size), box_size=(n_slices, n1, n2))
+    if add_water:
+        atmv = atm.add_water_simple(atmv)
+
+    location_phase = rfft2(atmv.atom_histograms, axes=(-2, -1))  # (n_elems, n_slices, n1, n2//2+1)
+    location_phase *= scattering_factors[:, None, :, :]
+    slices = irfft2(np.sum(location_phase, axis=0), s=(n1, n2))
+
+    np.clip(slices, a_min=1e-7, a_max=None, out=slices)
+    return slices  # * 2 * np.pi * a0 * e / pixel_size**2
+
+
+@requires_cuda_ext
+def build_slices_fourier_cupy(mol: atm.AtomList,
+                              pixel_size: float,
+                              thickness: float,
+                              lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
+                              n_slices: Optional[int] = None,
+                              add_water: bool = False):
+    """
+    builds projected potential slices for EM multi-slice imaging simulation
+
+    Parameters
+    ----------
+    mol
+    pixel_size
+    thickness
+    lateral_size
+    n_slices
+    add_water
+
+    Returns
+    -------
+    array
+        projected potential slices
+
+    Notes
+    -----
+    The first dimension indexes different slices. For example:
+    `slices = build_slices_fourier(...)`, then `slices[i, ...]` is the i-th slice.
+
+    """
+    cp = back_end.cp
+    elem_nums, n_slices, n1, n2, scattering_factors = _prepare_slices_build(
+        mol, pixel_size, thickness, lateral_size, n_slices)
+
+    mol = atm.centralize(mol)
+    atmv = atm.bin_atoms(mol, voxel_size=(thickness, pixel_size, pixel_size), box_size=(n_slices, n1, n2))
+    if add_water:
+        atmv = atm.add_water_simple(atmv)
+
+    atom_hists_gpu = cp.asarray(atmv.atom_histograms, dtype=float_type)
+    scat_facs_gpu = cp.asarray(scattering_factors, dtype=float_type)
+    location_phase_gpu = cp.fft.rfft2(atom_hists_gpu, axes=(-2, -1))
+    location_phase_gpu *= scat_facs_gpu[:, None, :, :]
+    slices_gpu = irfft2(cp.sum(location_phase_gpu, axis=0), s=(n1, n2))
+    cp.clip(slices_gpu, a_min=1e-7, a_max=None, out=slices_gpu)
+    return slices_gpu  # * 2 * np.pi * a0 * e / pixel_size**2
+
+
+@requires_cuda_ext
+def build_slices_fourier_cuda(mol: atm.AtomList,
+                              pixel_size: float,
+                              thickness: float,
+                              lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
+                              n_slices: Optional[int] = None,
+                              add_water: bool = False):
+    """
+    builds projected potential slices for EM multi-slice imaging simulation
+
+    Parameters
+    ----------
+    mol
+    pixel_size
+    thickness
+    lateral_size
+    n_slices
+    add_water
+
+    Returns
+    -------
+    array
+        projected potential slices
+
+    Notes
+    -----
+    The first dimension indexes different slices. For example:
+    `slices = build_slices_fourier(...)`, then `slices[i, ...]` is the i-th slice.
+
+    """
+    cp = back_end.cp
+
+    mol = atm.centralize(mol)
+    mol.sort_by_elements()
+    elem_nums, n_slices, n1, n2, scattering_factors = _prepare_slices_build(
+        mol, pixel_size, thickness, lateral_size, n_slices)
+
+    # atmv = atm.bin_atoms(mol, voxel_size=(thickness, pixel_size, pixel_size), box_size=(n_slices, n1, n2))
+    # if add_water:
+    #     atmv = atm.add_water_simple(atmv)
+
+    scat_facs_gpu = cp.asarray(scattering_factors, dtype=float_type)
+
+    elems_count_gpu = cp.asarray(mol.unique_elements_count, dtype=cp.uint32)
+    atom_coords_gpu = cp.asarray(mol.coordinates, dtype=float_type)
+
+    slice_builder_batch = back_end.dens_kernel_cuda.SliceBuilderBatch(
+        scat_facs_gpu, n_slices, n1, n2, thickness, pixel_size
+    )
+
+    # atom_hists_gpu = cp.asarray(atmv.atom_histograms, dtype=float_type)
+    atom_hists_gpu = slice_builder_batch.binAtoms(atom_coords_gpu, elems_count_gpu)
+    slices = slice_builder_batch.sliceGenBatch(atom_hists_gpu)
+
+    cp.clip(slices, a_min=1e-7, a_max=None, out=slices)
+    return slices  # * 2 * np.pi * a0 * e / pixel_size**2
+
+
+@requires_c_ext
+def build_slices_fourier_fftw(mol: atm.AtomList,
+                              pixel_size: float,
+                              thickness: float,
+                              lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
+                              n_slices: Optional[int] = None,
+                              add_water: bool = False):
+    """
+    builds projected potential slices for EM multi-slice imaging simulation
+
+    Parameters
+    ----------
+    mol
+    pixel_size
+    thickness
+    lateral_size
+    n_slices
+    add_water
+
+    Returns
+    -------
+    array
+        projected potential slices
+
+    Notes
+    -----
+    The first dimension indexes different slices. For example:
+    `slices = build_slices_fourier(...)`, then `slices[i, ...]` is the i-th slice.
+
+    """
+    elem_nums, n_slices, n1, n2, scattering_factors = _prepare_slices_build(
+        mol, pixel_size, thickness, lateral_size, n_slices)
+
+    mol = atm.centralize(mol)
+    atmv = atm.bin_atoms(mol, voxel_size=(thickness, pixel_size, pixel_size), box_size=(n_slices, n1, n2))
+    if add_water:
+        atmv = atm.add_water_simple(atmv)
+
+    slices = back_end.dens_kernel.build_slices_fourier_fftw(
+        scattering_factors_ifftshifted=scattering_factors,
+        atom_histograms=atmv.atom_histograms.astype(np.float32))
+
+    np.clip(slices, a_min=1e-7, a_max=None, out=slices)
+    return slices  # * 2 * np.pi * a0 * e / pixel_size**2
+
+
+def _prepare_slices_build(mol: atm.AtomList,
+                          pixel_size: float,
+                          thickness: float,
+                          lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
+                          n_slices: Optional[int] = None):
+
+    dims = [None, None, None]
+    if lateral_size is not None:
+        if isinstance(lateral_size, int):
+            dims[1] = lateral_size
+            dims[2] = lateral_size
+        elif isinstance(lateral_size, tuple) and len(lateral_size) == 2:
+            dims[1] = lateral_size[0]
+            dims[2] = lateral_size[1]
+
+    if isinstance(n_slices, int):
+        dims[0] = n_slices
+
+    n_slices, n1, n2 = atm.determine_box_size(tuple(mol.space), voxel_size=(thickness, pixel_size, pixel_size),
+                                              box_size=(dims[0], dims[1], dims[2]))
+
+    elem_nums = mol.unique_elements
+    scattering_factors = elem.scattering_factors2d(elem_nums, pixel_size, size=(n1, n2)).astype(np.float32)
+    scattering_factors = ifftshift(scattering_factors, axes=(-2, -1))
+    scattering_factors = np.ascontiguousarray(scattering_factors[:, :, :dims[2]//2 + 1], dtype=np.float32)
+    # scattering_factors = ifftshift(scattering_factors, axes=(-2, -1))
+    return elem_nums, n_slices, n1, n2, scattering_factors
+
+
+def slice_generator(mol: atm.AtomList,
+                    pixel_size: float,
+                    thickness: float,
+                    lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
+                    n_slices: Optional[int] = None,
+                    add_water: bool = False):
+    mol = atm.centralize(mol)
+    atom_slice = atm.find_slices(mol, thickness, n_slices, axis=0)
+    # TODO
+
+
 def build_potential_fourier(mol: atm.AtomList,
                             voxel_size: float,
                             box_size: Optional[Union[int, Tuple[int, int, int]]] = None,
@@ -73,224 +311,6 @@ def build_potential_fourier(mol: atm.AtomList,
 
     np.clip(potential, a_min=1e-7, a_max=None, out=potential)
     return potential * 2 * np.pi * a0 * e / voxel_size**3
-
-
-def build_slices_fourier(mol: atm.AtomList,
-                         pixel_size: float,
-                         thickness: float,
-                         lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
-                         n_slices: Optional[int] = None,
-                         add_water: bool = False):
-    """
-    builds projected potential slices for EM multi-slice imaging simulation
-
-    Parameters
-    ----------
-    mol
-    pixel_size
-    thickness
-    lateral_size
-    n_slices
-    add_water
-
-    Returns
-    -------
-    array
-        projected potential slices
-
-    Notes
-    -----
-    The first dimension indexes different slices. For example:
-    `slices = build_slices_fourier(...)`, then `slices[i, ...]` is the i-th slice.
-
-    """
-
-    elem_nums, n_slices, n1, n2, atmv, scattering_factors = _prepare_slices_build(
-        mol, pixel_size, thickness, lateral_size, n_slices, add_water)
-
-    location_phase = rfft2(atmv.atom_histograms, axes=(-2, -1))  # (n_elems, n_slices, n1, n2//2+1)
-    location_phase *= scattering_factors[:, None, :, :]
-    slices = irfft2(np.sum(location_phase, axis=0), s=(n1, n2))
-
-    np.clip(slices, a_min=1e-7, a_max=None, out=slices)
-    return slices  # * 2 * np.pi * a0 * e / pixel_size**2
-
-
-@requires_cuda_ext
-def build_slices_fourier_cupy(mol: atm.AtomList,
-                              pixel_size: float,
-                              thickness: float,
-                              lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
-                              n_slices: Optional[int] = None,
-                              add_water: bool = False):
-    """
-    builds projected potential slices for EM multi-slice imaging simulation
-
-    Parameters
-    ----------
-    mol
-    pixel_size
-    thickness
-    lateral_size
-    n_slices
-    add_water
-
-    Returns
-    -------
-    array
-        projected potential slices
-
-    Notes
-    -----
-    The first dimension indexes different slices. For example:
-    `slices = build_slices_fourier(...)`, then `slices[i, ...]` is the i-th slice.
-
-    """
-    cp = back_end.cp
-    elem_nums, n_slices, n1, n2, atmv, scattering_factors = _prepare_slices_build(
-        mol, pixel_size, thickness, lateral_size, n_slices, add_water)
-
-    atom_hists_gpu = cp.asarray(atmv.atom_histograms, dtype=float_type)
-    scat_facs_gpu = cp.asarray(scattering_factors, dtype=float_type)
-    location_phase_gpu = cp.fft.rfft2(atom_hists_gpu, axes=(-2, -1))
-    location_phase_gpu *= scat_facs_gpu[:, None, :, :]
-    slices_gpu = irfft2(cp.sum(location_phase_gpu, axis=0), s=(n1, n2))
-    cp.clip(slices_gpu, a_min=1e-7, a_max=None, out=slices_gpu)
-    return slices_gpu  # * 2 * np.pi * a0 * e / pixel_size**2
-
-
-@requires_cuda_ext
-def build_slices_fourier_cuda(mol: atm.AtomList,
-                              pixel_size: float,
-                              thickness: float,
-                              lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
-                              n_slices: Optional[int] = None,
-                              add_water: bool = False):
-    """
-    builds projected potential slices for EM multi-slice imaging simulation
-
-    Parameters
-    ----------
-    mol
-    pixel_size
-    thickness
-    lateral_size
-    n_slices
-    add_water
-
-    Returns
-    -------
-    array
-        projected potential slices
-
-    Notes
-    -----
-    The first dimension indexes different slices. For example:
-    `slices = build_slices_fourier(...)`, then `slices[i, ...]` is the i-th slice.
-
-    """
-    cp = back_end.cp
-
-    elem_nums, n_slices, n1, n2, atmv, scattering_factors = _prepare_slices_build(
-        mol, pixel_size, thickness, lateral_size, n_slices, add_water)
-
-    atom_hists_gpu = cp.asarray(atmv.atom_histograms, dtype=float_type)
-    scat_facs_gpu = cp.asarray(scattering_factors, dtype=float_type)
-
-    slices = back_end.dens_kernel_cuda.build_slices_fourier_cuda(
-        scattering_factors=scat_facs_gpu,
-        atom_histograms=atom_hists_gpu)
-
-    cp.clip(slices, a_min=1e-7, a_max=None, out=slices)
-    return slices  # * 2 * np.pi * a0 * e / pixel_size**2
-
-
-@requires_c_ext
-def build_slices_fourier_fftw(mol: atm.AtomList,
-                              pixel_size: float,
-                              thickness: float,
-                              lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
-                              n_slices: Optional[int] = None,
-                              add_water: bool = False):
-    """
-    builds projected potential slices for EM multi-slice imaging simulation
-
-    Parameters
-    ----------
-    mol
-    pixel_size
-    thickness
-    lateral_size
-    n_slices
-    add_water
-
-    Returns
-    -------
-    array
-        projected potential slices
-
-    Notes
-    -----
-    The first dimension indexes different slices. For example:
-    `slices = build_slices_fourier(...)`, then `slices[i, ...]` is the i-th slice.
-
-    """
-    elem_nums, n_slices, n1, n2, atmv, scattering_factors = _prepare_slices_build(
-        mol, pixel_size, thickness, lateral_size, n_slices, add_water)
-
-    slices = back_end.dens_kernel.build_slices_fourier_fftw(
-        scattering_factors_ifftshifted=scattering_factors,
-        atom_histograms=atmv.atom_histograms.astype(np.float32))
-
-    np.clip(slices, a_min=1e-7, a_max=None, out=slices)
-    return slices  # * 2 * np.pi * a0 * e / pixel_size**2
-
-
-def _prepare_slices_build(mol: atm.AtomList,
-                          pixel_size: float,
-                          thickness: float,
-                          lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
-                          n_slices: Optional[int] = None,
-                          add_water: bool = False):
-    dims = [None, None, None]
-    if lateral_size is not None:
-        if isinstance(lateral_size, int):
-            dims[1] = lateral_size
-            dims[2] = lateral_size
-        elif isinstance(lateral_size, tuple) and len(lateral_size) == 2:
-            dims[1] = lateral_size[0]
-            dims[2] = lateral_size[1]
-
-    if isinstance(n_slices, int):
-        dims[0] = n_slices
-
-    mol = atm.centralize(mol)
-    atmv = atm.bin_atoms(mol, voxel_size=(thickness, pixel_size, pixel_size), box_size=(dims[0], dims[1], dims[2]))
-    if add_water:
-        atmv = atm.add_water_simple(atmv)
-
-    elem_nums = atmv.unique_elements
-    n1, n2 = atmv.box_size[1:]
-    if isinstance(n_slices, int):
-        assert atmv.box_size[0] == n_slices
-    n_slices = atmv.box_size[0]
-
-    scattering_factors = elem.scattering_factors2d(elem_nums, pixel_size, size=(n1, n2)).astype(np.float32)
-    scattering_factors = ifftshift(scattering_factors, axes=(-2, -1))
-    scattering_factors = np.ascontiguousarray(scattering_factors[:, :, :dims[2]//2 + 1], dtype=np.float32)
-    # scattering_factors = ifftshift(scattering_factors, axes=(-2, -1))
-    return elem_nums, n_slices, n1, n2, atmv, scattering_factors
-
-
-def slice_generator(mol: atm.AtomList,
-                    pixel_size: float,
-                    thickness: float,
-                    lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
-                    n_slices: Optional[int] = None,
-                    add_water: bool = False):
-    mol = atm.centralize(mol)
-    atom_slice = atm.find_slices(mol, thickness, n_slices, axis=0)
-    # TODO
 
 
 # def build_slices_patchins(mol: atm.AtomList,

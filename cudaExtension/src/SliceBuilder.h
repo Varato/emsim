@@ -6,7 +6,6 @@
 #define EMSIM_SLICEBUILDER_H
 
 #include <tuple>
-#include <thrust/device_ptr.h>
 
 typedef int cufftHandle;
 
@@ -16,7 +15,6 @@ namespace emsim {
      */
     class SliceBuilder {
     public:
-        SliceBuilder() = default;
         SliceBuilder(float *scatteringFactors, int nElems,
                      int n1, int n2, float pixelSize);
         ~SliceBuilder();
@@ -35,7 +33,7 @@ namespace emsim {
         void sliceGen(float const slcAtomHist[], float output[]) const;
 
         void binAtomsWithinSlice(float const atomCoordinates[], unsigned nAtoms,
-                                 unsigned const uniqueElemsCount[],
+                                 uint32_t const uniqueElemsCount[],
                                  float output[]) const;
         std::tuple<int, int> getDims() const {return {m_n1, m_n2};}
         float getPixSize() const {return m_pixelSize;}
@@ -65,20 +63,24 @@ namespace emsim {
     class SliceBuilderBatch {
     public:
         SliceBuilderBatch(float *scatteringFactors, int nElems,
-                          int nSlices, int n1, int n2, float pixelSize);
+                          int nSlices, int n1, int n2, float dz, float pixelSize);
         ~SliceBuilderBatch();
 
-        void sliceGenBatch(float atomHist[], int n_slices, float output[]) const;
+        void sliceGenBatch(float atomHist[], float output[]) const;
+        void binAtoms(float const atomCoordinates[], unsigned nAtoms,
+                      uint32_t const uniqueElemsCount[],
+                      float output[]) const;
+
     private:
         cufftHandle m_p, m_ip;
         int m_nSlices;
         int m_n1, m_n2;  // dimensions of the slice
-        float m_pixelSize;    // pixel size of the slice
+        float m_pixelSize, m_dz;    // pixel size of the slice
         int m_n2Half, m_nPix, m_nPixHalf;
 
         /* SliceBuilder does not own the following data */
-        thrust::device_ptr<float> m_scatteringFactors;  // pre-computed scattering factors for all elements needed
-        int m_nElems;                                   // the length of m_uniqueElements
+        float* m_scatteringFactors;  // pre-computed scattering factors for all elements needed
+        int m_nElems;                // the length of m_uniqueElements
     };
 }
 

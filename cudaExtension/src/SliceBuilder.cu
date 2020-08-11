@@ -7,6 +7,9 @@
 #include "utils.h"
 
 namespace emsim {
+    /*
+     * SliceBuilder
+     */
     SliceBuilder::SliceBuilder(float *scatteringFactors, int nElems,
                                int n1, int n2, float pixelSize)
         : m_scatteringFactors(scatteringFactors), m_nElems(nElems),
@@ -57,11 +60,10 @@ namespace emsim {
         if (cufftExecC2R(m_ip, locationPhasePtr, output) != CUFFT_SUCCESS) {
             fprintf(stderr, "CUFFT error: C2R plan executation failed");
         }
-
     }
 
     void SliceBuilder::binAtomsWithinSlice(float const atomCoordinates[], unsigned nAtoms,
-                                           unsigned const uniqueElemsCount[],
+                                           uint32_t const uniqueElemsCount[],
                                            float output[]) const
     {
 
@@ -69,12 +71,13 @@ namespace emsim {
     }
 
 
-
-
+    /*
+     * SliceBuilderBatch
+     */
     SliceBuilderBatch::SliceBuilderBatch(float *scatteringFactors, int nElems,
-                                         int nSlices, int n1, int n2, float pixelSize)
+                                         int nSlices, int n1, int n2, float dz, float pixelSize)
         : m_scatteringFactors(scatteringFactors), m_nElems(nElems),
-        m_nSlices(nSlices), m_n1(n1), m_n2(n2), m_pixelSize(pixelSize), m_p(0), m_ip(0)
+          m_nSlices(nSlices), m_n1(n1), m_n2(n2), m_dz(dz), m_pixelSize(pixelSize), m_p(0), m_ip(0)
     {
         m_n2Half = m_n2 / 2 + 1;
         m_nPix = m_n1 * m_n2;
@@ -85,16 +88,15 @@ namespace emsim {
                           nullptr, 1, m_nPix,
                           nullptr, 1, m_nPixHalf,
                           CUFFT_R2C, m_nElems * m_nSlices) != CUFFT_SUCCESS) {
-            fprintf(stderr, "CUFFT error: Plan creation failed");
+            fprintf(stderr, "CUFFT error: Plan creation failed\n");
         }
 
         if (cufftPlanMany(&m_ip, 2, n,
                           nullptr, 1, m_nPixHalf,
                           nullptr, 1, m_nPix,
                           CUFFT_C2R, m_nSlices) != CUFFT_SUCCESS) {
-            fprintf(stderr, "CUFFT error: Plan creation failed");
+            fprintf(stderr, "CUFFT error: Plan creation failed\n");
         }
-
     }
 
 
@@ -103,27 +105,38 @@ namespace emsim {
         cufftDestroy(m_ip);
     }
 
-    void SliceBuilderBatch::sliceGenBatch(float *atomHist, int n_slices, float *output) const {
+    void SliceBuilderBatch::sliceGenBatch(float *atomHist, float *output) const {
 
         thrust::device_vector<cufftComplex> locationPhase(m_nElems * m_nSlices * m_nPixHalf);
         cufftComplex* locationPhasePtr = thrust::raw_pointer_cast(&locationPhase[0]);
 
-        if (cufftExecR2C(m_p, (cufftReal *)atomHist, locationPhasePtr) != CUFFT_SUCCESS) {
-            fprintf(stderr, "CUFFT error: R2C plan executation failed");
+        if ( cufftExecR2C(m_p, (cufftReal *)atomHist, locationPhasePtr) != CUFFT_SUCCESS) {
+            fprintf(stderr, "SliceBuilderBatch: CUFFT error: R2C plan executation failed\n");
         }
 
         broadCastMul(locationPhasePtr, thrust::raw_pointer_cast(m_scatteringFactors),
                      1.0f/(float)m_nPix, m_nElems, m_nSlices, m_nPixHalf);
         if (cudaGetLastError() != cudaSuccess) {
-            fprintf(stderr, "CUDA error: %s", cudaGetErrorString(cudaGetLastError()));
+            fprintf(stderr, "SliceBuilderBatch: CUDA error: %s\n", cudaGetErrorString(cudaGetLastError()));
         }
         rowReduceSum(locationPhasePtr, m_nElems, m_nSlices*m_nPixHalf, locationPhasePtr);
         if (cudaGetLastError() != cudaSuccess) {
-            fprintf(stderr, "CUDA error: %s", cudaGetErrorString(cudaGetLastError()));
+            fprintf(stderr, "SliceBuilderBatch: CUDA error: %s\n", cudaGetErrorString(cudaGetLastError()));
         }
 
         if (cufftExecC2R(m_ip, locationPhasePtr, output) != CUFFT_SUCCESS) {
-            fprintf(stderr, "CUFFT error: C2R plan executation failed");
+            fprintf(stderr, "SliceBuilderBatch: CUFFT error: C2R plan executation failed\n");
         }
+    }
+
+    void SliceBuilderBatch::binAtoms(const float *atomCoordinates, unsigned int nAtoms,
+                                     const uint32_t *uniqueElemsCount, float *output) const
+    {
+        fprintf(stderr, "m_dz = %f, m_pixelSize = %f\n", m_dz, m_pixelSize);
+        binAtoms_(atomCoordinates, nAtoms,
+                  uniqueElemsCount, m_nElems,
+                  m_nSlices, m_n1, m_n2,
+                  m_dz, m_pixelSize, m_pixelSize,
+                  output);
     }
 }
