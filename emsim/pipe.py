@@ -1,5 +1,4 @@
-from typing import Generator, Tuple, Optional, Union
-import numpy as np
+from typing import Tuple, Optional, Union
 
 from . import dens
 from . import em
@@ -7,7 +6,7 @@ from . import wave
 from . import atoms as atm
 
 
-class MultislicePipe(object):
+class PipeBase(object):
     def __init__(self,
                  microscope: em.EM,
                  mol: atm.AtomList,
@@ -23,7 +22,10 @@ class MultislicePipe(object):
         self.slice_thickness = slice_thickness
         self.add_water = add_water
 
-        self.roi = roi
+        if type(roi) is int:
+            self.roi = (roi, roi)
+        else:
+            self.roi = roi
         self.n_slices = n_slices
 
     @property
@@ -35,17 +37,25 @@ class MultislicePipe(object):
         self._pixel_size = 0.5 * res
         self._resolution = res
 
-    def run(self, back_end='cuda'):
-        if back_end == 'cuda':
-            return self._image_cuda()
-        elif back_end == 'numpy':
-            return self._image_np()
-        elif back_end == "fftw":
-            return self._image_fftw()
-        else:
-            raise ValueError(f"unrecognized backend {back_end}. back_end must be one of `cuda`, `numpy` or `fftw`")
+    def exit_wave(self):
+        pass
 
-    def _exit_wave_np(self):
+    def image_wave(self):
+        pass
+
+    def image(self):
+        pass
+
+
+class PipeNumpy(PipeBase):
+    def __init__(self, *args, **kwargs):
+        super(PipeNumpy, self).__init__(*args, **kwargs)
+        self.wave_propagator = wave.WavePropagator(self.roi, self._pixel_size,
+                                                   self.microscope.wave_length,
+                                                   self.microscope.relativity_gamma,
+                                                   backend="numpy")
+
+    def exit_wave(self):
         slices = dens.build_slices_fourier(self.mol,
                                            self._pixel_size,
                                            self.slice_thickness,
@@ -53,51 +63,30 @@ class MultislicePipe(object):
                                            self.n_slices,
                                            self.add_water)
         init_wave = wave.init_wave(self.microscope.electron_dose, self._pixel_size, self.roi)
-        exit_wave = wave.multislice_propagate(init_wave, slices,
-                                              self._pixel_size, self.slice_thickness,
-                                              self.microscope.wave_length, self.microscope.relativity_gamma)
+        exit_wave = self.wave_propagator.multislice_propagate(init_wave, slices, self.slice_thickness)
         return exit_wave
 
-    def _image_wave_np(self):
-        exit_wave = self._exit_wave_np()
-        image_wave = wave.lens_propagate(exit_wave, self._pixel_size,
-                                         self.microscope.wave_length, self.microscope.cs_mm,
-                                         self.microscope.defocus, self.microscope.aperture)
+    def image_wave(self):
+        exit_wave = self.exit_wave()
+        image_wave = self.wave_propagator.lens_propagate(exit_wave,
+                                                         self.microscope.cs_mm,
+                                                         self.microscope.defocus,
+                                                         self.microscope.aperture)
         return image_wave
 
-    def _image_np(self):
-        image_wave = self._image_wave_np()
+    def image(self):
+        image_wave = self.image_wave()
         return image_wave.real ** 2 + image_wave.imag ** 2
 
-    def _exit_wave_fftw(self):
-        slices = dens.build_slices_fourier_fftw(self.mol,
-                                                self._pixel_size,
-                                                self.slice_thickness,
-                                                self.roi,
-                                                self.n_slices,
-                                                self.add_water)
 
-        init_wave = wave.init_wave(self.microscope.electron_dose, self._pixel_size, self.roi)
+class PipeCuda(PipeBase):
+    def __init__(self, *args, **kwargs):
+        super(PipeCuda, self).__init__(*args, **kwargs)
+        self.wave_propagator = wave.WavePropagator(self.roi, self._pixel_size,
+                                                   self.microscope.wave_length,
+                                                   self.microscope.relativity_gamma)
 
-        exit_wave = wave.multislice_propagate_fftw(init_wave, slices,
-                                                   self._pixel_size, self.slice_thickness,
-                                                   self.microscope.wave_length, self.microscope.relativity_gamma)
-        return exit_wave
-
-    def _image_wave_fftw(self):
-        exit_wave = self._exit_wave_fftw()
-        image_wave = wave.lens_propagate_fftw(exit_wave, self._pixel_size,
-                                              self.microscope.wave_length,
-                                              self.microscope.cs_mm,
-                                              self.microscope.defocus,
-                                              self.microscope.aperture)
-        return image_wave
-
-    def _image_fftw(self):
-        image_wave = self._image_wave_fftw()
-        return image_wave.real ** 2 + image_wave.imag ** 2
-
-    def _exit_wave_cuda(self):
+    def exit_wave(self):
         slices = dens.build_slices_fourier_cuda(self.mol,
                                                 self._pixel_size,
                                                 self.slice_thickness,
@@ -106,24 +95,74 @@ class MultislicePipe(object):
                                                 self.add_water)
 
         init_wave = wave.init_wave_cuda(self.microscope.electron_dose, self._pixel_size, self.roi)
-
-        exit_wave = wave.multislice_propagate_cuda(init_wave, slices,
-                                                   self._pixel_size, self.slice_thickness,
-                                                   self.microscope.wave_length, self.microscope.relativity_gamma)
+        exit_wave = self.wave_propagator.multislice_propagate(init_wave, slices, self.slice_thickness)
         return exit_wave
 
-    def _image_wave_cuda(self):
-        exit_wave = self._exit_wave_cuda()
-        image_wave = wave.lens_propagate_cuda(exit_wave, self._pixel_size,
-                                              self.microscope.wave_length,
-                                              self.microscope.cs_mm,
-                                              self.microscope.defocus,
-                                              self.microscope.aperture)
+    def image_wave(self):
+        exit_wave = self.exit_wave()
+        image_wave = self.wave_propagator.lens_propagate(exit_wave,
+                                                         self.microscope.cs_mm,
+                                                         self.microscope.defocus,
+                                                         self.microscope.aperture)
         return image_wave
 
-    def _image_cuda(self):
-        image_wave = self._image_wave_cuda()
+    def image(self):
+        image_wave = self.image_wave()
         return image_wave.real ** 2 + image_wave.imag ** 2
+
+    # def _exit_wave_fftw(self):
+    #     slices = dens.build_slices_fourier_fftw(self.mol,
+    #                                             self._pixel_size,
+    #                                             self.slice_thickness,
+    #                                             self.roi,
+    #                                             self.n_slices,
+    #                                             self.add_water)
+    #
+    #     init_wave = wave.init_wave(self.microscope.electron_dose, self._pixel_size, self.roi)
+    #
+    #     exit_wave = wave.multislice_propagate_fftw(init_wave, slices,
+    #                                                self._pixel_size, self.slice_thickness,
+    #                                                self.microscope.wave_length, self.microscope.relativity_gamma)
+    #     return exit_wave
+    #
+    # def _image_wave_fftw(self):
+    #     exit_wave = self._exit_wave_fftw()
+    #     image_wave = wave.lens_propagate_fftw(exit_wave, self._pixel_size,
+    #                                           self.microscope.wave_length,
+    #                                           self.microscope.cs_mm,
+    #                                           self.microscope.defocus,
+    #                                           self.microscope.aperture)
+    #     return image_wave
+    #
+    # def _image_fftw(self):
+    #     image_wave = self._image_wave_fftw()
+    #     return image_wave.real ** 2 + image_wave.imag ** 2
+    #
+    # def _exit_wave_cuda(self):
+    #     slices = dens.build_slices_fourier_cuda(self.mol,
+    #                                             self._pixel_size,
+    #                                             self.slice_thickness,
+    #                                             self.roi,
+    #                                             self.n_slices,
+    #                                             self.add_water)
+    #
+    #     init_wave = wave.init_wave_cuda(self.microscope.electron_dose, self._pixel_size, self.roi)
+    #
+    #     exit_wave = self.wave_propagator_cuda.multislice_propagate(init_wave, slices, self.slice_thickness)
+    #     return exit_wave
+    #
+    # def _image_wave_cuda(self):
+    #     exit_wave = self._exit_wave_cuda()
+    #     image_wave = wave.lens_propagate_cuda(exit_wave, self._pixel_size,
+    #                                           self.microscope.wave_length,
+    #                                           self.microscope.cs_mm,
+    #                                           self.microscope.defocus,
+    #                                           self.microscope.aperture)
+    #     return image_wave
+    #
+    # def _image_cuda(self):
+    #     image_wave = self._image_wave_cuda()
+    #     return image_wave.real ** 2 + image_wave.imag ** 2
 
 
 

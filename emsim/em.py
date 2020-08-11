@@ -62,7 +62,6 @@ class EM(object):
         return aberration(self.wave_length, self.cs_mm, self.defocus)
 
 
-
 def band_limit_specimen(specimen: Specimen) -> Specimen:
     s1, s2 = specimen.lateral_size
     r = min([s1, s2]) // 2

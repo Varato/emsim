@@ -1,4 +1,5 @@
 #include <thrust/device_vector.h>
+#include "common.cuh"
 
 // fabsf is cuda-standardard. no need to include.
 #define LEFT_CLOSE(a, b) (((b) - (a)) < (1e-12))
@@ -120,51 +121,34 @@ void binAtomsKernel(float const atomCoordinates[], unsigned nAtoms,
     }
 }
 
+namespace emsim {
 
-void binAtomsWithinSlice_(float const atomCoordinates[], unsigned nAtoms,
-                          uint32_t const uniqueElemsCount[], unsigned nElems,
-                          unsigned n1, unsigned n2, float pixSize,
-                          float output[])
-{
-    // TODO: put this into a cudaInit function and use it globally
-    cudaDeviceProp prop{};
-    if(cudaGetDeviceProperties (&prop, 0) != cudaSuccess) {
-        fprintf(stderr, "cuda Cannot get device information\n");
-        return;
+    void binAtomsWithinSlice_(float const atomCoordinates[], unsigned nAtoms,
+                              uint32_t const uniqueElemsCount[], unsigned nElems,
+                              unsigned n1, unsigned n2, float pixSize,
+                              float output[]) {
+        unsigned blockDimX = maxThreadsPerBlock;
+        if (blockDimX > nAtoms) blockDimX = nAtoms;
+        unsigned gridDimX = (int) ceilf((float) nAtoms / (float) blockDimX);
+
+        binAtomsWithinSliceKernel<<<gridDimX, blockDimX>>>(atomCoordinates, nAtoms,
+                                                           uniqueElemsCount, nElems,
+                                                           n1, n2, pixSize,
+                                                           output);
     }
 
-    unsigned blockDimX = prop.maxThreadsPerBlock;
-    if (blockDimX > nAtoms) blockDimX = nAtoms;
-    unsigned gridDimX = (int)ceilf((float)nAtoms / (float)blockDimX);
 
-    binAtomsWithinSliceKernel<<<gridDimX, blockDimX>>>(atomCoordinates, nAtoms,
-                                                       uniqueElemsCount, nElems,
-                                                       n1, n2, pixSize,
-                                                       output);
-}
+    void binAtoms_(float const atomCoordinates[], unsigned nAtoms,
+                   uint32_t const uniqueElemsCount[], unsigned nElems,
+                   unsigned n0, unsigned n1, unsigned n2, float d0, float d1, float d2,
+                   float output[]) {
+        unsigned blockDimX = maxThreadsPerBlock;
+        if (blockDimX > nAtoms) blockDimX = nAtoms;
+        unsigned gridDimX = (int) ceilf((float) nAtoms / (float) blockDimX);
 
-
-void binAtoms_(float const atomCoordinates[], unsigned nAtoms,
-               uint32_t const uniqueElemsCount[], unsigned nElems,
-               unsigned n0, unsigned n1, unsigned n2, float d0, float d1, float d2,
-               float output[])
-{
-    // TODO: put this into a cudaInit function and use it globally
-    cudaDeviceProp prop{};
-    if(cudaGetDeviceProperties (&prop, 0) != cudaSuccess) {
-        fprintf(stderr, "cuda Cannot get device information\n");
-        return;
+        binAtomsKernel<<<gridDimX, blockDimX>>>(atomCoordinates, nAtoms,
+                                                uniqueElemsCount, nElems,
+                                                n0, n1, n2, d0, d1, d2,
+                                                output);
     }
-
-    unsigned blockDimX = prop.maxThreadsPerBlock;
-    if (blockDimX > nAtoms) blockDimX = nAtoms;
-    unsigned gridDimX = (int)ceilf((float)nAtoms / (float)blockDimX);
-
-    printf("gridDim = %d, blockDim = %d\n", gridDimX, blockDimX);
-    printf("n0 = %d, n1 = %d, n2 = %d, d0 = %f, d1 = %f, d2 = %f\n", n0, n1, n2, d0, d1, d2);
-
-    binAtomsKernel<<<gridDimX, blockDimX>>>(atomCoordinates, nAtoms,
-                                            uniqueElemsCount, nElems,
-                                            n0, n1, n2, d0, d1, d2,
-                                            output);
 }

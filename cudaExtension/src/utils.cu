@@ -1,7 +1,7 @@
 #include <cmath>
-#include <cstdio>
 
 #include "utils.h"
+#include "common.cuh"
 
 
 __global__
@@ -167,11 +167,6 @@ void rowReduceSumKernel(cufftComplex *A, unsigned n0, unsigned n1, cufftComplex 
 
 
 void broadCastMul(cufftComplex *A_d, cufftReal *v_d, cufftReal a, unsigned n0, unsigned n1, unsigned n2) {
-    cudaDeviceProp prop{};
-    if(cudaGetDeviceProperties (&prop, 0) != cudaSuccess) {
-        fprintf(stderr, "cuda Cannot get device information\n");
-        return;
-    }
 
     unsigned nCols = n0 * n2;
     unsigned nRows = n1;
@@ -179,7 +174,7 @@ void broadCastMul(cufftComplex *A_d, cufftReal *v_d, cufftReal a, unsigned n0, u
     while (blockDimX < nRows && blockDimX <= 32) {
         blockDimX <<= 1u;
     }
-    unsigned blockDimY = prop.maxThreadsPerBlock/blockDimX;
+    unsigned blockDimY = maxThreadsPerBlock/blockDimX;
     if (nCols < blockDimY) blockDimY = nCols;
     auto gridDimX = (unsigned)ceilf((float)nCols / (float)blockDimY);
     gridDimX = gridDimX > 2147483647 ? 2147483647 : gridDimX;
@@ -193,11 +188,7 @@ void broadCastMul(cufftComplex *A_d, cufftReal *v_d, cufftReal a, unsigned n0, u
 
 
 void rowReduceSum(cufftComplex *A_d, unsigned n0, unsigned n1, cufftComplex *output_d) {
-    cudaDeviceProp prop{};
-    if(cudaGetDeviceProperties (&prop, 0) != cudaSuccess) {
-        fprintf(stderr, "CUDA error: %s\n", cudaGetErrorString(cudaGetLastError()));
-        return;
-    }
+
     unsigned nRows = n0;
     cufftComplex *inputPtr = A_d;
     do {
@@ -207,7 +198,7 @@ void rowReduceSum(cufftComplex *A_d, unsigned n0, unsigned n1, cufftComplex *out
         while (blockDimX < rowsHalved && blockDimX <= 8) {
             blockDimX <<= 1u;
         }
-        unsigned blockDimY = prop.maxThreadsPerBlock / blockDimX;
+        unsigned blockDimY = maxThreadsPerBlock / blockDimX;
         if (n1 < blockDimY) blockDimY = n1;
 
         // determine grid dimensions

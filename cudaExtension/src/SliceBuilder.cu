@@ -44,7 +44,7 @@ namespace emsim {
         thrust::device_vector<cufftComplex> locationPhase(m_nElems * m_nPixHalf);
         cufftComplex* locationPhasePtr = thrust::raw_pointer_cast(&locationPhase[0]);
         if(cufftExecR2C(m_p, (cufftReal *)slcAtomHist, locationPhasePtr) != CUFFT_SUCCESS) {
-
+            fprintf(stderr, "SliceBuilder::sliceGen: CUFFT error: R2C execution failed\n");
         }
 
         broadCastMul(locationPhasePtr, m_scatteringFactors,
@@ -132,7 +132,6 @@ namespace emsim {
     void SliceBuilderBatch::binAtoms(const float *atomCoordinates, unsigned int nAtoms,
                                      const uint32_t *uniqueElemsCount, float *output) const
     {
-        fprintf(stderr, "m_dz = %f, m_pixelSize = %f\n", m_dz, m_pixelSize);
         binAtoms_(atomCoordinates, nAtoms,
                   uniqueElemsCount, m_nElems,
                   m_nSlices, m_n1, m_n2,

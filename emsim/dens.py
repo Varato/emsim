@@ -159,8 +159,8 @@ def build_slices_fourier_cuda(mol: atm.AtomList,
     )
 
     # atom_hists_gpu = cp.asarray(atmv.atom_histograms, dtype=float_type)
-    atom_hists_gpu = slice_builder_batch.binAtoms(atom_coords_gpu, elems_count_gpu)
-    slices = slice_builder_batch.sliceGenBatch(atom_hists_gpu)
+    atom_hists_gpu = slice_builder_batch.bin_atoms(atom_coords_gpu, elems_count_gpu)
+    slices = slice_builder_batch.slice_gen_batch(atom_hists_gpu)
 
     cp.clip(slices, a_min=1e-7, a_max=None, out=slices)
     return slices  # * 2 * np.pi * a0 * e / pixel_size**2

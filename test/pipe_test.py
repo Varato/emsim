@@ -12,25 +12,24 @@ from emsim import pipe
 class MultislicePipeTestCase(unittest.TestCase):
     def setUp(self):
         pdb_data_dir = emsim.io.data_dir.get_pdb_data_dir_from_config()
-        pdb_code = '4bed'
+        pdb_code = '4ear'
         pdb_file = utils.pdb.retrieve_pdb_file(pdb_code, pdb_data_dir)
         self.mol = utils.pdb.build_biological_unit(pdb_file)
 
-        resolution = 3.0
+        self.resolution = 3.0
         beam_energy_kev = 200
         cs = 2.0  # mm
         defocus = 700  # Angstrom
         dose = 20
         aperture = np.pi/2.0
-        thickness = 1.0
-
+        self.thickness = 1.0
         self.microscope = em.EM(dose, beam_energy_kev, cs, defocus, aperture)
-        self.pipe = pipe.MultislicePipe(self.microscope, self.mol, resolution, thickness,
-                                        add_water=False,
-                                        roi=256)
 
     def test_image_numpy(self):
-        img = self.pipe.run(back_end='numpy')
+        pipe_ = pipe.PipeNumpy(self.microscope,
+                               self.mol, self.resolution,
+                               self.thickness, add_water=False, roi=128)
+        img = pipe_.image()
         _, ax = plt.subplots()
         ax.imshow(img, cmap='gray')
         plt.show()
@@ -42,10 +41,13 @@ class MultislicePipeTestCase(unittest.TestCase):
         plt.show()
 
     def test_image_cuda(self):
-        img = self.pipe.run(back_end='cuda').get()
+        pipe_ = pipe.PipeCuda(self.microscope,
+                              self.mol, self.resolution,
+                              self.thickness, add_water=False, roi=128)
+        img = pipe_.image().get()
 
         _, ax = plt.subplots()
-        ax.imshow(img, cmap='gray')
+        ax.imshow(np.abs(img), cmap='gray')
         plt.show()
 
     def test_image_timing(self):

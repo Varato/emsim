@@ -5,6 +5,7 @@
 #include <pybind11/pybind11.h>
 
 #include "SliceBuilder.h"
+#include "SliceBuilder_kernel.h"
 
 
 namespace py = pybind11;
@@ -17,6 +18,34 @@ uintptr_t cupyGetMemPtr(py::object const &cupyArray) {
 inline
 int cupyGetShape(py::object const &cupyArray, unsigned dim) {
     return py::tuple(cupyArray.attr("shape"))[dim].cast<int >();
+}
+
+
+py::object binAtomsCupyWrapper(py::object const &atomCoordinates,
+                               py::object const &uniqueElemsCount,
+                               unsigned n0, unsigned n1, unsigned n2,
+                               float d0, float d1, float d2)
+{
+    using namespace pybind11::literals;
+
+    py::object cupy = py::module::import("cupy");
+
+    unsigned nElems = cupyGetShape(uniqueElemsCount, 0);
+    unsigned nAtoms = cupyGetShape(atomCoordinates, 0);
+
+    py::tuple shape = py::make_tuple(nElems, n0, n1, n2);
+    py::object output = cupy.attr("zeros")("shape"_a=shape, "dtype"_a=cupy.attr("float32"));
+
+    uintptr_t atomCoordPtr = cupyGetMemPtr(atomCoordinates);
+    uintptr_t elemCntPtr = cupyGetMemPtr(uniqueElemsCount);
+    uintptr_t outPtr = cupyGetMemPtr(output);
+
+    emsim::binAtoms_((float *)atomCoordPtr, nAtoms,
+                     (uint32_t *) elemCntPtr, nElems,
+                     n0, n1, n2, d0, d1, d2,
+                     (float *) outPtr);
+
+    return output;
 }
 
 
@@ -91,8 +120,6 @@ public:
         uintptr_t elemCntPtr = cupyGetMemPtr(uniqueElemsCount);
         uintptr_t outPtr = cupyGetMemPtr(output);
 
-        py::print(uniqueElemsCount);
-
         m_sbb->binAtoms((float *) atomCoordPtr, nAtoms, (uint32_t *) elemCntPtr, (float *) outPtr);
         return output;
     }
@@ -120,13 +147,15 @@ private:
 PYBIND11_MODULE(dens_kernel_cuda, m) {
     py::class_<SliceBuilderCuPyWrapper>(m, "SliceBuilder")
             .def(py::init<py::object, int, int, float>())
-            .def("binAtomsWithinSlice", &SliceBuilderCuPyWrapper::binAtomsWithinSlice, "bin atoms witin a single slice")
-            .def("sliceGen", &SliceBuilderCuPyWrapper::sliceGen, "generate a single potential slice");
+            .def("bin_atoms_within_slice", &SliceBuilderCuPyWrapper::binAtomsWithinSlice, "bin atoms witin a single slice")
+            .def("slice_gen", &SliceBuilderCuPyWrapper::sliceGen, "generate a single potential slice");
 
 
     py::class_<SliceBuilderBatchCuPyWrapper>(m, "SliceBuilderBatch")
             .def(py::init<py::object, int, int, int, float, float>())
-            .def("binAtoms", &SliceBuilderBatchCuPyWrapper::binAtoms)
-            .def("sliceGenBatch", &SliceBuilderBatchCuPyWrapper::sliceGenBatch, "");
+            .def("bin_atoms", &SliceBuilderBatchCuPyWrapper::binAtoms)
+            .def("slice_gen_batch", &SliceBuilderBatchCuPyWrapper::sliceGenBatch, "");
+
+    m.def("binAtoms", &binAtomsCupyWrapper, "");
 }
 

@@ -76,26 +76,79 @@ def lens_propagate_fftw(wave_in: np.ndarray, pixel_size: float,
         wave_length, cs_mm, defocus, aperture)
 
 
-@requires_cuda_ext
-def multislice_propagate_cuda(wave_in: back_end.cp.ndarray,
-                              slices: back_end.cp.ndarray, pixel_size: float, dz: float,
-                              wave_length: float, relativity_gamma: float):
-    return back_end.em_kernel_cuda.multislice_propagate_cuda(
-        wave_in, slices,
-        pixel_size, dz, wave_length, relativity_gamma)
+# @requires_cuda_ext
+# def multislice_propagate_cuda(wave_in: back_end.cp.ndarray,
+#                               slices: back_end.cp.ndarray, pixel_size: float, dz: float,
+#                               wave_length: float, relativity_gamma: float):
+#     return back_end.em_kernel_cuda.multislice_propagate_cuda(
+#         wave_in, slices,
+#         pixel_size, dz, wave_length, relativity_gamma)
+#
+#
+# @requires_cuda_ext
+# def lens_propagate_cuda(wave_in: back_end.cp.ndarray, pixel_size: float,
+#                         wave_length: float, cs_mm: float, defocus: float, aperture: float):
+#     return back_end.em_kernel_cuda.lens_propagate_cuda(
+#         wave_in, pixel_size,
+#         wave_length, cs_mm, defocus, aperture)
+
+class WavePropagator:
+    def __init__(self, wave_shape: Tuple[int, int], pixel_size, wave_length, relativity_gamma,
+                 backend=back_end.em_kernel_cuda.WavePropagator):
+        self.wave_shape = wave_shape
+        self.pixel_size = pixel_size
+        self.wave_length = wave_length
+        self.relativity_gamma = relativity_gamma
+        if backend == "numpy":
+            self.backend = _WavePropagatorNumpy(wave_shape[0], wave_shape[1], pixel_size, wave_length, relativity_gamma)
+        else:
+            self.backend = backend(wave_shape[0], wave_shape[1], pixel_size, wave_length, relativity_gamma)
+
+    def multislice_propagate(self, wave_in, slices, dz: float):
+        return self.backend.multislice_propagate(wave_in, slices, dz)
+
+    def singleslice_propagate(self, wave_in, aslice, dz: float):
+        return self.backend.singleslice_propagate(wave_in, aslice, dz)
+
+    def lens_propagate(self, wave_in, cs_mm, defocus, aperture):
+        return self.backend.lens_propagate(wave_in, cs_mm, defocus, aperture)
 
 
-@requires_cuda_ext
-def lens_propagate_cuda(wave_in: back_end.cp.ndarray, pixel_size: float,
-                        wave_length: float, cs_mm: float, defocus: float, aperture: float):
-    return back_end.em_kernel_cuda.lens_propagate_cuda(
-        wave_in, pixel_size,
-        wave_length, cs_mm, defocus, aperture)
+class _WavePropagatorNumpy:
+    def __init__(self, n1, n2, pixel_size, wave_length, relativity_gamma):
+        self.wave_shape = (n1, n2)
+        self.pixel_size = pixel_size
+        self.wave_length = wave_length
+        self.relativity_gamma = relativity_gamma
 
+        qx, qy = _WavePropagatorNumpy._make_mesh_grid_fourier_space(pixel_size, self.wave_shape)
+        self.q_mgrid = np.sqrt(qx * qx + qy * qy)
 
-def _make_mesh_grid_fourier_space(pixel_size: float, size: Tuple[int, int]):
-    q_max = 0.5/pixel_size
-    qx_range = np.linspace(-q_max, q_max, size[0])
-    qy_range = np.linspace(-q_max, q_max, size[1])
-    qx, qy = np.meshgrid(qx_range, qy_range, indexing="ij")
-    return qx, qy
+    def multislice_propagate(self, wave_in, slices, dz: float):
+        n_slices = slices.shape[0]
+        q_max = 0.5 / self.pixel_size
+
+        fil = np.fft.ifftshift(np.where(self.q_mgrid <= q_max * 0.6667, 1., 0.))
+        spatial_propagator = np.exp(-1j * self.wave_length * np.pi * dz * self.q_mgrid ** 2)
+        transmission_functions = np.exp(1j * self.relativity_gamma * self.wave_length * slices)
+
+        psi = wave_in
+        for s in range(n_slices):
+            psi = ifft2(ifftshift(spatial_propagator) * fft2(psi * transmission_functions[s]) * fil)
+        return psi
+
+    def singleslice_propagate(self, wave_in, aslice, dz: float):
+        raise NotImplemented
+
+    def lens_propagate(self, wave_in, cs_mm, defocus, aperture):
+        h = mtf(self.wave_length, cs_mm, defocus)(self.q_mgrid)
+        aper = np.where(self.q_mgrid < aperture / self.wave_length, 1., 0.)
+        return ifft2(ifftshift(h) * fft2(wave_in) * ifftshift(aper))
+
+    @staticmethod
+    def _make_mesh_grid_fourier_space(pixel_size: float, size: Tuple[int, int]):
+        q_max = 0.5/pixel_size
+        qx_range = np.linspace(-q_max, q_max, size[0])
+        qy_range = np.linspace(-q_max, q_max, size[1])
+        qx, qy = np.meshgrid(qx_range, qy_range, indexing="ij")
+        return qx, qy
