@@ -121,7 +121,7 @@ void binAtomsKernel(float const atomCoordinates[], unsigned nAtoms,
     }
 }
 
-namespace emsim {
+namespace emsim { namespace cuda {
 
     void binAtomsWithinSlice_(float const atomCoordinates[], unsigned nAtoms,
                               uint32_t const uniqueElemsCount[], unsigned nElems,
@@ -151,4 +151,4 @@ namespace emsim {
                                                 n0, n1, n2, d0, d1, d2,
                                                 output);
     }
-}
+} }

@@ -9,7 +9,7 @@
 #include "WavePropagator_kernel.cuh"
 
 
-namespace emsim {
+namespace emsim { namespace cuda {
 
     WavePropagator::WavePropagator(int n1, int n2, float pixelSize, float waveLength, float relativityGamma)
             : m_n1(n1), m_n2(n2), m_nPix(n1*n2), m_pixelSize(pixelSize),
@@ -66,4 +66,4 @@ namespace emsim {
             singleSlicePropagate(waveOut, multiSlices + s * m_nPix, dz, waveOut);
         }
     }
-}
+} }

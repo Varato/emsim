@@ -9,7 +9,7 @@ struct float2;
 typedef float2 cufftComplex;
 typedef float cufftReal;
 
-namespace emsim {
+namespace emsim { namespace cuda {
 
     void waveSliceTransmit(cufftComplex *wave, cufftReal const *slice, int nPix,
                            float waveLength, float relativityGamma, cufftComplex *waveOut);
@@ -20,7 +20,7 @@ namespace emsim {
 
     void waveLensPropagate(cufftComplex *waveFourier, int n1, int n2, float pixSize,
                            float waveLength, float cs_mm, float defocus, float aperture, cufftComplex *waveOut);
-}
+} }
 
 
 #endif //EMSIM_WAVEPROPAGATOR_KERNEL_CUH

@@ -10,7 +10,7 @@ struct float2;
 typedef float2 cufftComplex;
 typedef float cufftReal;
 
-namespace emsim {
+namespace emsim { namespace cuda {
     class WavePropagator {
     public:
         WavePropagator(int n1, int n2, float pixelSize, float waveLength, float relativityGamma);
@@ -37,7 +37,7 @@ namespace emsim {
         float m_waveLength;
         float m_relativityGamma;
     };
-}
+} }
 
 
 #endif //EMSIM_WAVEPROPAGATOR_H

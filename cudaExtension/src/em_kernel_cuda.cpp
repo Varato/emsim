@@ -30,7 +30,7 @@ public:
     WavePropagatorCuPyWrapper(unsigned n1, unsigned n2, float pixelSize, float waveLength, float relativityGamma)
         : m_n1(n1), m_n2(n2)
     {
-        m_wp = std::make_unique<emsim::WavePropagator>(n1, n2, pixelSize, waveLength, relativityGamma);
+        m_wp = std::make_unique<emsim::cuda::WavePropagator>(n1, n2, pixelSize, waveLength, relativityGamma);
         cupy = py::module::import("cupy");
     }
 
@@ -75,7 +75,7 @@ public:
 
 private:
     unsigned m_n1, m_n2;
-    std::unique_ptr<emsim::WavePropagator> m_wp;
+    std::unique_ptr<emsim::cuda::WavePropagator> m_wp;
     py::object cupy;
 };
 

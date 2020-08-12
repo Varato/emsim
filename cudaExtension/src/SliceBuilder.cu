@@ -6,7 +6,7 @@
 #include "SliceBuilder_kernel.h"
 #include "utils.h"
 
-namespace emsim {
+namespace emsim { namespace cuda {
     /*
      * SliceBuilder
      */
@@ -138,4 +138,4 @@ namespace emsim {
                   m_dz, m_pixelSize, m_pixelSize,
                   output);
     }
-}
+} }

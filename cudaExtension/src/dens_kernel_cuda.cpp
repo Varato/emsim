@@ -40,10 +40,10 @@ py::object binAtomsCupyWrapper(py::object const &atomCoordinates,
     uintptr_t elemCntPtr = cupyGetMemPtr(uniqueElemsCount);
     uintptr_t outPtr = cupyGetMemPtr(output);
 
-    emsim::binAtoms_((float *)atomCoordPtr, nAtoms,
-                     (uint32_t *) elemCntPtr, nElems,
-                     n0, n1, n2, d0, d1, d2,
-                     (float *) outPtr);
+    emsim::cuda::binAtoms_((float *)atomCoordPtr, nAtoms,
+                           (uint32_t *) elemCntPtr, nElems,
+                           n0, n1, n2, d0, d1, d2,
+                           (float *) outPtr);
 
     return output;
 }
@@ -59,7 +59,7 @@ public:
     {
         uintptr_t scatFacPtr = cupyGetMemPtr(m_scatteringFactors);
         m_nElems = cupyGetShape(m_scatteringFactors, 0);
-        m_sb = std::make_unique<emsim::SliceBuilder>((float *)scatFacPtr, m_nElems, m_n1, m_n2, pixelSize);
+        m_sb = std::make_unique<emsim::cuda::SliceBuilder>((float *)scatFacPtr, m_nElems, m_n1, m_n2, pixelSize);
         m_cupy = py::module::import("cupy");
     }
 
@@ -92,7 +92,7 @@ private:
     int m_n1, m_n2, m_nElems;
     py::object m_scatteringFactors;  // to keep this py object alive by holding a reference.
     py::object m_cupy;
-    std::unique_ptr<emsim::SliceBuilder> m_sb;
+    std::unique_ptr<emsim::cuda::SliceBuilder> m_sb;
 };
 
 
@@ -106,7 +106,7 @@ public:
     {
         uintptr_t scatFacPtr = cupyGetMemPtr(m_scatteringFactors);
         m_nElems = cupyGetShape(m_scatteringFactors, 0);
-        m_sbb = std::make_unique<emsim::SliceBuilderBatch>((float *)scatFacPtr, m_nElems, nSlice, m_n1, m_n2, dz, pixelSize);
+        m_sbb = std::make_unique<emsim::cuda::SliceBuilderBatch>((float *)scatFacPtr, m_nElems, nSlice, m_n1, m_n2, dz, pixelSize);
         m_cupy = py::module::import("cupy");
     }
 
@@ -139,7 +139,7 @@ private:
     py::object m_scatteringFactors;
     py::object m_cupy;
     int m_n1, m_n2, m_nElems, m_nSlice;
-    std::unique_ptr<emsim::SliceBuilderBatch> m_sbb;
+    std::unique_ptr<emsim::cuda::SliceBuilderBatch> m_sbb;
 };
 
 

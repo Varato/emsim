@@ -165,54 +165,55 @@ void rowReduceSumKernel(cufftComplex *A, unsigned n0, unsigned n1, cufftComplex 
     }
 }
 
+namespace emsim { namespace cuda {
+    void broadCastMul(cufftComplex *A_d, cufftReal *v_d, cufftReal a, unsigned n0, unsigned n1, unsigned n2) {
 
-void broadCastMul(cufftComplex *A_d, cufftReal *v_d, cufftReal a, unsigned n0, unsigned n1, unsigned n2) {
-
-    unsigned nCols = n0 * n2;
-    unsigned nRows = n1;
-    unsigned blockDimX = 1;
-    while (blockDimX < nRows && blockDimX <= 32) {
-        blockDimX <<= 1u;
-    }
-    unsigned blockDimY = maxThreadsPerBlock/blockDimX;
-    if (nCols < blockDimY) blockDimY = nCols;
-    auto gridDimX = (unsigned)ceilf((float)nCols / (float)blockDimY);
-    gridDimX = gridDimX > 2147483647 ? 2147483647 : gridDimX;
-    dim3 grid(gridDimX);
-    dim3 block(blockDimX, blockDimY);
-    // printf("grid: (%d,). block: (%d, %d)\n", gridDimX, blockDimX, blockDimY);
-    size_t sharedMemSize = sizeof(cufftReal) * block.y;
-
-    broadcastMulKernel<<<grid, block, sharedMemSize>>>(A_d, v_d, a, n0, n1, n2);
-}
-
-
-void rowReduceSum(cufftComplex *A_d, unsigned n0, unsigned n1, cufftComplex *output_d) {
-
-    unsigned nRows = n0;
-    cufftComplex *inputPtr = A_d;
-    do {
-        // determine block dimensions
-        unsigned rowsHalved = (int) ceilf((float)nRows/2.0f);
+        unsigned nCols = n0 * n2;
+        unsigned nRows = n1;
         unsigned blockDimX = 1;
-        while (blockDimX < rowsHalved && blockDimX <= 8) {
+        while (blockDimX < nRows && blockDimX <= 32) {
             blockDimX <<= 1u;
         }
         unsigned blockDimY = maxThreadsPerBlock / blockDimX;
-        if (n1 < blockDimY) blockDimY = n1;
-
-        // determine grid dimensions
-        unsigned gridDimX = (int)ceilf((float)rowsHalved / (float)blockDimX);
-        unsigned gridDimY = (int)ceilf((float)n1 / (float)blockDimY);
-        gridDimX = gridDimX > 65535? 65535: gridDimX;
-        gridDimY = gridDimY > 65535? 65535: gridDimY;
-        dim3 grid(gridDimX, gridDimY);
+        if (nCols < blockDimY) blockDimY = nCols;
+        auto gridDimX = (unsigned) ceilf((float) nCols / (float) blockDimY);
+        gridDimX = gridDimX > 2147483647 ? 2147483647 : gridDimX;
+        dim3 grid(gridDimX);
         dim3 block(blockDimX, blockDimY);
+        // printf("grid: (%d,). block: (%d, %d)\n", gridDimX, blockDimX, blockDimY);
+        size_t sharedMemSize = sizeof(cufftReal) * block.y;
 
-        unsigned threadsPerBlock = block.x * block.y;
-        size_t sharedMemSize = sizeof(cufftComplex) * threadsPerBlock;
+        broadcastMulKernel<<<grid, block, sharedMemSize>>>(A_d, v_d, a, n0, n1, n2);
+    }
 
-        rowReduceSumKernel<<<grid, block, sharedMemSize>>>(inputPtr, nRows, n1, output_d);
-        nRows = (unsigned)ceilf((float)nRows / (float)(2 * grid.x * block.x)) * grid.x;
-    } while(nRows > 1);
-}
+
+    void rowReduceSum(cufftComplex *A_d, unsigned n0, unsigned n1, cufftComplex *output_d) {
+
+        unsigned nRows = n0;
+        cufftComplex *inputPtr = A_d;
+        do {
+            // determine block dimensions
+            unsigned rowsHalved = (int) ceilf((float) nRows / 2.0f);
+            unsigned blockDimX = 1;
+            while (blockDimX < rowsHalved && blockDimX <= 8) {
+                blockDimX <<= 1u;
+            }
+            unsigned blockDimY = maxThreadsPerBlock / blockDimX;
+            if (n1 < blockDimY) blockDimY = n1;
+
+            // determine grid dimensions
+            unsigned gridDimX = (int) ceilf((float) rowsHalved / (float) blockDimX);
+            unsigned gridDimY = (int) ceilf((float) n1 / (float) blockDimY);
+            gridDimX = gridDimX > 65535 ? 65535 : gridDimX;
+            gridDimY = gridDimY > 65535 ? 65535 : gridDimY;
+            dim3 grid(gridDimX, gridDimY);
+            dim3 block(blockDimX, blockDimY);
+
+            unsigned threadsPerBlock = block.x * block.y;
+            size_t sharedMemSize = sizeof(cufftComplex) * threadsPerBlock;
+
+            rowReduceSumKernel<<<grid, block, sharedMemSize>>>(inputPtr, nRows, n1, output_d);
+            nRows = (unsigned) ceilf((float) nRows / (float) (2 * grid.x * block.x)) * grid.x;
+        } while (nRows > 1);
+    }
+} }

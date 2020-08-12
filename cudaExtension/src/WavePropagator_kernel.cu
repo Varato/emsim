@@ -141,7 +141,7 @@ void waveLensPropagateKernel(cufftComplex *waveFourier, int n1, int n2, float pi
     }
 }
 
-namespace emsim {
+namespace emsim { namespace cuda {
     void waveSliceTransmit(cufftComplex *wave, cufftReal const *slice, int nPix,
                            float waveLength, float relativityGamma,
                            cufftComplex *waveOut) {
@@ -183,4 +183,4 @@ namespace emsim {
                                                          pixSize, waveLength, cs_mm, defocus, aperture,
                                                          waveOut);
     }
-}
+} }

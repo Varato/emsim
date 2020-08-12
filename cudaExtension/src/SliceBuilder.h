@@ -9,7 +9,7 @@
 
 typedef int cufftHandle;
 
-namespace emsim {
+namespace emsim { namespace cuda {
     /*
      * For single slice build
      */
@@ -82,7 +82,7 @@ namespace emsim {
         float* m_scatteringFactors;  // pre-computed scattering factors for all elements needed
         int m_nElems;                // the length of m_uniqueElements
     };
-}
+} }
 
 
 #endif //EMSIM_SLICEBUILDER_H

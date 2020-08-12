@@ -218,8 +218,8 @@ def orientations_gen(atom_list: AtomList, quats: np.ndarray, set_center: bool = 
         Yields rotated AtomLists.
 
     """
-    for quat in quats:
-        yield rotate(atom_list, quat, set_center)
+    for i in range(quats.shape[0]):
+        yield rotate(atom_list, quats[i], set_center)
 
 
 def determine_box_size(space: Tuple[float, float, float],
@@ -249,8 +249,6 @@ def bin_atoms(mol: AtomList,
         specifies the 3 dimensions of the resulted histogram box.
         Whenever a dimension is given as None, this dimension is selected to be
         a minimum value that just covers the system.
-    dry_run: bool
-        if set true, only returns parameters for binning atoms
 
     Returns
     -------
