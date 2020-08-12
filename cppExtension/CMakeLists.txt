@@ -28,7 +28,14 @@ message("Found FFTW float threads lib at: ${FFTW_FLOAT_THREADS_LIB}")
 message("OpenMP cflags: ${OpenMP_C_FLAGS}")
 
 add_library(libSlice STATIC
-    src/SliceBuilder.cpp)
+    src/SliceBuilder.cpp
+    src/SliceBuilder.h src/common.h)
+
+
+add_library(libWave STATIC
+    src/WavePropagator.cpp
+    src/WavePropagator.h)
+
 
 if(WIN32)
     # Assume fftw3 is compiled with --with-combined-threads option on Windows systems,
@@ -36,14 +43,23 @@ if(WIN32)
     if( NOT FFTW_FLOAT_LIB_FOUND )
         message(FATAL_ERROR "libfftw3f not found. Try to provide FFTW_ROOT to cmake")
     endif()
-    target_link_libraries(libSlice PRIVATE FFTW::Float)
+    target_link_libraries(libSlice PUBLIC FFTW::Float)
+    target_link_libraries(libWave PUBLIC FFTW::Float)
 
 else()
     if( NOT FFTW_FLOAT_THREADS_LIB_FOUND )
         message(FATAL_ERROR "libfftw3f_threads not found. Try to provide FFTW_ROOT to cmake")
     endif()
-    target_link_libraries(libSlice PRIVATE FFTW::FloatThreads)
+    target_link_libraries(libSlice PUBLIC FFTW::FloatThreads)
+    target_link_libraries(libWave PUBLIC FFTW::FloatThreads)
 endif(WIN32)
+
+pybind11_add_module(dens_kernel src/dens_kernel.cpp)
+target_link_libraries(dens_kernel PRIVATE libSlice)
+
+pybind11_add_module(em_kernel src/em_kernel.cpp)
+target_link_libraries(em_kernel PRIVATE libWave)
+
 
 
 #add_library(dens_kernel MODULE

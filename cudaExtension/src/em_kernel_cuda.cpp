@@ -81,7 +81,7 @@ private:
 
 
 PYBIND11_MODULE(em_kernel_cuda, m) {
-    py::class_<WavePropagatorCuPyWrapper>(m, "WavePropagator")
+    py::class_<WavePropagatorCuPyWrapper>(m, "WavePropagator", py::module_local())
             .def(py::init<unsigned, unsigned, float, float, float>())
             .def("singleslice_propagate", &WavePropagatorCuPyWrapper::singleSlicePropagate, "propagate a wave throught a single potential slice")
             .def("multislice_propagate", &WavePropagatorCuPyWrapper::multiSlicePropagate, "propagate a wave through multiple slices")

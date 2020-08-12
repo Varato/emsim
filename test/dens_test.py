@@ -15,16 +15,37 @@ class DensityTestCase(unittest.TestCase):
         data_dir = emsim.io.data_dir.get_pdb_data_dir_from_config()
         # pipeline
         # mol = atm.AtomList(elements=np.array([6, 6]), coordinates=np.array([[0, -2, -2], [0, 2, 2]], dtype=np.float32))
-        pdb_code = '4bed'
+        pdb_code = '4ear'
         pdb_file = utils.pdb.retrieve_pdb_file(pdb_code, data_dir)
         mol = emsim.utils.pdb.build_biological_unit(pdb_file)
         self.mol = atm.centralize(mol)
-        self.voxel_size = 2.0
+        self.voxel_size = 1.0
 
     def test_build_potential_fourier(self):
         pot = dens.build_potential_fourier(self.mol, self.voxel_size, box_size=70)
         print("pot  shape:", pot.shape)
         plt.imshow(pot.sum(-1))
+        plt.show()
+
+    def test_build_slices_numpy(self):
+        builder = dens.get_slice_builder(backend="numpy")
+        slices = builder(self.mol, pixel_size=self.voxel_size, dz=1,
+                         lateral_size=128, add_water=False)
+        plt.imshow(slices.sum(0))
+        plt.show()
+
+    def test_build_slices_cuda(self):
+        builder = dens.get_slice_builder(backend="cuda")
+        slices = builder(self.mol, pixel_size=self.voxel_size, dz=1,
+                         lateral_size=128, add_water=False)
+        plt.imshow(slices.sum(0).get())
+        plt.show()
+
+    def test_build_slices_cpp(self):
+        builder = dens.get_slice_builder(backend="cpp")
+        slices = builder(self.mol, pixel_size=self.voxel_size, dz=1,
+                         lateral_size=128, add_water=False)
+        plt.imshow(slices.sum(0))
         plt.show()
 
     def test_build_slices_fourier_cuda(self):

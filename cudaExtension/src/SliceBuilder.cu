@@ -13,10 +13,9 @@ namespace emsim { namespace cuda {
     SliceBuilder::SliceBuilder(float *scatteringFactors, int nElems,
                                int n1, int n2, float pixelSize)
         : m_scatteringFactors(scatteringFactors), m_nElems(nElems),
-          m_pixelSize(pixelSize), m_n1(n1), m_n2(n2), m_p(0), m_ip(0)
+          m_pixelSize(pixelSize), m_n1(n1), m_n2(n2), m_n2Half(n2/2+1), m_nPix(n1*n2),
+          m_p(0), m_ip(0)
     {
-        m_n2Half = m_n2 / 2 + 1;
-        m_nPix = m_n1 * m_n2;
         m_nPixHalf = m_n1 * m_n2Half;
 
         int n[2] = {m_n1, m_n2};
@@ -77,10 +76,9 @@ namespace emsim { namespace cuda {
     SliceBuilderBatch::SliceBuilderBatch(float *scatteringFactors, int nElems,
                                          int nSlices, int n1, int n2, float dz, float pixelSize)
         : m_scatteringFactors(scatteringFactors), m_nElems(nElems),
-          m_nSlices(nSlices), m_n1(n1), m_n2(n2), m_dz(dz), m_pixelSize(pixelSize), m_p(0), m_ip(0)
+          m_nSlices(nSlices), m_n1(n1), m_n2(n2), m_n2Half(n2/2+1), m_nPix(n1*n2), m_dz(dz), m_pixelSize(pixelSize),
+          m_p(0), m_ip(0)
     {
-        m_n2Half = m_n2 / 2 + 1;
-        m_nPix = m_n1 * m_n2;
         m_nPixHalf = m_n1 * m_n2Half;
 
         int n[2] = {m_n1, m_n2};

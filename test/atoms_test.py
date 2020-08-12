@@ -21,6 +21,11 @@ class AtomListTest(unittest.TestCase):
         self.mol = atm.centralize(mol)
         self.voxel_size = 2.0
 
+    def test_sort_and_count(self):
+        atml, ue, uc = atm.sort_elements_and_count(self.mol, must_include_elems=[1])
+        print(ue)
+        print(uc)
+
     def test_atom_volume(self):
         atmv = atm.bin_atoms(self.mol, voxel_size=self.voxel_size)
         print(atmv.box_size)

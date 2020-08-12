@@ -27,7 +27,7 @@ namespace emsim { namespace cuda {
 
         void lensPropagate(cufftComplex *wave,
                            float cs_mm, float defocus, float aperture,
-                           cufftComplex *output) const;
+                           cufftComplex *waveOut) const;
 
     private:
         cufftHandle m_p;

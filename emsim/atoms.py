@@ -5,10 +5,11 @@ AtomList: Represents a list of atoms specified by their Z, associated with their
 AtomVolume: Represents a list of unique elements specified by their Z, associated with all atoms of this kind binned in
     a 3D histogram according to their (x, y, z) coordiantes.
 """
-from typing import Union, Optional, Tuple, List, Generator
+from typing import Union, Optional, Tuple, List, Generator, Set
 from functools import reduce
 import math
 import numpy as np
+import bisect
 
 
 from .utils.rot import get_rotation_mattrices
@@ -32,10 +33,6 @@ class AtomList(object):
         self.elements = elements
         self.coordinates = coordinates.astype(float_type)
 
-        self._elems_sorted = False
-        self._unique_elements = None
-        self._unique_elements_count = None
-
     @property
     def r_min(self):
         return self.coordinates.min(axis=0)
@@ -48,63 +45,49 @@ class AtomList(object):
     def space(self):
         return self.r_max - self.r_min
 
-    @property
-    def unique_elements(self):
-        self.sort_by_elements()
-        return self._unique_elements.tolist()
 
-    @property
-    def unique_elements_count(self):
-        self.sort_by_elements()
-        return self._unique_elements_count.tolist()
+def sort_elements_and_count(atom_list: AtomList, must_include_elems: Optional[List[int]] = ()):
+    """
+    sort the atom_list according to elements. and count the number of occurance of each elements.
 
-    def sort_by_elements(self, all_unique_elements=None):
-        if not self._elems_sorted:
-            # sort by element numbers
-            idx = np.argsort(self.elements)
-            self.elements = self.elements[idx]
-            self.coordinates = self.coordinates[idx]
+    Parameters
+    ----------
+    atom_list: AtomList
+    must_include_elems: List[int]
+        If given, the returned unique elements must include the elements in the must_include_elems list.
+        If an element in must_include_elems does not occur in atom_list, then 0 is added to corresponding
+        position in the returned unique_elements_counts.
 
-            # np.unique returned values are sorted
-            self._unique_elements, self._unique_elements_count = np.unique(self.elements, return_counts=True)
-            if all_unique_elements is not None:
-                all_unique_elements = np.array(all_unique_elements)
-                all_unique_elements.sort()
-                count = np.zeros(shape=(len(all_unique_elements)), dtype=np.int)
-                for e, c in zip(self._unique_elements, self._unique_elements_count):
-                    k = np.argwhere(all_unique_elements == e).squeeze()
-                    if k.size > 0:
-                        count[k] = c
-                self._unique_elements = all_unique_elements
-                self._unique_elements_count = count
+    Returns
+    -------
+    AtomList: the sorted AtomList
+    np.ndarray: sorted unique elements of the returned AtomList
+    np.ndarray: the corresponding number of occurance of each unique element
+    """
 
-            self._elems_sorted = True
-        return self
+    idx = np.argsort(atom_list.elements)
+    elements = atom_list.elements[idx]
+    coordinates = atom_list.coordinates[idx]
 
-    def sort_by_coordinates(self, axis: int = 0):
-        key_coord = self.coordinates.T[axis]
-        idx = np.argsort(key_coord)
-        self.elements = self.elements[idx]
-        self.coordinates = self.coordinates[idx]
-        self._elems_sorted = False
-        self._unique_elements = None
-        self._unique_elements_count = None
+    # np.unique returns sorted unique values
+    unique_elements, unique_elements_counts = np.unique(elements, return_counts=True)
 
-    def translate(self, r):
-        atml = AtomList(elements=self.elements, coordinates=self.coordinates + r)
-        atml._unique_elements = self._unique_elements
-        atml._unique_elements_count = self._unique_elements_count
-        atml._elems_sorted = self._elems_sorted
-        return atml
+    key_elements_sorted = sorted(list(must_include_elems))
+    for key_z in key_elements_sorted:
+        if key_z not in unique_elements:
+            i = bisect.bisect_left(unique_elements, key_z)
+            unique_elements = np.insert(unique_elements, i, key_z)
+            unique_elements_counts = np.insert(unique_elements_counts, i, 0)
 
-    def rotate(self, quat):
-        rot = get_rotation_mattrices(quat)
-        rot_coords = np.matmul(rot, self.coordinates[..., None]).squeeze()
-        atml = AtomList(elements=self.elements, coordinates=rot_coords)
-        atml._unique_elements = self._unique_elements
-        atml._unique_elements_count = self._unique_elements_count
-        atml._elems_sorted = self._elems_sorted
-        return atml
+    return AtomList(elements=elements, coordinates=coordinates), unique_elements, unique_elements_counts
+
+
+def sort_by_coordinates(atom_list: AtomList, axis=0):
+    key_coord = atom_list.coordinates.T[axis]
+    idx = np.argsort(key_coord)
+    elements = atom_list.elements[idx]
+    coordinates = atom_list.coordinates[idx]
+    return AtomList(elements=elements, coordinates=coordinates)
 
 
 class AtomVolume(object):
@@ -149,7 +132,7 @@ def translate(atom_list: AtomList, r) -> AtomList:
     AtomList
         the translated AtomList.
     """
-    return atom_list.translate(r)
+    return AtomList(elements=atom_list.elements, coordinates=atom_list.coordinates + r)
 
 
 def centralize(atom_list: AtomList) -> AtomList:
@@ -193,7 +176,10 @@ def rotate(atom_list: AtomList, quat: np.ndarray, set_center: bool = False) -> A
     """
     if set_center:
         atom_list = centralize(atom_list)
-    return atom_list.rotate(quat)
+    rot = get_rotation_mattrices(quat)
+    rot_coords = np.matmul(rot, atom_list.coordinates[..., None]).squeeze()
+    atml = AtomList(elements=atom_list.elements, coordinates=rot_coords)
+    return atml
 
 
 def orientations_gen(atom_list: AtomList, quats: np.ndarray, set_center: bool = False) \
@@ -234,54 +220,8 @@ def determine_box_size(space: Tuple[float, float, float],
     return box_final
 
 
-def bin_atoms(mol: AtomList,
-              voxel_size: Union[float, Tuple[float, float, float]],
-              box_size: Tuple[Union[None, int], Union[None, int], Union[None, int]]) -> AtomVolume:
-    """
-    puts atoms in bins (3D histogram). The process is applied to each kind of element separately.
-    The bins are determined by voxel_size and molecule size / box_size.
-
-    Parameters
-    ----------
-    mol: AtomList
-    voxel_size: Union[float, Tuple[float, float, float]]
-    box_size: Tuple[Union[None, int], Union[None, int], Union[None, int]])
-        specifies the 3 dimensions of the resulted histogram box.
-        Whenever a dimension is given as None, this dimension is selected to be
-        a minimum value that just covers the system.
-
-    Returns
-    -------
-    AtomVolume
-        keys specify elements by their Z number.
-        values are the the binning volumes for each kind of element.
-
-    Notes
-    -----
-    The (x, y, z) coordinates of the input molecule atoms should have origin at the geometric center of the molecule.
-    Otherwise the binned molecule will not be placed at the center of the box.
-
-    """
-    space = np.where(mol.space < 1e-3, 3.0, mol.space)
-    bins = _find_bin_edges(voxel_size, space, box_size)
-    num_bins = [len(bins[d]) - 1 for d in range(3)]
-
-    elems = mol.unique_elements
-    count = mol.unique_elements_count
-    n_elems = len(elems)
-
-    volumes = np.empty(shape=(n_elems, *num_bins), dtype=np.float32)
-
-    m = 0
-    for i in range(n_elems):
-        n = count[i]
-        volumes[i, ...], _ = np.histogramdd(mol.coordinates[m:m+n], bins=bins)
-        m += n
-
-    return AtomVolume(unique_elements=elems, atom_histograms=volumes, voxel_size=voxel_size)
-
-
-def find_slices(mol: AtomList, thickness: float, n_slices: int = None, axis: int = 0) -> List[AtomList]:
+def find_slices(mol: AtomList, thickness: float, n_slices: int = None, axis: int = 0) \
+        -> Tuple[List[Tuple[AtomList, np.ndarray]], np.ndarray]:
     """
     groups atoms by which slices they belong to. The grouped atoms form seperate AtomLists
 
@@ -298,10 +238,18 @@ def find_slices(mol: AtomList, thickness: float, n_slices: int = None, axis: int
 
     Returns
     -------
-    List[AtomLists]
-        each element in the list is a slice
+    slices: List[Tuple[AtomList, np.ndarray]]
+        Each slice in the list is defined as follows.
+        AtomList: contains all atom coordinates in that slice and the corresponding element Z-values.
+        unique_elements_counts: the number of occurance of the corresponding elements defined in.
+
+    all_unique_elements: np.ndarray
+        contains all unique elements in the system, in Z-value-sorted order.
+        Notice that unique_elements_counts of each slice has the same length as all_unique_elements.
+        If a slice does not contain an element in all_unique_elements, then the corresponding count is 0.
     """
-    all_unique_elements = mol.unique_elements
+
+    mol, all_unique_elements, all_unique_elements_counts = sort_elements_and_count(mol, must_include_elems=[1, 8])
     mol.sort_by_coordinates(axis)
 
     bin_edges = _find_bin_edges1(thickness, mol.space[axis], n_slices)
@@ -320,9 +268,11 @@ def find_slices(mol: AtomList, thickness: float, n_slices: int = None, axis: int
         if not (s == 0 or s == n_bins):
             coord_in_slc = mol.coordinates[m:m+n]
             elems_in_slc = mol.elements[m:m+n]
-            slices.append(AtomList(elements=elems_in_slc, coordinates=coord_in_slc).sort_by_elements(all_unique_elements))
+            slc_atml = AtomList(elements=elems_in_slc, coordinates=coord_in_slc)
+            slc_atml_sorted, _, uec = sort_elements_and_count(slc_atml, must_include_elems=all_unique_elements)
+            slices.append((slc_atml_sorted, uec))
         m += n
-    return slices
+    return slices, all_unique_elements
 
 
 def index_atoms(mol: AtomList,

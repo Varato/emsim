@@ -14,6 +14,59 @@ from .physics import a0, e
 float_type = np.float32
 
 
+def get_slice_builder(backend="numpy"):
+    if backend == "numpy":
+        from .backend import slice_builder_numpy as slice_builder_module
+    elif backend == "cuda":
+        from .backend import slice_builder_cuda as slice_builder_module
+    elif backend == "cpp":
+        from .backend import slice_builder_cpp as slice_builder_module
+    else:
+        raise ValueError("unrecognized backend. backend must be numpy, cuda or cpp.")
+    slice_builder = slice_builder_module.SliceBuilderBatch
+
+    def build_slices_batch(mol: atm.AtomList,
+                           pixel_size: float,
+                           dz: float,
+                           lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
+                           n_slices: Optional[int] = None,
+                           add_water: bool = False):
+        must_include_elems = []
+        if add_water:
+            must_include_elems.extend([1, 8])
+        mol, unique_elements, unique_elements_counts = atm.sort_elements_and_count(mol, must_include_elems)
+        n_slices, n1, n2 = finalize_slice_size(tuple(mol.space), pixel_size, dz, lateral_size, n_slices)
+        sb = slice_builder(unique_elements, n_slices, n1, n2, dz, pixel_size)
+        atmv = sb.bin_atoms(mol.coordinates, unique_elements_counts)
+        if add_water:
+            atmv = sb.add_water(atmv)
+        return sb.slice_gen_batch(atmv)
+
+    return build_slices_batch
+
+
+def finalize_slice_size(mol_space: Tuple[int, int, int],
+                        pixel_size: float,
+                        thickness: float,
+                        lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
+                        n_slices: Optional[int] = None):
+    dims = [None, None, None]
+    if lateral_size is not None:
+        if isinstance(lateral_size, int):
+            dims[1] = lateral_size
+            dims[2] = lateral_size
+        elif isinstance(lateral_size, tuple) and len(lateral_size) == 2:
+            dims[1] = lateral_size[0]
+            dims[2] = lateral_size[1]
+
+    if isinstance(n_slices, int):
+        dims[0] = n_slices
+
+    n_slices, n1, n2 = atm.determine_box_size(tuple(mol_space),
+                                              voxel_size=(thickness, pixel_size, pixel_size),
+                                              box_size=(dims[0], dims[1], dims[2]))
+    return n_slices, n1, n2
+
 def build_slices_fourier(mol: atm.AtomList,
                          pixel_size: float,
                          thickness: float,
@@ -210,6 +263,9 @@ def build_slices_fourier_fftw(mol: atm.AtomList,
 
     np.clip(slices, a_min=1e-7, a_max=None, out=slices)
     return slices  # * 2 * np.pi * a0 * e / pixel_size**2
+
+
+
 
 
 def _prepare_slices_build(mol: atm.AtomList,

@@ -145,13 +145,13 @@ private:
 
 
 PYBIND11_MODULE(dens_kernel_cuda, m) {
-    py::class_<SliceBuilderCuPyWrapper>(m, "SliceBuilder")
+    py::class_<SliceBuilderCuPyWrapper>(m, "SliceBuilder", py::module_local())
             .def(py::init<py::object, int, int, float>())
             .def("bin_atoms_within_slice", &SliceBuilderCuPyWrapper::binAtomsWithinSlice, "bin atoms witin a single slice")
             .def("slice_gen", &SliceBuilderCuPyWrapper::sliceGen, "generate a single potential slice");
 
 
-    py::class_<SliceBuilderBatchCuPyWrapper>(m, "SliceBuilderBatch")
+    py::class_<SliceBuilderBatchCuPyWrapper>(m, "SliceBuilderBatch", py::module_local())
             .def(py::init<py::object, int, int, int, float, float>())
             .def("bin_atoms", &SliceBuilderBatchCuPyWrapper::binAtoms)
             .def("slice_gen_batch", &SliceBuilderBatchCuPyWrapper::sliceGenBatch, "");
