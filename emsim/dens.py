@@ -5,6 +5,7 @@ from typing import Union, Optional, Tuple
 import numpy as np
 from numpy.fft import fft2, rfft2, irfft2, ifftshift
 
+from . import config
 from . import back_end
 from .back_end import requires_cuda_ext, requires_c_ext
 from . import atoms as atm
@@ -14,16 +15,9 @@ from .physics import a0, e
 float_type = np.float32
 
 
-def get_slice_builder(backend="numpy"):
-    if backend == "numpy":
-        from .backend import slice_builder_numpy as slice_builder_module
-    elif backend == "cuda":
-        from .backend import slice_builder_cuda as slice_builder_module
-    elif backend == "cpp":
-        from .backend import slice_builder_cpp as slice_builder_module
-    else:
-        raise ValueError("unrecognized backend. backend must be numpy, cuda or cpp.")
-    slice_builder = slice_builder_module.SliceBuilderBatch
+def get_slice_builder():
+    backend = config.get_current_backend()
+    slice_builder = backend.slice_builder
 
     def build_slices_batch(mol: atm.AtomList,
                            pixel_size: float,
@@ -66,6 +60,7 @@ def finalize_slice_size(mol_space: Tuple[int, int, int],
                                               voxel_size=(thickness, pixel_size, pixel_size),
                                               box_size=(dims[0], dims[1], dims[2]))
     return n_slices, n1, n2
+
 
 def build_slices_fourier(mol: atm.AtomList,
                          pixel_size: float,

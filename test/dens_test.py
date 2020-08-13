@@ -28,23 +28,25 @@ class DensityTestCase(unittest.TestCase):
         plt.show()
 
     def test_build_slices_numpy(self):
-        builder = dens.get_slice_builder(backend="numpy")
+        builder = dens.get_slice_builder()
         slices = builder(self.mol, pixel_size=self.voxel_size, dz=1,
-                         lateral_size=128, add_water=False)
+                         lateral_size=128, add_water=True)
         plt.imshow(slices.sum(0))
         plt.show()
 
     def test_build_slices_cuda(self):
-        builder = dens.get_slice_builder(backend="cuda")
+        emsim.config.set_backend("cuda")
+        builder = dens.get_slice_builder()
         slices = builder(self.mol, pixel_size=self.voxel_size, dz=1,
-                         lateral_size=128, add_water=False)
+                         lateral_size=128, add_water=True)
         plt.imshow(slices.sum(0).get())
         plt.show()
 
-    def test_build_slices_cpp(self):
-        builder = dens.get_slice_builder(backend="cpp")
+    def test_build_slices_fftw(self):
+        emsim.config.set_backend("fftw")
+        builder = dens.get_slice_builder()
         slices = builder(self.mol, pixel_size=self.voxel_size, dz=1,
-                         lateral_size=128, add_water=False)
+                         lateral_size=128, add_water=True)
         plt.imshow(slices.sum(0))
         plt.show()
 
@@ -53,14 +55,6 @@ class DensityTestCase(unittest.TestCase):
         slices = dens.build_slices_fourier_cuda(
             self.mol, pixel_size=self.voxel_size, thickness=4,
             lateral_size=50, add_water=True)
-        plt.imshow(slices.sum(0).get())
-        plt.show()
-
-    def test_build_slices_fourier_cupy(self):
-        slices = dens.build_slices_fourier_cupy(
-            self.mol, pixel_size=self.voxel_size, thickness=1.2,
-            lateral_size=200, n_slices=52)
-        print(slices.device)
         plt.imshow(slices.sum(0).get())
         plt.show()
 

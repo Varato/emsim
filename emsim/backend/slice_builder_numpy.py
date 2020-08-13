@@ -9,6 +9,7 @@ class SliceBuilderBatch(SliceBuilderBatchBase):
     def __init__(self, unique_elements: List[int],
                  n_slices: int, n1: int, n2: int,
                  dz: float, pixel_size: float):
+        print("using numpy SliceBuilderBatch")
         super(SliceBuilderBatch, self).__init__(unique_elements, n_slices, n1, n2, dz, pixel_size)
 
     def slice_gen_batch(self, atom_histogram):

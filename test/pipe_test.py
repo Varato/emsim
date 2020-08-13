@@ -12,7 +12,7 @@ from emsim import pipe
 class MultislicePipeTestCase(unittest.TestCase):
     def setUp(self):
         pdb_data_dir = emsim.io.data_dir.get_pdb_data_dir_from_config()
-        pdb_code = '4ear'
+        pdb_code = '4bed'
         pdb_file = utils.pdb.retrieve_pdb_file(pdb_code, pdb_data_dir)
         self.mol = utils.pdb.build_biological_unit(pdb_file)
 
@@ -22,42 +22,45 @@ class MultislicePipeTestCase(unittest.TestCase):
         defocus = 700  # Angstrom
         dose = 20
         aperture = np.pi/2.0
-        self.thickness = 1.0
+        self.thickness = 2.0
         self.microscope = em.EM(dose, beam_energy_kev, cs, defocus, aperture)
 
     def test_image_numpy(self):
-        pipe_ = pipe.PipeNumpy(self.microscope,
-                               self.mol, self.resolution,
-                               self.thickness, add_water=False, roi=128)
-        img = pipe_.image()
+        emsim.config.set_backend("numpy")
+        p = pipe.Pipe(self.microscope, self.mol, self.resolution, self.thickness, add_water=True, roi=128)
+        img = p.run()
         _, ax = plt.subplots()
         ax.imshow(img, cmap='gray')
         plt.show()
 
     def test_image_fftw(self):
-        img = self.pipe.run(back_end='fftw')
+        emsim.config.set_backend("fftw")
+        p = pipe.Pipe(self.microscope, self.mol, self.resolution, self.thickness, add_water=False, roi=128)
+        img = p.run()
         _, ax = plt.subplots()
-        ax.imshow(np.abs(img), cmap='gray')
+        ax.imshow(img, cmap='gray')
         plt.show()
 
     def test_image_cuda(self):
-        pipe_ = pipe.PipeCuda(self.microscope,
-                              self.mol, self.resolution,
-                              self.thickness, add_water=False, roi=128)
-        img = pipe_.image().get()
-
+        emsim.config.set_backend("cuda")
+        p = pipe.Pipe(self.microscope, self.mol, self.resolution, self.thickness, add_water=False, roi=128)
+        img = p.run()
         _, ax = plt.subplots()
-        ax.imshow(np.abs(img), cmap='gray')
+        ax.imshow(img.get(), cmap='gray')
         plt.show()
 
     def test_image_timing(self):
+        p = pipe.Pipe(self.microscope, self.mol, self.resolution, self.thickness, add_water=False, roi=256)
         imgs = []
         t0 = time.time()
-        imgs.append(self.pipe.run(back_end='numpy'))
+        p.set_backend("numpy")
+        imgs.append(p.run())
         t1 = time.time()
-        imgs.append(self.pipe.run(back_end='fftw'))
+        p.set_backend("fftw")
+        imgs.append(p.run())
         t2 = time.time()
-        imgs.append(self.pipe.run(back_end='cuda').get())
+        p.set_backend("cuda")
+        imgs.append(p.run().get())
         t3 = time.time()
 
         print(f"numpy time = {t1-t0:.3f}")

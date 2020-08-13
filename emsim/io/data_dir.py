@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import configparser
 
-from .define import  default_config_file
+from .define import default_config_file
 
 
 def get_global_data_dir_from_config(config_file=None):
