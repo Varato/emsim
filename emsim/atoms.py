@@ -5,7 +5,7 @@ AtomList: Represents a list of atoms specified by their Z, associated with their
 AtomVolume: Represents a list of unique elements specified by their Z, associated with all atoms of this kind binned in
     a 3D histogram according to their (x, y, z) coordiantes.
 """
-from typing import Union, Optional, Tuple, List, Generator, Set
+from typing import Union, Optional, Tuple, List, Generator
 from functools import reduce
 import math
 import numpy as np
@@ -23,10 +23,10 @@ class AtomList(object):
         """
         Parameters
         ----------
-        elements: array
+        elements: np.ndarray
             in shape (n_elems, ).
             specifies elements by their element number Z.
-        coordinates: array
+        coordinates: np.ndarray
             in shape (n_elems, 3).
             specifies batched coordinates for the elements.
         """
@@ -191,7 +191,7 @@ def orientations_gen(atom_list: AtomList, quats: np.ndarray, set_center: bool = 
     ----------
     atom_list: AtomList
         the input AtomList
-    quats: array
+    quats: np.ndarray
         multiple quaternions in a 2D array in shape (batch_size, 4)
 
     set_center: bool
