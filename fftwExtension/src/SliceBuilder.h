@@ -24,11 +24,7 @@ namespace emsim {
         int getNSlice() const {return m_nSlices;}
         int getN1() const {return m_n1;}
         int getN2() const {return m_n2;}
-    protected:
-        void setScatteringFactors(float *ptr) {
-            m_scatteringFactors = ptr;
-        }
-
+        
     private:
         int m_nSlices;
         int m_n1, m_n2;             // dimensions of the slice

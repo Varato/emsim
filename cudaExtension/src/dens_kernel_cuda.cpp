@@ -146,16 +146,25 @@ private:
 
 PYBIND11_MODULE(dens_kernel_cuda, m) {
     py::class_<SliceBuilderCuPyWrapper>(m, "SliceBuilder", py::module_local())
-            .def(py::init<py::object, int, int, float>())
+            .def(py::init<py::object, int, int, float>(),
+                 py::arg("scattering_factors"), py::arg("n1"), py::arg("n1"), py::arg("pixel_size"))
             .def("bin_atoms_within_slice", &SliceBuilderCuPyWrapper::binAtomsWithinSlice, "bin atoms witin a single slice")
             .def("slice_gen", &SliceBuilderCuPyWrapper::sliceGen, "generate a single potential slice");
 
 
     py::class_<SliceBuilderBatchCuPyWrapper>(m, "SliceBuilderBatch", py::module_local())
-            .def(py::init<py::object, int, int, int, float, float>())
-            .def("bin_atoms", &SliceBuilderBatchCuPyWrapper::binAtoms)
-            .def("slice_gen_batch", &SliceBuilderBatchCuPyWrapper::sliceGenBatch, "");
+            .def(py::init<py::object, int, int, int, float, float>(),
+                 py::arg("scattering_factors"),
+                 py::arg("n_slices"), py::arg("n1"), py::arg("n2"),
+                 py::arg("dz"), py::arg("pixel_size"))
+            .def("bin_atoms", &SliceBuilderBatchCuPyWrapper::binAtoms,
+                 py::arg("atom_coordinates"), py::arg("unique_elements_counts"))
+            .def("slice_gen_batch", &SliceBuilderBatchCuPyWrapper::sliceGenBatch,
+                 py::arg("atom_histograms"));
 
-    m.def("binAtoms", &binAtomsCupyWrapper, "");
+    m.def("binAtoms", &binAtomsCupyWrapper,
+          py::arg("atom_coordinates"),
+          py::arg("unique_elements_count"),
+          py::arg("n0"), py::arg("n1"), py::arg("n2"),
+          py::arg("d0"), py::arg("d1"), py::arg("d2"));
 }
-

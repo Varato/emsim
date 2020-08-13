@@ -38,7 +38,6 @@ namespace emsim {
         float m_dfx, m_dfy, m_fmax, m_filter;
 
         //WavePropagator does not own the following data
-        fftwf_complex *m_waveHolder;
     };
 }
 

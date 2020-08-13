@@ -13,7 +13,7 @@ namespace emsim {
 
     WavePropagator::WavePropagator(int n1, int n2, float pixelSize, float waveLength, float relativityGamma)
         : m_n1(n1), m_n2(n2), m_nPix(n1*n2), m_pixelSize(pixelSize), m_waveLength(waveLength),
-          m_relativityGamma(relativityGamma), m_p(nullptr), m_ip(nullptr), m_waveHolder(nullptr)
+          m_relativityGamma(relativityGamma), m_p(nullptr), m_ip(nullptr)
     {
         m_dfx = 1.0f / m_pixelSize / (float)m_n1;
         m_dfy = 1.0f / m_pixelSize / (float)m_n2;
@@ -27,15 +27,14 @@ namespace emsim {
 
         fftwf_plan_with_nthreads(omp_get_max_threads());
 
-        m_waveHolder = fftwf_alloc_complex(sizeof(fftwf_complex) * n1 * n2);
-        m_p = fftwf_plan_dft_2d(n1, n2, m_waveHolder, m_waveHolder, FFTW_FORWARD, FFTW_ESTIMATE);
-        m_ip = fftwf_plan_dft_2d(n1, n2, m_waveHolder, m_waveHolder, FFTW_BACKWARD, FFTW_ESTIMATE);
+//        m_waveHolder = fftwf_alloc_complex(sizeof(fftwf_complex) * n1 * n2);
+        m_p = fftwf_plan_dft_2d(n1, n2, nullptr, nullptr, FFTW_FORWARD, FFTW_ESTIMATE);
+        m_ip = fftwf_plan_dft_2d(n1, n2, nullptr, nullptr, FFTW_BACKWARD, FFTW_ESTIMATE);
     }
 
     WavePropagator::~WavePropagator() {
         fftwf_destroy_plan(m_p);
         fftwf_destroy_plan(m_ip);
-        fftwf_free(m_waveHolder);
     }
 
     void WavePropagator::sliceTransmit(fftwf_complex *wave, const float *slice, fftwf_complex *waveOut) const {
@@ -85,10 +84,10 @@ namespace emsim {
 
     void WavePropagator::singleSlicePropagate(fftwf_complex *wave, const float *slice, float dz,
                                               fftwf_complex *waveOut) {
-        sliceTransmit(wave, slice, m_waveHolder);
-        fftwf_execute(m_p);
-        spacePropagate(m_waveHolder, dz, m_waveHolder);
-        fftwf_execute_dft(m_ip, m_waveHolder, waveOut);
+        sliceTransmit(wave, slice, waveOut);
+        fftwf_execute_dft(m_p, waveOut, waveOut);
+        spacePropagate(waveOut, dz, waveOut);
+        fftwf_execute_dft(m_ip, waveOut, waveOut);
     }
 
     void WavePropagator::multiSlicePropagate(fftwf_complex *wave, float *multiSlices, unsigned int nSlices, float dz,

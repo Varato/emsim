@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.17)
 project(emsim C CXX CUDA)
 
 add_subdirectory(pybind11)
-add_subdirectory("cppExtension")
+add_subdirectory("fftwExtension")
 
 if (WITH_CUDA_EXT)
     add_subdirectory(cudaExtension)

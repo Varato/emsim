@@ -15,8 +15,7 @@ class SliceBuilderBatch(SliceBuilderBatchBase):
                  dz: float, pixel_size: float):
         print("using fftw SliceBuilderBatch")
         super(SliceBuilderBatch, self).__init__(unique_elements, n_slices, n1, n2, dz, pixel_size)
-        n_elems = len(unique_elements)
-        self.backend = dens_kernel.SliceBuilderBatch(self.scattering_factors, n_elems, n_slices, n1, n2, dz, pixel_size)
+        self.backend = dens_kernel.SliceBuilderBatch(self.scattering_factors, n_slices, n1, n2, dz, pixel_size)
 
     def slice_gen_batch(self, atom_histograms):
         return self.backend.slice_gen_batch(atom_histograms.astype(np.float32))

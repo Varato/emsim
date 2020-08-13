@@ -30,10 +30,8 @@ class Pipe(object):
             self.roi = roi
         self.n_slices = n_slices
 
-        self.slice_builder = None
-        self.wave_propagator = None
-
-        self.set_backend(backend)
+        self.slice_builder = dens.get_slice_builder()
+        self.wave_propagator = wave.get_wave_propagator()(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
 
     @property
     def resolution(self):

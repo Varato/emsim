@@ -12,7 +12,7 @@ from emsim import pipe
 class MultislicePipeTestCase(unittest.TestCase):
     def setUp(self):
         pdb_data_dir = emsim.io.data_dir.get_pdb_data_dir_from_config()
-        pdb_code = '4bed'
+        pdb_code = '7ahl'
         pdb_file = utils.pdb.retrieve_pdb_file(pdb_code, pdb_data_dir)
         self.mol = utils.pdb.build_biological_unit(pdb_file)
 

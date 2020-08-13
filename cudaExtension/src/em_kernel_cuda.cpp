@@ -82,8 +82,23 @@ private:
 
 PYBIND11_MODULE(em_kernel_cuda, m) {
     py::class_<WavePropagatorCuPyWrapper>(m, "WavePropagator", py::module_local())
-            .def(py::init<unsigned, unsigned, float, float, float>())
-            .def("singleslice_propagate", &WavePropagatorCuPyWrapper::singleSlicePropagate, "propagate a wave throught a single potential slice")
-            .def("multislice_propagate", &WavePropagatorCuPyWrapper::multiSlicePropagate, "propagate a wave through multiple slices")
-            .def("lens_propagate", &WavePropagatorCuPyWrapper::lensPropagate, "propagate a wave through lens specified by input parameters");
+            .def(py::init<unsigned, unsigned, float, float, float>(),
+                 py::arg("n1"), py::arg("n2"),
+                 py::arg("pixel_size"),
+                 py::arg("wave_length"), py::arg("relativity_gamma"))
+            .def("singleslice_propagate",
+                 &WavePropagatorCuPyWrapper::singleSlicePropagate,
+                 "propagate a wave throught a single potential slice",
+                 py::arg("wave"), py::arg("aslice"), py::arg("dz"))
+            .def("multislice_propagate",
+                 &WavePropagatorCuPyWrapper::multiSlicePropagate,
+                 "propagate a wave through multiple slices",
+                 py::arg("wave"), py::arg("slices"), py::arg("dz"))
+            .def("lens_propagate",
+                 &WavePropagatorCuPyWrapper::lensPropagate,
+                 "propagate a wave through lens specified by input parameters",
+                 py::arg("wave"),
+                 py::arg("cs_mm"),
+                 py::arg("defocus"),
+                 py::arg("aperture"));
 }
