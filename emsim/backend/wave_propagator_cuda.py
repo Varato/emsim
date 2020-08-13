@@ -1,5 +1,5 @@
 try:
-    from . import em_kernel_cuda
+    from .cuda_ext import em_kernel_cuda
 except ImportError:
     raise ImportError("cannot import cpp extension em_kernel.*.pyd")
 

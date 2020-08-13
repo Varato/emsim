@@ -4,7 +4,7 @@ import numpy as np
 from .slice_builder_base import SliceBuilderBatchBase
 
 try:
-    from . import dens_kernel
+    from .fftw_ext import dens_kernel
 except ImportError:
     raise ImportError("cpp extension cannot be found. Compile it first")
 

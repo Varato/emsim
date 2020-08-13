@@ -6,7 +6,7 @@ except ImportError:
     raise ImportError("the module require cupy")
 
 try:
-    from . import dens_kernel_cuda
+    from .cuda_ext import dens_kernel_cuda
 except ImportError:
     raise ImportError("cuda extension cannot be found. Compile it first")
 

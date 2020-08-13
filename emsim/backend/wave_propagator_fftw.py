@@ -1,5 +1,5 @@
 try:
-    from . import em_kernel
+    from .fftw_ext import em_kernel
 except ImportError:
     raise ImportError("cannot import cpp extension em_kernel.*.pyd")
 
