@@ -3,12 +3,16 @@ cmake_minimum_required(VERSION 3.17)
 # since VERSION 3.12, can use FindPython
 # since VERSION 3.17, can use FindCUDAToolkit
 
-project(emsim C CXX CUDA)
+project(emsim C CXX)
+
+find_package(CUDAToolkit QUIET)
+
 
 add_subdirectory(pybind11)
 add_subdirectory("emsim/backend/fftw_ext")
 
-if (WITH_CUDA_EXT)
+if ( CUDAToolkit_FOUND )
+    message("-- Will build with cuda extensions because CUDA is found.")
     add_subdirectory(emsim/backend/cuda_ext)
 endif()
 
