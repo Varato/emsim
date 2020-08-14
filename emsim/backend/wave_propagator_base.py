@@ -5,8 +5,8 @@ from ..physics import electron_wave_length_angstrom, electron_relativity_gamma
 
 
 class WavePropagatorBase:
-    def __init__(self, wave_shape: Tuple[int, int], pixel_size: float, beam_energy_kev: float):
-        self.wave_shape = wave_shape
+    def __init__(self, shape: Tuple[int, int], pixel_size: float, beam_energy_kev: float):
+        self.wave_shape = shape
         self.pixel_size = pixel_size
 
         self.wave_length = electron_wave_length_angstrom(beam_energy_kev)

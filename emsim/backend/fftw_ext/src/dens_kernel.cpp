@@ -35,8 +35,6 @@ public:
 
         float* atomHistPtr = (float *)(atomHists.request().ptr);
         float* outPtr = (float *)(output.request().ptr);
-
-        py::print("entering sliceGenBatch\n");
         m_sbb->sliceGenBatch(atomHistPtr, outPtr);
         return output;
     }

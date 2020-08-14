@@ -10,10 +10,10 @@ from .wave_propagator_base import WavePropagatorBase
 
 
 class WavePropagator(WavePropagatorBase):
-    def __init__(self, wave_shape: Tuple[int, int], pixel_size: float, beam_energy_key: float):
+    def __init__(self, shape: Tuple[int, int], pixel_size: float, beam_energy_key: float):
         print("using cuda WavePropagator")
-        super(WavePropagator, self).__init__(wave_shape, pixel_size, beam_energy_key)
-        self.backend = em_kernel_cuda.WavePropagator(wave_shape[0], wave_shape[1],
+        super(WavePropagator, self).__init__(shape, pixel_size, beam_energy_key)
+        self.backend = em_kernel_cuda.WavePropagator(shape[0], shape[1],
                                                      pixel_size, self.wave_length, self.relativity_gamma)
 
     def init_wave(self, electron_dose: float):

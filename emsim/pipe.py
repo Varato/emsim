@@ -15,8 +15,7 @@ class Pipe(object):
                  slice_thickness: float,
                  add_water: bool = True,
                  roi: Optional[Union[int, Tuple[int, int]]] = None,
-                 n_slices: Optional[int] = None,
-                 backend="numpy"):
+                 n_slices: Optional[int] = None):
         self._resolution = resolution
         self._pixel_size = 0.5 * resolution
         self.microscope = microscope
@@ -31,7 +30,7 @@ class Pipe(object):
         self.n_slices = n_slices
 
         self.slice_builder = dens.get_slice_builder()
-        self.wave_propagator = wave.get_wave_propagator()(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
+        self.wave_propagator_t = wave.get_wave_propagator()
 
     @property
     def resolution(self):
@@ -45,35 +44,26 @@ class Pipe(object):
     def set_backend(self, backend="numpy"):
         config.set_backend(backend)
         self.slice_builder = dens.get_slice_builder()
-        self.wave_propagator = wave.get_wave_propagator()(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
+        self.wave_propagator_t = wave.get_wave_propagator()
 
     def run(self):
-        slices = self.build_slices()
-        init_wave = self.init_wave()
-        exit_wave = self.exit_wave(init_wave, slices)
-        image_wave = self.image_wave(exit_wave)
-        return self.image(image_wave)
+        wave_propagator = self.wave_propagator_t(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
 
-    def build_slices(self):
         slices = self.slice_builder(self.mol,
                                     pixel_size=self._pixel_size,
                                     dz=self.slice_thickness,
                                     lateral_size=self.roi,
                                     add_water=self.add_water)
-        return slices
 
-    def init_wave(self):
-        return self.wave_propagator.init_wave(self.microscope.electron_dose)
+        init_wave = wave_propagator.init_wave(self.microscope.electron_dose)
 
-    def exit_wave(self, wave_in, slices):
-        return self.wave_propagator.multislice_propagate(wave_in, slices, self.slice_thickness)
+        exit_wave = wave_propagator.multislice_propagate(init_wave, slices, self.slice_thickness)
 
-    def image_wave(self, exit_wave):
-        return self.wave_propagator.lens_propagate(exit_wave,
-                                                   self.microscope.cs_mm,
-                                                   self.microscope.defocus,
-                                                   self.microscope.aperture)
+        image_wave = wave_propagator.lens_propagate(exit_wave,
+                                                    self.microscope.cs_mm,
+                                                    self.microscope.defocus,
+                                                    self.microscope.aperture)
 
-    @staticmethod
-    def image(image_wave):
-        return image_wave.real ** 2 + image_wave.imag ** 2
+        image = image_wave.real ** 2 + image_wave.imag ** 2
+
+        return image

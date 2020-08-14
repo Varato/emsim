@@ -7,9 +7,9 @@ from .wave_propagator_base import WavePropagatorBase
 
 
 class WavePropagator(WavePropagatorBase):
-    def __init__(self, wave_shape: Tuple[int, int], pixel_size: float, beam_energy_key: float):
+    def __init__(self, shape: Tuple[int, int], pixel_size: float, beam_energy_key: float):
         print("using numpy WavePropagator")
-        super(WavePropagator, self).__init__(wave_shape, pixel_size, beam_energy_key)
+        super(WavePropagator, self).__init__(shape, pixel_size, beam_energy_key)
         qx, qy = WavePropagator._make_mesh_grid_fourier_space(pixel_size, self.wave_shape)
         self.q_mgrid = np.sqrt(qx * qx + qy * qy)
 
