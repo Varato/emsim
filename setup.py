@@ -79,6 +79,11 @@ ext_modules = [CMakeExtension('emsim.backend.fftw_ext.dens_kernel'),
                CMakeExtension('emsim.backend.cuda_ext.dens_kernel_cuda'),
                CMakeExtension('emsim.backend.cuda_ext.em_kernel_cuda')]
 
+data_files = [("emsim/assets", ["emsim/assets/atom_mass.txt", "emsim/assets/atom_params.txt"])]
+
+package_data = {}
+if platform.system() == "Windows":
+    package_data = {"emsim.backend.fftw_ext": ["libfftw3f-3.dll"]}
 
 setup(
     name='emsim',
@@ -87,11 +92,10 @@ setup(
     author_email='imxinchen@outlook.com',
     description='an electron microscopy imaging simulator for bio molecules',
     long_description='',
-    packeges=find_packages(where='.'),
+    packages=find_packages(where='.'),
+    package_data=package_data,
     ext_modules=ext_modules,
     cmdclass=dict(build_ext=CMakeBuild),
-    package_data={
-        'atom_params': ['emsim/assets/*.txt'],
-    },
+    data_files=data_files,
     zip_safe=False,
 )

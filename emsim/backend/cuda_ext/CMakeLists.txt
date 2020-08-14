@@ -27,11 +27,17 @@ set_target_properties(libWaveCuda PROPERTIES
 # --- dens_kernel_cuda ---
 pybind11_add_module(dens_kernel_cuda src/dens_kernel_cuda.cpp)
 target_link_libraries(dens_kernel_cuda PRIVATE libSliceCuda)
+set_target_properties(dens_kernel_cuda PROPERTIES
+        CUDA_ARCHITECTURES 75
+        CUDA_SEPARABLE_COMPILATION ON)
 
 
 # --- em_kernel_cuda ---
 pybind11_add_module(em_kernel_cuda src/em_kernel_cuda.cpp)
 target_link_libraries(em_kernel_cuda PRIVATE libWaveCuda)
+set_target_properties(em_kernel_cuda PROPERTIES
+        CUDA_ARCHITECTURES 75
+        CUDA_SEPARABLE_COMPILATION ON)
 
 
 if(WIN32)
