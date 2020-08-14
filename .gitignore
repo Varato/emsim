@@ -15,7 +15,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+lib/*
 lib64/
 parts/
 sdist/
@@ -149,3 +149,5 @@ cmake-build-debug/
 
 *.dll
 *.lib
+!emsim/backend/fftw_ext/libfftw3f-3.dll
+!emsim/backend/fftw_ext/lib/x86_64-w64-mingw32/libfftw3f-3.lib

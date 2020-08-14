@@ -4,9 +4,7 @@ cmake_minimum_required(VERSION 3.17)
 # since VERSION 3.17, can use FindCUDAToolkit
 
 project(emsim C CXX)
-
 find_package(CUDAToolkit QUIET)
-
 
 add_subdirectory(pybind11)
 add_subdirectory("emsim/backend/fftw_ext")
