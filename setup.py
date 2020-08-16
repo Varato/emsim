@@ -29,9 +29,7 @@ class CMakeBuild(build_ext):
             os.makedirs(build_dir)
 
         cmake_args = [
-            # '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + build_dir,
             '-DPYTHON_EXECUTABLE=' + sys.executable,
-            '-DWITH_CUDA_EXT=ON'
         ]
 
         cfg = 'Debug' if self.debug else 'Release'
@@ -61,6 +59,7 @@ class CMakeBuild(build_ext):
         subprocess.check_call(cmake_cmd, cwd=self.build_temp)
 
         # Move from build temp to final position
+        print('-'*10, 'Moving extensions to right positions', '-'*40)
         for ext in self.extensions:
             self.move_output(ext)
 
@@ -70,8 +69,8 @@ class CMakeBuild(build_ext):
         source_path = build_temp / self.get_ext_filename(ext.name)
         dest_directory = dest_path.parents[0]
         dest_directory.mkdir(parents=True, exist_ok=True)
-        # print(f"copying from {source_path} to {dest_directory}")
-        self.copy_file(source_path, dest_path)
+        if os.path.isfile(source_path):
+            self.copy_file(source_path, dest_path)
 
 
 ext_modules = [CMakeExtension('emsim.backend.fftw_ext.dens_kernel'),

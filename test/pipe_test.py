@@ -9,7 +9,7 @@ from emsim import utils
 from emsim import pipe
 
 
-class MultislicePipeTestCase(unittest.TestCase):
+class PipeTestCase(unittest.TestCase):
     def setUp(self):
         pdb_data_dir = emsim.io.data_dir.get_pdb_data_dir_from_config()
         pdb_code = '7ahl'
