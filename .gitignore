@@ -139,6 +139,9 @@ dmypy.json
 cython_debug/
 _skbuild/
 
+# Python virtualenv
+bin/
+lib/
 Scripts/
 pyvenv.cfg
 
