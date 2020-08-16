@@ -14,7 +14,8 @@ class Molecules(object):
         for pdb_code in self.pdbs:
             pdb_file = emsim.utils.pdb.retrieve_pdb_file(pdb_code, pdb_data_dir)
             mol = emsim.utils.pdb.build_biological_unit(pdb_file)
-            yield mol
+            quat = emsim.utils.rot.random_uniform_quaternions(1)
+            yield emsim.atoms.rotate(mol, quat, set_center=True)
 
 
 def result_handler(result):
@@ -27,7 +28,7 @@ microscope = emsim.em.EM(
     electron_dose=20,
     beam_energy_kev=200,
     cs_mm=1.3,
-    defocus=700,
+    defocus=7000,
     aperture=math.pi/2
 )
 
@@ -36,7 +37,7 @@ image_pipe = emsim.pipe.Pipe(
     resolution=3,
     slice_thickness=2,
     roi=256,
-    add_water=False,
+    add_water=True,
 )
 
 
@@ -54,6 +55,6 @@ if __name__ == "__main__":
 
     _, axes = plt.subplots(ncols=len(images))
     for i, ax in enumerate(axes):
-        ax.imshow(images[i].get())
+        ax.imshow(images[i].get(), cmap="gray")
     plt.show()
 
