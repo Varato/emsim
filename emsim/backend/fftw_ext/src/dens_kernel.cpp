@@ -35,7 +35,11 @@ public:
 
         float* atomHistPtr = (float *)(atomHists.request().ptr);
         float* outPtr = (float *)(output.request().ptr);
+
+        py::gil_scoped_release release;
         m_sbb->sliceGenBatch(atomHistPtr, outPtr);
+        py::gil_scoped_acquire acquire;
+
         return output;
     }
 

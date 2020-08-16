@@ -8,9 +8,6 @@ from . import config
 
 
 class Pipe(object):
-    Slice_Builder = dens.get_slice_builder()
-    Wave_Propagator_t = wave.get_wave_propagator()
-
     def __init__(self,
                  microscope: em.EM,
                  resolution: float,
@@ -39,19 +36,16 @@ class Pipe(object):
         self._pixel_size = 0.5 * res
         self._resolution = res
 
-    def set_backend(self, backend="numpy"):
-        config.set_backend(backend)
-        self.slice_builder = dens.get_slice_builder()
-        self.wave_propagator_t = wave.get_wave_propagator()
-
     def run(self, mol):
-        wave_propagator = Pipe.Wave_Propagator_t(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
+        wave_propagator_t = wave.get_wave_propagator()
+        slice_builder = dens.get_slice_builder()
+        wave_propagator = wave_propagator_t(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
         mol = atm.centralize(mol)
-        slices = Pipe.Slice_Builder(mol,
-                                    pixel_size=self._pixel_size,
-                                    dz=self.slice_thickness,
-                                    lateral_size=self.roi,
-                                    add_water=self.add_water)
+        slices = slice_builder(mol,
+                               pixel_size=self._pixel_size,
+                               dz=self.slice_thickness,
+                               lateral_size=self.roi,
+                               add_water=self.add_water)
 
         init_wave = wave_propagator.init_wave(self.microscope.electron_dose)
 

@@ -57,7 +57,9 @@ public:
         size_t wavePtr = cupyGetMemPtr(wave);
         size_t mSlicePtr = cupyGetMemPtr(multiSlice);
         size_t waveOutPtr = cupyGetMemPtr(waveOut);
+        py::gil_scoped_release release;
         m_wp->multiSlicePropagate((cufftComplex *)wavePtr, (cufftReal *)mSlicePtr, nSlices, dz, (cufftComplex *)waveOutPtr);
+        py::gil_scoped_acquire acquire;
         return waveOut;
     }
 

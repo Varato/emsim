@@ -54,7 +54,9 @@ PYBIND11_MODULE(em_kernel, m) {
                 auto slicesPtr = reinterpret_cast<float*>(sliceBufInfo.ptr);
                 auto waveOutPtr = reinterpret_cast<fftwf_complex*>(waveOut.request().ptr);
 
+                py::gil_scoped_release release;
                 wp.multiSlicePropagate(wavePtr, slicesPtr, nSlices, dz, waveOutPtr);
+                py::gil_scoped_acquire acquire;
                 return waveOut;
             },
          py::return_value_policy::move,
@@ -69,7 +71,9 @@ PYBIND11_MODULE(em_kernel, m) {
                 py::array waveOut = make2dArray<std::complex<float>>(n1, n2);
                 auto wavePtr = reinterpret_cast<fftwf_complex*>(wave.request().ptr);
                 auto waveOutPtr = reinterpret_cast<fftwf_complex*>(waveOut.request().ptr);
+                py::gil_scoped_release release;
                 wp.lensPropagate(wavePtr, cs_mm, defocus, aperture, waveOutPtr);
+                py::gil_scoped_acquire acquire;
                 return waveOut;
         },
          py::return_value_policy::move,

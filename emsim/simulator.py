@@ -1,9 +1,7 @@
 from typing import Iterable, Callable
 import queue
 from threading import Thread
-from itertools import zip_longest
 
-from . import em
 from . import atoms as atm
 from . import pipe
 

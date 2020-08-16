@@ -73,7 +73,9 @@ public:
         uintptr_t outPtr = cupyGetMemPtr(output);
 
         unsigned nAtoms = cupyGetShape(atomCoordinates, 0);
+        py::gil_scoped_release release;
         m_sb->binAtomsWithinSlice((float *)coordPtr, nAtoms, (uint32_t *)elemCntPtr, (float *)outPtr);
+        py::gil_scoped_acquire acquire;
         return output;
     }
 
@@ -85,7 +87,9 @@ public:
         uintptr_t slcAtomHistPtr = cupyGetMemPtr(slcAtomHist);
         uintptr_t outPtr = cupyGetMemPtr(output);
 
+        py::gil_scoped_release release;
         m_sb->sliceGen((float *)slcAtomHistPtr, (float *)outPtr);
+        py::gil_scoped_acquire acquire;
         return output;
     };
 private:
