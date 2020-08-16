@@ -1,9 +1,14 @@
 from typing import Iterable, Callable
 import queue
 from threading import Thread
+import warnings
 
 from . import atoms as atm
 from . import pipe
+
+
+class ImagePipeRunFailed(Exception):
+    pass
 
 
 class EMSim(object):
@@ -25,6 +30,10 @@ class EMSim(object):
         while True:
             mol = q.get()
             print(f"consumer got task: {mol}")
-            result = self.image_pipe.run(mol)
+            try:
+                result = self.image_pipe.run(mol)
+            except Exception as e:
+                warnings.warn(f"one image generation failed: {e}")
+                raise ImagePipeRunFailed
             self.result_handler(result)
             q.task_done()
