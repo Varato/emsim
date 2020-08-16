@@ -4,3 +4,6 @@ from .. import atoms as atm
 
 
 
+def gen_mol():
+    pass
+

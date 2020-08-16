@@ -27,40 +27,40 @@ class MultislicePipeTestCase(unittest.TestCase):
 
     def test_image_numpy(self):
         emsim.config.set_backend("numpy")
-        p = pipe.Pipe(self.microscope, self.mol, self.resolution, self.thickness, add_water=True, roi=128)
-        img = p.run()
+        p = pipe.Pipe(self.microscope, self.resolution, self.thickness, add_water=True, roi=128)
+        img = p.run(self.mol)
         _, ax = plt.subplots()
         ax.imshow(img, cmap='gray')
         plt.show()
 
     def test_image_fftw(self):
         emsim.config.set_backend("fftw")
-        p = pipe.Pipe(self.microscope, self.mol, self.resolution, self.thickness, add_water=False, roi=128)
-        img = p.run()
+        p = pipe.Pipe(self.microscope, self.resolution, self.thickness, add_water=False, roi=128)
+        img = p.run(self.mol)
         _, ax = plt.subplots()
         ax.imshow(img, cmap='gray')
         plt.show()
 
     def test_image_cuda(self):
         emsim.config.set_backend("cuda")
-        p = pipe.Pipe(self.microscope, self.mol, self.resolution, self.thickness, add_water=False, roi=128)
-        img = p.run()
+        p = pipe.Pipe(self.microscope, self.resolution, self.thickness, add_water=False, roi=128)
+        img = p.run(self.mol)
         _, ax = plt.subplots()
         ax.imshow(img.get(), cmap='gray')
         plt.show()
 
     def test_image_timing(self):
-        p = pipe.Pipe(self.microscope, self.mol, self.resolution, self.thickness, add_water=False, roi=256)
+        p = pipe.Pipe(self.microscope, self.resolution, self.thickness, add_water=False, roi=256)
         imgs = []
         t0 = time.time()
         p.set_backend("numpy")
-        imgs.append(p.run())
+        imgs.append(p.run(self.mol))
         t1 = time.time()
         p.set_backend("fftw")
-        imgs.append(p.run())
+        imgs.append(p.run(self.mol))
         t2 = time.time()
         p.set_backend("cuda")
-        imgs.append(p.run().get())
+        imgs.append(p.run(self.mol).get())
         t3 = time.time()
 
         print(f"numpy time = {t1-t0:.3f}")

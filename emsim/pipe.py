@@ -10,7 +10,6 @@ from . import config
 class Pipe(object):
     def __init__(self,
                  microscope: em.EM,
-                 mol: atm.AtomList,
                  resolution: float,
                  slice_thickness: float,
                  add_water: bool = True,
@@ -19,7 +18,6 @@ class Pipe(object):
         self._resolution = resolution
         self._pixel_size = 0.5 * resolution
         self.microscope = microscope
-        self.mol = atm.centralize(mol)  # put the molecule in the center of roi
         self.slice_thickness = slice_thickness
         self.add_water = add_water
 
@@ -46,10 +44,10 @@ class Pipe(object):
         self.slice_builder = dens.get_slice_builder()
         self.wave_propagator_t = wave.get_wave_propagator()
 
-    def run(self):
+    def run(self, mol):
         wave_propagator = self.wave_propagator_t(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
-
-        slices = self.slice_builder(self.mol,
+        mol = atm.centralize(mol)
+        slices = self.slice_builder(mol,
                                     pixel_size=self._pixel_size,
                                     dz=self.slice_thickness,
                                     lateral_size=self.roi,
