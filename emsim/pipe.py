@@ -15,9 +15,9 @@ class Pipe(object):
                  microscope: em.EM,
                  resolution: float,
                  slice_thickness: float,
-                 add_water: bool = True,
                  roi: Optional[Union[int, Tuple[int, int]]] = None,
-                 n_slices: Optional[int] = None):
+                 n_slices: Optional[int] = None,
+                 add_water: bool = True,):
         self._resolution = resolution
         self._pixel_size = 0.5 * resolution
         self.microscope = microscope

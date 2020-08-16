@@ -3,6 +3,8 @@ from . import config
 from . import utils
 from . import elem
 from . import atoms
-from . import dens
+from . import em
+from . import pipe
+from . import simulator
 
 config_file.generate_config_file()

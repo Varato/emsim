@@ -45,6 +45,9 @@ class AtomList(object):
     def space(self):
         return self.r_max - self.r_min
 
+    def __repr__(self):
+        return f"<AtomList consists of {len(self.elements)} atoms>"
+
 
 def sort_elements_and_count(atom_list: AtomList, must_include_elems: Optional[List[int]] = ()):
     """

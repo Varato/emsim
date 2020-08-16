@@ -1,3 +1,4 @@
+from typing import Iterable, Callable
 import queue
 from threading import Thread
 from itertools import zip_longest
@@ -8,19 +9,24 @@ from . import pipe
 
 
 class EMSim(object):
-    def __init__(self, mol_gen, pipe_gen, result_handler):
+    def __init__(self, image_pipe: pipe.Pipe, mols: Iterable[atm.AtomList], result_handler: Callable):
         self._q = queue.Queue()
         self.result_handler = result_handler
-        self._worker_thread = Thread(target=self.consumer, args=(self._q))
+        self.image_pipe = image_pipe
+        self.mols_iter = iter(mols)
+        self._worker_thread = Thread(target=self.consumer, args=(self._q, ), daemon=True)
 
     def run(self):
         self._worker_thread.start()
-        for mol, p in zip_longest(self.mol_gen(), self.pipe_gen()):
-            self._q.put((mol, pipe))
+        for mol in self.mols_iter:
+            self._q.put(mol)
+        self._q.join()
+        print("all tasks done")
 
-    @staticmethod
-    def consumer(q):
+    def consumer(self, q):
         while True:
-            mol, p = a.get()
-            result = p.run(mol)
+            mol = q.get()
+            print(f"consumer got task: {mol}")
+            result = self.image_pipe.run(mol)
             self.result_handler(result)
+            q.task_done()
