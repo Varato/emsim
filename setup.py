@@ -78,9 +78,8 @@ ext_modules = [CMakeExtension('emsim.backend.fftw_ext.dens_kernel'),
                CMakeExtension('emsim.backend.cuda_ext.dens_kernel_cuda'),
                CMakeExtension('emsim.backend.cuda_ext.em_kernel_cuda')]
 
-data_files = [("emsim/assets", ["emsim/assets/atom_mass.txt", "emsim/assets/atom_params.txt"])]
 
-package_data = {}
+package_data = {"emsim.assets": ["atom_mass.txt", "atom_params.txt"]}
 if platform.system() == "Windows":
     package_data = {"emsim.backend.fftw_ext": ["libfftw3f-3.dll"]}
 
@@ -95,6 +94,5 @@ setup(
     package_data=package_data,
     ext_modules=ext_modules,
     cmdclass=dict(build_ext=CMakeBuild),
-    data_files=data_files,
     zip_safe=False,
 )
