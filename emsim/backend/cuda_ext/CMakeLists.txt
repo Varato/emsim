@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.17)
 
+
 enable_language(CUDA)
 
 find_package(CUDAToolkit REQUIRED)
@@ -12,7 +13,7 @@ add_library(libSliceCuda STATIC
 
 target_link_libraries(libSliceCuda PRIVATE CUDA::cufft)
 set_target_properties(libSliceCuda PROPERTIES
-        CUDA_ARCHITECTURES 75
+        CUDA_ARCHITECTURES 61
         CUDA_SEPARABLE_COMPILATION ON)
 
 
@@ -21,7 +22,7 @@ add_library(libWaveCuda STATIC
         src/WavePropagator.cu)
 target_link_libraries(libWaveCuda PRIVATE CUDA::cufft)
 set_target_properties(libWaveCuda PROPERTIES
-        CUDA_ARCHITECTURES 75
+        CUDA_ARCHITECTURES 61
         CUDA_SEPARABLE_COMPILATION ON)
 
 
@@ -29,7 +30,7 @@ set_target_properties(libWaveCuda PROPERTIES
 pybind11_add_module(dens_kernel_cuda src/dens_kernel_cuda.cpp)
 target_link_libraries(dens_kernel_cuda PRIVATE libSliceCuda)
 set_target_properties(dens_kernel_cuda PROPERTIES
-        CUDA_ARCHITECTURES 75
+        CUDA_ARCHITECTURES 61
         CUDA_SEPARABLE_COMPILATION ON)
 
 
@@ -37,5 +38,5 @@ set_target_properties(dens_kernel_cuda PROPERTIES
 pybind11_add_module(em_kernel_cuda src/em_kernel_cuda.cpp)
 target_link_libraries(em_kernel_cuda PRIVATE libWaveCuda)
 set_target_properties(em_kernel_cuda PROPERTIES
-        CUDA_ARCHITECTURES 75
+        CUDA_ARCHITECTURES 61
         CUDA_SEPARABLE_COMPILATION ON)
