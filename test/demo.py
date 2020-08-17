@@ -18,10 +18,12 @@ class Molecules(object):
             yield emsim.atoms.rotate(mol, quat, set_center=True)
 
 
-def result_handler(result):
-    global images
-    print(f"result received: image {result.shape}")
-    images.append(result)
+class ResultHandler:
+    def __init__(self):
+        self.images = []
+
+    def __call__(self, result):
+        self.images.append(result)
 
 
 microscope = emsim.em.EM(
@@ -41,11 +43,10 @@ image_pipe = emsim.pipe.Pipe(
 )
 
 
-images = []
-
-
 if __name__ == "__main__":
-    emsim.config.set_backend("cuda")
+    emsim.config.set_backend("numpy")
+
+    result_handler = ResultHandler()
     sim = emsim.simulator.EMSim(image_pipe, Molecules(), result_handler)
     start = time.time()
     sim.run()
@@ -53,8 +54,8 @@ if __name__ == "__main__":
 
     print(f"time elaplsed: {time_elapsed:.4f}")
 
-    _, axes = plt.subplots(ncols=len(images))
+    _, axes = plt.subplots(ncols=len(result_handler.images))
     for i, ax in enumerate(axes):
-        ax.imshow(images[i].get(), cmap="gray")
+        ax.imshow(result_handler.images[i], cmap="gray")
     plt.show()
 
