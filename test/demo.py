@@ -24,7 +24,7 @@ class ResultHandler:
         self.images = []
 
     def __call__(self, result, label):
-        print(f"got image for label = {label}")
+        # print(f"got image for label = {label}")
         self.images.append(result)
 
 

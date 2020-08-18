@@ -4,6 +4,7 @@ from queue import Queue
 import numpy as np
 import warnings
 import logging
+import time
 
 from . import atoms as atm
 from . import pipe
@@ -56,8 +57,10 @@ class EMSim(object):
         self._task_q.put(None)
 
     def consumer(self):
+        counter = 0
         while True:
             task = self._task_q.get()
+            start = time.perf_counter()
             logger.debug(f"consumer got task {task}")
             if task is None:
                 self._result_q.put((None, "done"))
@@ -70,3 +73,6 @@ class EMSim(object):
                 else:
                     label = getattr(task, "label", None)
                     self._result_q.put((result, label))
+            elapsed = time.perf_counter() - start
+            counter += 1
+            print(f"emsim: {counter} images processed, label = {label}, time elapsed = {elapsed:.3f}")
