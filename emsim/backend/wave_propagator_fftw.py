@@ -5,13 +5,17 @@ except ImportError:
 
 from typing import Tuple
 import numpy as np
+import logging
 
 from .wave_propagator_base import WavePropagatorBase
 
 
+logger = logging.getLogger(__name__)
+
+
 class WavePropagator(WavePropagatorBase):
     def __init__(self, shape: Tuple[int, int], pixel_size: float, beam_energy_key: float):
-        print("using fftw WavePropagator")
+        logger.info("using fftw WavePropagator")
         super(WavePropagator, self).__init__(shape, pixel_size, beam_energy_key)
         self.backend = em_kernel.WavePropagator(shape[0], shape[1],
                                                 pixel_size, self.wave_length, self.relativity_gamma)

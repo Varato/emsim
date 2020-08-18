@@ -44,7 +44,7 @@ image_pipe = emsim.pipe.Pipe(
 
 
 if __name__ == "__main__":
-    emsim.config.set_backend("numpy")
+    emsim.config.set_backend("cuda")
 
     result_handler = ResultHandler()
     sim = emsim.simulator.EMSim(image_pipe, Molecules(), result_handler)

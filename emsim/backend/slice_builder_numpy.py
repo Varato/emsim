@@ -1,15 +1,18 @@
 from typing import Union, Tuple, List, Optional
 import numpy as np
 from numpy.fft import rfft2, irfft2
+import logging
 
 from .slice_builder_base import SliceBuilderBatchBase
+
+logger = logging.getLogger(__name__)
 
 
 class SliceBuilderBatch(SliceBuilderBatchBase):
     def __init__(self, unique_elements: List[int],
                  n_slices: int, n1: int, n2: int,
                  dz: float, pixel_size: float):
-        print("using numpy SliceBuilderBatch")
+        logger.info("using numpy SliceBuilderBatch")
         super(SliceBuilderBatch, self).__init__(unique_elements, n_slices, n1, n2, dz, pixel_size)
 
     def slice_gen_batch(self, atom_histogram):

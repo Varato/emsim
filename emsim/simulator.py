@@ -1,11 +1,14 @@
 from typing import Iterable, Callable
 from threading import Thread
 from queue import Queue
-import warnings
 import numpy as np
+import logging
 
 from . import atoms as atm
 from . import pipe
+
+
+logger = logging.getLogger(__name__)
 
 
 class ImagePipeRunFailed(Exception):
@@ -35,14 +38,14 @@ class EMSim(object):
             if result is None:
                 break
             elif result is Exception:
-                warnings.warn("#{i} image run failed")
+                logger.warning(f"#{i} image run failed")
             else:
                 if type(result) is not np.ndarray:
                     # transfer data from device to host if using cuda
                     self.result_handler(result.get())
                 else:
                     self.result_handler(result)
-        print("all tasks done")
+        logger.info("all tasks done")
 
     def producer(self):
         for mol in self.mols_iter:
@@ -53,7 +56,7 @@ class EMSim(object):
     def consumer(self):
         while True:
             task = self._task_q.get()
-            print(f"consumer got task {task}")
+            logger.info(f"consumer got task {task}")
             if task is None:
                 self._result_q.put(None)
                 return

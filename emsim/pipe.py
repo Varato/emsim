@@ -4,7 +4,6 @@ from . import dens
 from . import em
 from . import wave
 from . import atoms as atm
-from . import config
 
 
 class Pipe(object):

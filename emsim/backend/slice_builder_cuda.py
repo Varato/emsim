@@ -1,4 +1,5 @@
 from typing import List
+import logging
 
 try:
     import cupy as cp
@@ -14,11 +15,14 @@ from .slice_builder_base import SliceBuilderBatchBase
 from ..physics import water_num_dens
 
 
+logger = logging.getLogger(__name__)
+
+
 class SliceBuilderBatch(SliceBuilderBatchBase):
     def __init__(self, unique_elements: List[int],
                  n_slices: int, n1: int, n2: int,
                  dz: float, pixel_size: float):
-        print("using cuda SliceBuilderBatch")
+        logger.info("using cuda SliceBuilderBatch")
         super(SliceBuilderBatch, self).__init__(unique_elements, n_slices, n1, n2, dz, pixel_size)
         scattering_factors = cp.asarray(self.scattering_factors, dtype=cp.float32)
         self.backend = dens_kernel_cuda.SliceBuilderBatch(scattering_factors, n_slices, n1, n2, dz, pixel_size)

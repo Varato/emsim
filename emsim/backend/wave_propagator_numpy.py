@@ -1,14 +1,17 @@
 from typing import Tuple
 import numpy as np
 from numpy.fft import fft2, ifft2, ifftshift
+import logging
 
 from ..physics import mtf
 from .wave_propagator_base import WavePropagatorBase
 
+logger = logging.getLogger(__name__)
+
 
 class WavePropagator(WavePropagatorBase):
     def __init__(self, shape: Tuple[int, int], pixel_size: float, beam_energy_key: float):
-        print("using numpy WavePropagator")
+        logger.info("using numpy WavePropagator")
         super(WavePropagator, self).__init__(shape, pixel_size, beam_energy_key)
         qx, qy = WavePropagator._make_mesh_grid_fourier_space(pixel_size, self.wave_shape)
         self.q_mgrid = np.sqrt(qx * qx + qy * qy)
