@@ -2,6 +2,7 @@ from typing import Iterable, Callable
 from threading import Thread
 from queue import Queue
 import numpy as np
+import warnings
 import logging
 
 from . import atoms as atm
@@ -38,6 +39,7 @@ class EMSim(object):
             if result is None:
                 break
             elif result is Exception:
+                # warnings.warn(f"#{i} image run failed")
                 logger.warning(f"#{i} image run failed")
             else:
                 if type(result) is not np.ndarray:
@@ -45,7 +47,7 @@ class EMSim(object):
                     self.result_handler(result.get())
                 else:
                     self.result_handler(result)
-        logger.info("all tasks done")
+        logger.debug("all tasks done")
 
     def producer(self):
         for mol in self.mols_iter:
@@ -56,7 +58,7 @@ class EMSim(object):
     def consumer(self):
         while True:
             task = self._task_q.get()
-            logger.info(f"consumer got task {task}")
+            logger.debug(f"consumer got task {task}")
             if task is None:
                 self._result_q.put(None)
                 return

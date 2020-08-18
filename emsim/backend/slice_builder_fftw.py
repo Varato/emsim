@@ -17,7 +17,7 @@ class SliceBuilderBatch(SliceBuilderBatchBase):
     def __init__(self, unique_elements: List[int],
                  n_slices: int, n1: int, n2: int,
                  dz: float, pixel_size: float):
-        logger.info("using fftw SliceBuilderBatch")
+        logger.debug("using fftw SliceBuilderBatch")
         super(SliceBuilderBatch, self).__init__(unique_elements, n_slices, n1, n2, dz, pixel_size)
         self.backend = dens_kernel.SliceBuilderBatch(self.scattering_factors, n_slices, n1, n2, dz, pixel_size)
 

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class WavePropagator(WavePropagatorBase):
     def __init__(self, shape: Tuple[int, int], pixel_size: float, beam_energy_key: float):
-        logger.info("using cuda WavePropagator")
+        logger.debug("using cuda WavePropagator")
         super(WavePropagator, self).__init__(shape, pixel_size, beam_energy_key)
         self.backend = em_kernel_cuda.WavePropagator(shape[0], shape[1],
                                                      pixel_size, self.wave_length, self.relativity_gamma)
