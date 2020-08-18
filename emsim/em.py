@@ -1,5 +1,3 @@
-
-from typing import Tuple
 import numpy as np
 from numpy.fft import fftshift, ifftshift, fft2, ifft2
 
@@ -60,6 +58,15 @@ class EM(object):
     @property
     def aberration_function(self):
         return aberration(self.wave_length, self.cs_mm, self.defocus)
+
+    def __repr__(self):
+        return f"{{EM | beam_energy = {self.beam_energy_kev:.2f}keV, " \
+               f"cs = {self.cs_mm:.2f}mm, " \
+               f"defocus = {0.1*self.defocus:.2f}nm, " \
+               f"aperture = {self.aperture/np.pi * 180:.2f} deg}}"
+
+    def __str__(self):
+        return self.__repr__()
 
 
 def band_limit_specimen(specimen: Specimen) -> Specimen:

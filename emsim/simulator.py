@@ -26,7 +26,7 @@ class EMSim(object):
         self._task_q = Queue()
         self._result_q = Queue()
         self._producer_thread = Thread(target=self.producer, args=())
-        self._consumer_thread = Thread(target=self.consumer, args=())
+        self._consumer_thread = Thread(target=self.consumer, args=(), daemon=True)
 
     def run(self):
         self._producer_thread.start()
@@ -35,18 +35,18 @@ class EMSim(object):
         i = 0
         while True:
             i += 1
-            result = self._result_q.get()
-            if result is None:
+            result, label = self._result_q.get()
+            if result is None and label == "done":
                 break
-            elif result is Exception:
+            elif result is Exception and label == "error":
                 # warnings.warn(f"#{i} image run failed")
                 logger.warning(f"#{i} image run failed")
             else:
                 if type(result) is not np.ndarray:
                     # transfer data from device to host if using cuda
-                    self.result_handler(result.get())
+                    self.result_handler(result.get(), label)
                 else:
-                    self.result_handler(result)
+                    self.result_handler(result, label)
         logger.debug("all tasks done")
 
     def producer(self):
@@ -60,12 +60,13 @@ class EMSim(object):
             task = self._task_q.get()
             logger.debug(f"consumer got task {task}")
             if task is None:
-                self._result_q.put(None)
+                self._result_q.put((None, "done"))
                 return
             else:
                 try:
                     result = self.image_pipe.run(task)
                 except Exception as e:
-                    self._result_q.put(e)
+                    self._result_q.put((e, "error"))
                 else:
-                    self._result_q.put(result)
+                    label = getattr(task, "label", None)
+                    self._result_q.put((result, label))

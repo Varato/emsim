@@ -58,3 +58,10 @@ class Pipe(object):
         image = image_wave.real ** 2 + image_wave.imag ** 2
 
         return image
+
+    def __repr__(self):
+        return f"{{ImagePipe | resolution = {self._resolution}Angstrom, " \
+               f"slice_thickness = {self.slice_thickness}Angstrom, " \
+               f"roi = {self.roi}, " \
+               f"add_water = {self.add_water}, " \
+               f"microscope = {self.microscope}}}"

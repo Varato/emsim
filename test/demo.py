@@ -14,6 +14,7 @@ class Molecules(object):
         for pdb_code in self.pdbs:
             pdb_file = emsim.utils.pdb.retrieve_pdb_file(pdb_code, pdb_data_dir)
             mol = emsim.utils.pdb.build_biological_unit(pdb_file)
+            mol.label = pdb_code
             quat = emsim.utils.rot.random_uniform_quaternions(1)
             yield emsim.atoms.rotate(mol, quat, set_center=True)
 
@@ -22,7 +23,8 @@ class ResultHandler:
     def __init__(self):
         self.images = []
 
-    def __call__(self, result):
+    def __call__(self, result, label):
+        print(f"got image for label = {label}")
         self.images.append(result)
 
 
@@ -44,6 +46,7 @@ image_pipe = emsim.pipe.Pipe(
 
 
 if __name__ == "__main__":
+    print(str(image_pipe))
     emsim.config.set_backend("cuda")
 
     result_handler = ResultHandler()

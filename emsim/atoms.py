@@ -19,7 +19,7 @@ float_type = np.float32
 
 
 class AtomList(object):
-    def __init__(self, elements: np.ndarray, coordinates: np.ndarray):
+    def __init__(self, elements: np.ndarray, coordinates: np.ndarray, label=""):
         """
         Parameters
         ----------
@@ -32,6 +32,7 @@ class AtomList(object):
         """
         self.elements = elements
         self.coordinates = coordinates.astype(float_type)
+        self.label = label
 
     @property
     def r_min(self):
@@ -46,7 +47,7 @@ class AtomList(object):
         return self.r_max - self.r_min
 
     def __repr__(self):
-        return f"<AtomList consists of {len(self.elements)} atoms>"
+        return f"<AtomList consists of {len(self.elements)} atoms, label={self.label}>"
 
 
 def sort_elements_and_count(atom_list: AtomList, must_include_elems: Optional[List[int]] = ()):
@@ -82,7 +83,7 @@ def sort_elements_and_count(atom_list: AtomList, must_include_elems: Optional[Li
             unique_elements = np.insert(unique_elements, i, key_z)
             unique_elements_counts = np.insert(unique_elements_counts, i, 0)
 
-    return AtomList(elements=elements, coordinates=coordinates), unique_elements, unique_elements_counts
+    return AtomList(elements=elements, coordinates=coordinates, label=atom_list.label), unique_elements, unique_elements_counts
 
 
 def sort_by_coordinates(atom_list: AtomList, axis=0):
@@ -135,7 +136,7 @@ def translate(atom_list: AtomList, r) -> AtomList:
     AtomList
         the translated AtomList.
     """
-    return AtomList(elements=atom_list.elements, coordinates=atom_list.coordinates + r)
+    return AtomList(elements=atom_list.elements, coordinates=atom_list.coordinates + r, label=atom_list.label)
 
 
 def centralize(atom_list: AtomList) -> AtomList:
@@ -181,8 +182,7 @@ def rotate(atom_list: AtomList, quat: np.ndarray, set_center: bool = False) -> A
         atom_list = centralize(atom_list)
     rot = get_rotation_mattrices(quat)
     rot_coords = np.matmul(rot, atom_list.coordinates[..., None]).squeeze()
-    atml = AtomList(elements=atom_list.elements, coordinates=rot_coords)
-    return atml
+    return AtomList(elements=atom_list.elements, coordinates=rot_coords, label=atom_list.label)
 
 
 def orientations_gen(atom_list: AtomList, quats: np.ndarray, set_center: bool = False) \
