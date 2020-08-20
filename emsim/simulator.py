@@ -39,9 +39,9 @@ class EMSim(object):
             result, label = self._result_q.get()
             if result is None and label == "done":
                 break
-            elif result is Exception and label == "error":
+            elif isinstance(result, Exception) and label == "error":
                 # warnings.warn(f"#{i} image run failed")
-                logger.warning(f"#{i} image run failed")
+                logger.warning(f"#{i} image run failed with {type(result)}: {str(result)}")
             else:
                 if type(result) is not np.ndarray:
                     # transfer data from device to host if using cuda
