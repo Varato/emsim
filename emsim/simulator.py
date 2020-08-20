@@ -60,6 +60,8 @@ class EMSim(object):
         counter = 0
         while True:
             task = self._task_q.get()
+            label = getattr(task, "label", None)
+
             start = time.perf_counter()
             logger.debug(f"consumer got task {task}")
             if task is None:
@@ -71,7 +73,6 @@ class EMSim(object):
                 except Exception as e:
                     self._result_q.put((e, "error"))
                 else:
-                    label = getattr(task, "label", None)
                     self._result_q.put((result, label))
             elapsed = time.perf_counter() - start
             counter += 1

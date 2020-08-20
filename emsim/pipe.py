@@ -13,12 +13,14 @@ class Pipe(object):
                  slice_thickness: float,
                  roi: Optional[Union[int, Tuple[int, int]]] = None,
                  n_slices: Optional[int] = None,
-                 add_water: bool = True,):
+                 add_water: bool = True,
+                 upto_exit_wave: bool = False):
         self._resolution = resolution
         self._pixel_size = 0.5 * resolution
         self.microscope = microscope
         self.slice_thickness = slice_thickness
         self.add_water = add_water
+        self.upto_exit_wave = upto_exit_wave
 
         if type(roi) is int:
             self.roi = (roi, roi)
@@ -76,6 +78,8 @@ class Pipe(object):
         init_wave = wave_propagator.init_wave(self.microscope.electron_dose)
 
         exit_wave = wave_propagator.multislice_propagate(init_wave, slices, self.slice_thickness)
+        if self.upto_exit_wave:
+            return exit_wave
 
         image_wave = wave_propagator.lens_propagate(exit_wave,
                                                     self.microscope.cs_mm,
