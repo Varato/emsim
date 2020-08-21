@@ -88,4 +88,4 @@ class EMSim(object):
                     self._result_q.put((result, label))
             elapsed = time.perf_counter() - start
             counter += 1
-            print(f"emsim: {counter} images processed, label = {label}, time elapsed = {elapsed:.3f}")
+            logger.info(f"emsim: {counter} images processed, label = {label}, time elapsed = {elapsed:.3f}")
