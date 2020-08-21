@@ -9,6 +9,12 @@ from . import io
 
 import logging as _logging
 
-_logging.basicConfig(level=_logging.INFO)
+global_logger = _logging.getLogger(__name__)
+
+ch = _logging.StreamHandler()
+ch.setLevel(_logging.INFO)
+ch.setFormatter(_logging.Formatter('%(asctime)s::%(levelname)s::%(message)s'))
+
+global_logger.addHandler(ch)
 
 io.config_file.generate_config_file()
