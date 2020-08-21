@@ -22,7 +22,7 @@ namespace emsim {
         m_filter = 0.6667f * m_fmax;
 
         if (!fftwf_init_threads()) {
-            printf("fftw cannot work with multi threads");
+            printf("fftw cannot work with multi threads\n");
         }
 
         fftwf_plan_with_nthreads(omp_get_max_threads());

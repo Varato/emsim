@@ -27,11 +27,11 @@ namespace emsim {
         data = (fftwf_complex *) fftwf_malloc(sizeof(fftwf_complex) * m_nElems * m_nSlices * m_nPixHalf);
 
         if(!data){
-            fprintf(stderr, "fftwf_malloc failed");
+            fprintf(stderr, "fftwf_malloc failed\n");
         }
 
         if (!fftwf_init_threads()) {
-            printf("fftw cannot work with multi threads");
+            printf("fftw cannot work with multi threads\n");
         }
 
         int n[2] = {m_n1, m_n2};

@@ -23,12 +23,12 @@ namespace emsim { namespace cuda {
                          nullptr, 1, m_nPix,
                          nullptr, 1, m_nPixHalf,
                          CUFFT_R2C, nElems) != CUFFT_SUCCESS) {
-            fprintf(stderr, "CUFFT error: Plan creation failed");
+            fprintf(stderr, "CUFFT error: Plan creation failed\n");
         }
 
 
         if (cufftPlan2d(&m_ip, m_n1, m_n2, CUFFT_C2R) != CUFFT_SUCCESS) {
-            fprintf(stderr, "CUFFT error: Plan creation failed");
+            fprintf(stderr, "CUFFT error: Plan creation failed\n");
         }
     }
 
@@ -49,15 +49,15 @@ namespace emsim { namespace cuda {
         broadCastMul(locationPhasePtr, m_scatteringFactors,
                      1.0f/(float)m_nPix, m_nElems, 1, m_nPixHalf);
         if (cudaGetLastError() != cudaSuccess) {
-            fprintf(stderr, "CUDA error: %s", cudaGetErrorString(cudaGetLastError()));
+            fprintf(stderr, "CUDA error: %s\n", cudaGetErrorString(cudaGetLastError()));
         }
         rowReduceSum(locationPhasePtr, m_nElems, m_nPixHalf, locationPhasePtr);
         if (cudaGetLastError() != cudaSuccess) {
-            fprintf(stderr, "CUDA error: %s", cudaGetErrorString(cudaGetLastError()));
+            fprintf(stderr, "CUDA error: %s\n", cudaGetErrorString(cudaGetLastError()));
         }
 
         if (cufftExecC2R(m_ip, locationPhasePtr, output) != CUFFT_SUCCESS) {
-            fprintf(stderr, "CUFFT error: C2R plan executation failed");
+            fprintf(stderr, "CUFFT error: C2R plan executation failed\n");
         }
     }
 
