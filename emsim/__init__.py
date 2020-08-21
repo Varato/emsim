@@ -16,5 +16,6 @@ ch.setLevel(_logging.INFO)
 ch.setFormatter(_logging.Formatter('%(asctime)s::%(levelname)s::%(message)s'))
 
 global_logger.addHandler(ch)
+global_logger.setLevel(_logging.INFO)
 
 io.config_file.generate_config_file()
