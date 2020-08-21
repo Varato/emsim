@@ -19,6 +19,8 @@ class Backend(object):
             self._wave_propagator_module = wave_propagator_numpy
         elif backend_type is BackendType.CUDA:
             from .backend import slice_builder_cuda, wave_propagator_cuda
+            import cupy as cp
+            cp.get_default_memory_pool().set_limit(size=3*1024**3)
             self._slice_builder_module = slice_builder_cuda
             self._wave_propagator_module = wave_propagator_cuda
         elif backend_type is BackendType.FFTW:
