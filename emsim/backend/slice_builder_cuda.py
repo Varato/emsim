@@ -17,6 +17,8 @@ from ..physics import water_num_dens
 
 logger = logging.getLogger(__name__)
 
+cupy_mempool = cp.get_default_memory_pool()
+
 
 class SliceBuilderBatch(SliceBuilderBatchBase):
     def __init__(self, unique_elements: List[int],
@@ -49,4 +51,6 @@ class SliceBuilderBatch(SliceBuilderBatchBase):
         return atom_histograms_gpu
 
     def slice_gen_batch(self, atom_histograms):
+        print("cupy allocated MB total: ", cupy_mempool.total_bytes()/1024**2)
+        print("cupy used MB total: ", cupy_mempool.used_bytes()/1024**2)
         return self.backend.slice_gen_batch(atom_histograms)
