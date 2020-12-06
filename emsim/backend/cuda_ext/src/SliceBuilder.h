@@ -41,13 +41,13 @@ namespace emsim { namespace cuda {
 
     private:
         cufftHandle m_p, m_ip;
-        int m_n1, m_n2;  // dimensions of the slice
+        int m_n1, m_n2;       // dimensions of the slice
         float m_pixelSize;    // pixel size of the slice
         int m_n2Half, m_nPix, m_nPixHalf;
+        int m_nElems;         
 
         /* SliceBuilder does not own the following data */
         float* m_scatteringFactors;  // pre-computed scattering factors for all elements needed
-        int m_nElems;                // the length of m_uniqueElements
 
         /*
          * m_scatteringFactors is a c-contiguous 3D array in logical dimension (m_nElems, m_n1, m_n2 / 2 + 1).

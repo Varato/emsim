@@ -29,6 +29,10 @@ class Backend(object):
             self._wave_propagator_module = wave_propagator_fftw
 
     @property
+    def single_slice_builder(self):
+        return self._slice_builder_module.SliceBuilder
+    
+    @property
     def slice_builder(self):
         return self._slice_builder_module.SliceBuilderBatch
 

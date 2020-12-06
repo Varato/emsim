@@ -54,6 +54,18 @@ class Pipe(object):
         exit_wave = wave_propagator.multislice_propagate(init_wave, slices, self.slice_thickness)
         return exit_wave
 
+    def get_exit_wave_wpo(self, mol):
+        wave_propagator_t = wave.get_wave_propagator()
+        single_slice_builder = dens.get_single_slice_builder()
+        wave_propagator = wave_propagator_t(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
+        mol = atm.centralize(mol)
+        aslice = single_slice_builder(mol, 
+                                      pixel_size=self._pixel_size,
+                                      lateral_size=self.roi)
+        init_wave = wave_propagator.init_wave(self.microscope.electron_dose)
+        exit_wave = wave_propagator.singleslice_propagate(init_wave, aslice, dz=0)
+        return exit_wave
+
     def lens_propagate(self, exit_wave):
         wave_propagator_t = wave.get_wave_propagator()
         wave_propagator = wave_propagator_t(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
@@ -64,6 +76,28 @@ class Pipe(object):
                                               self.microscope.aperture)
 
     # directly get final image (real valued)
+
+    def run_wpo(self, mol):
+        wave_propagator_t = wave.get_wave_propagator()
+        single_slice_builder = dens.get_single_slice_builder()
+        wave_propagator = wave_propagator_t(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
+        mol = atm.centralize(mol)
+        aslice = single_slice_builder(mol, 
+                                      pixel_size=self._pixel_size,
+                                      lateral_size=self.roi)
+        init_wave = wave_propagator.init_wave(self.microscope.electron_dose)
+        exit_wave = wave_propagator.singleslice_propagate(init_wave, aslice, dz=0)
+
+        if self.upto_exit_wave:
+            return exit_wave
+
+        image_wave = wave_propagator.lens_propagate(exit_wave,
+                                                    self.microscope.cs_mm,
+                                                    self.microscope.defocus,
+                                                    self.microscope.aperture)
+        image = image_wave.real ** 2 + image_wave.imag ** 2
+        return image
+
     def run(self, mol):
         wave_propagator_t = wave.get_wave_propagator()
         slice_builder = dens.get_slice_builder()
@@ -76,7 +110,6 @@ class Pipe(object):
                                add_water=self.add_water)
 
         init_wave = wave_propagator.init_wave(self.microscope.electron_dose)
-
         exit_wave = wave_propagator.multislice_propagate(init_wave, slices, self.slice_thickness)
         if self.upto_exit_wave:
             return exit_wave

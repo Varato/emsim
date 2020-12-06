@@ -10,6 +10,23 @@ from . import atoms as atm
 float_type = np.float32
 
 
+def get_single_slice_builder():
+    backend = config.get_current_backend()
+    single_slice_builder = backend.single_slice_builder
+
+    def build_slice_single(mol: atm.AtomList,
+                           pixel_size: float,
+                           lateral_size: Optional[Union[int, Tuple[int, int]]] = None):
+        mol, unique_elements, unique_elements_counts = atm.sort_elements_and_count(mol)
+        _, n1, n2 = finalize_slice_size(tuple(mol.space), pixel_size, 5.0, lateral_size, 1)
+        sb = single_slice_builder(unique_elements, n1, n2, pixel_size)
+        atmv = sb.bin_atoms_within_slice(mol.coordinates, unique_elements_counts)
+
+        return sb.slice_gen(atmv)
+
+    return build_slice_single
+
+
 def get_slice_builder():
     backend = config.get_current_backend()
     slice_builder = backend.slice_builder
