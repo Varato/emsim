@@ -20,11 +20,17 @@ class WavePropagator(WavePropagatorBase):
         self.backend = em_kernel.WavePropagator(shape[0], shape[1],
                                                 pixel_size, self.wave_length, self.relativity_gamma)
 
-    def singleslice_propagate(self, wave_in: np.ndarray, aslice, dz: float):
-        return self.backend.singleslice_propagate(wave_in, aslice, dz)
+    def slice_transmit(self, wave: np.ndarray, aslice: np.ndarray):
+        return self.backend.slice_transmit(wave, aslice)
 
-    def multislice_propagate(self, wave_in: np.ndarray, slices: np.ndarray, dz: float):
-        return self.backend.multislice_propagate(wave_in, slices, dz)
+    def space_propagate(self, wave: np.ndarray, dz: float):
+        return self.backend.space_propagate(wave, dz)
 
-    def lens_propagate(self, wave_in, cs_mm, defocus, aperture):
-        return self.backend.lens_propagate(wave_in, cs_mm, defocus, aperture)
+    def singleslice_propagate(self, wave: np.ndarray, aslice: np.ndarray, dz: float):
+        return self.backend.singleslice_propagate(wave, aslice, dz)
+
+    def multislice_propagate(self, wave: np.ndarray, slices: np.ndarray, dz: float):
+        return self.backend.multislice_propagate(wave, slices, dz)
+
+    def lens_propagate(self, wave, cs_mm, defocus, aperture):
+        return self.backend.lens_propagate(wave, cs_mm, defocus, aperture)

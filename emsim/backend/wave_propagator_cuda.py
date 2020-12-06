@@ -26,11 +26,17 @@ class WavePropagator(WavePropagatorBase):
         wave *= cp.sqrt(n_e) / cp.abs(wave)
         return wave
 
-    def singleslice_propagate(self, wave_in: cp.ndarray, aslice: cp.ndarray, dz: float):
-        return self.backend.singleslice_propagate(wave_in, aslice, dz)
+    def slice_transmit(self, wave: cp.ndarray, aslice: cp.ndarray):
+        return self.backend.slice_transmit(wave, aslice)
 
-    def multislice_propagate(self, wave_in: cp.ndarray, slices: cp.ndarray, dz: float):
-        return self.backend.multislice_propagate(wave_in, slices, dz)
+    def space_propagate(self, wave: cp.ndarray, dz: float):
+        return self.backend.space_propagate(wave, dz)
 
-    def lens_propagate(self, wave_in: cp.ndarray, cs_mm: float, defocus: float, aperture: float):
-        return self.backend.lens_propagate(wave_in, cs_mm, defocus, aperture)
+    def singleslice_propagate(self, wave: cp.ndarray, aslice: cp.ndarray, dz: float):
+        return self.backend.singleslice_propagate(wave, aslice, dz)
+
+    def multislice_propagate(self, wave: cp.ndarray, slices: cp.ndarray, dz: float):
+        return self.backend.multislice_propagate(wave, slices, dz)
+
+    def lens_propagate(self, wave: cp.ndarray, cs_mm: float, defocus: float, aperture: float):
+        return self.backend.lens_propagate(wave, cs_mm, defocus, aperture)

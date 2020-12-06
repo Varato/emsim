@@ -23,6 +23,38 @@ PYBIND11_MODULE(em_kernel, m) {
              py::arg("wave_length"), py::arg("relativity_gamma"))
         .def_property_readonly("n1", &emsim::WavePropagator::getN1)
         .def_property_readonly("n2", &emsim::WavePropagator::getN2)
+        .def("slice_transmit",
+            [](emsim::WavePropagator &wp, py_array_complexf_cstype const &wave,
+               py_array_float_ctype const &slice){
+                int n1 = wp.getN1();
+                int n2 = wp.getN2();
+                py::array waveOut = make2dArray<std::complex<float>>(n1, n2);
+
+                auto wavePtr = reinterpret_cast<fftwf_complex*>(wave.request().ptr);
+                float* slicePtr = (float *)slice.request().ptr;
+                auto waveOutPtr = reinterpret_cast<fftwf_complex*>(waveOut.request().ptr);
+                wp.sliceTransmit(wavePtr, slicePtr, waveOutPtr);
+                return waveOut;
+               },
+               py::return_value_policy::move, 
+               "transmit the wave through a single potential slice without spatial propagation.",
+               py::arg("wave"), py::arg("aslice"))
+
+        .def("space_propagate",
+            [](emsim::WavePropagator &wp, py_array_complexf_cstype const &wave, float dz){
+                int n1 = wp.getN1();
+                int n2 = wp.getN2();
+                py::array waveOut = make2dArray<std::complex<float>>(n1, n2);
+
+                auto wavePtr = reinterpret_cast<fftwf_complex*>(wave.request().ptr);
+                auto waveOutPtr = reinterpret_cast<fftwf_complex*>(waveOut.request().ptr);
+                wp.spacePropagate(wavePtr, dz, waveOutPtr);
+                return waveOut;
+            },
+            py::return_value_policy::move,
+            "propagate the wave through free space by a distance dz.",
+            py::arg("wave"), py::arg("dz"))
+
         .def("singleslice_propagate",
             [](emsim::WavePropagator &wp, py_array_complexf_cstype const &wave,
                py_array_float_ctype const &slice, float dz) {

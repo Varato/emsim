@@ -20,6 +20,15 @@ class WavePropagator(WavePropagatorBase):
         q_max = 0.5 / self.pixel_size
         self.fil = ifftshift(np.where(self.q_mgrid <= q_max * 0.6667, 1., 0.))
 
+    def slice_transmit(self, wave: np.ndarray, aslice: np.ndarray):
+        transmission_functions = np.exp(1j * self.relativity_gamma * self.wave_length * aslice)
+        t = ifft2(fft2(transmission_functions) * self.fil)
+        return wave * t
+    
+    def space_propagate(self, wave: np.ndarray, dz: float):
+        spatial_propagator = np.exp(-1j * self.wave_length * np.pi * dz * self.q_mgrid ** 2)
+        return ifft2(ifftshift(spatial_propagator) * fft2(wave))
+
     def multislice_propagate(self, wave_in, slices, dz: float):
         n_slices = slices.shape[0]
 

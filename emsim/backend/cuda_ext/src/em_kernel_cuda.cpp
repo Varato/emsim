@@ -112,16 +112,29 @@ PYBIND11_MODULE(em_kernel_cuda, m) {
                  py::arg("n1"), py::arg("n2"),
                  py::arg("pixel_size"),
                  py::arg("wave_length"), py::arg("relativity_gamma"))
+            .def("slice_transmit",
+                &WavePropagatorCuPyWrapper::sliceTransmit,
+                py::return_value_policy::move, 
+                "transmit the wave through a single potential slice without spatial propagation.",
+                py::arg("wave"), py::arg("aslice"))
+            .def("space_propagate",
+                &WavePropagatorCuPyWrapper::spacePropagate,
+                py::return_value_policy::move,
+                "propagate the wave through free space by a distance dz.",
+                py::arg("wave"), py::arg("dz"))
             .def("singleslice_propagate",
                  &WavePropagatorCuPyWrapper::singleSlicePropagate,
+                 py::return_value_policy::move,
                  "propagate a wave throught a single potential slice",
                  py::arg("wave"), py::arg("aslice"), py::arg("dz"))
             .def("multislice_propagate",
                  &WavePropagatorCuPyWrapper::multiSlicePropagate,
+                 py::return_value_policy::move,
                  "propagate a wave through multiple slices",
                  py::arg("wave"), py::arg("slices"), py::arg("dz"))
             .def("lens_propagate",
                  &WavePropagatorCuPyWrapper::lensPropagate,
+                 py::return_value_policy::move,
                  "propagate a wave through lens specified by input parameters",
                  py::arg("wave"),
                  py::arg("cs_mm"),

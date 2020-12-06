@@ -53,7 +53,9 @@ namespace emsim {
         }
     }
 
-    void WavePropagator::spacePropagate(fftwf_complex *waveFourier, float dz, fftwf_complex *waveOut) const {
+    void WavePropagator::spacePropagate(fftwf_complex *wave, float dz, fftwf_complex *waveOut) const {
+        fftwf_execute_dft(m_p, wave, waveOut);
+
         // in Fourier space, multiply the wave by spatial propagator.
         int ii;
         #pragma omp parallel for
@@ -71,8 +73,8 @@ namespace emsim {
                 // construct the spatial propagator;
                 float p_real = cosf(m_waveLength * PI * dz * f2);
                 float p_imag = -sinf(m_waveLength * PI * dz * f2);
-                float real = waveFourier[ii][0] * p_real - waveFourier[ii][1] * p_imag;
-                float imag = waveFourier[ii][0] * p_imag + waveFourier[ii][1] * p_real;
+                float real = wave[ii][0] * p_real - wave[ii][1] * p_imag;
+                float imag = wave[ii][0] * p_imag + wave[ii][1] * p_real;
                 waveOut[ii][0] = real / (float)m_nPix;
                 waveOut[ii][1] = imag / (float)m_nPix;
             } else {
@@ -80,14 +82,14 @@ namespace emsim {
                 waveOut[ii][1] = 0;
             }
         }
+
+        fftwf_execute_dft(m_ip, waveOut, waveOut);
     }
 
     void WavePropagator::singleSlicePropagate(fftwf_complex *wave, const float *slice, float dz,
                                               fftwf_complex *waveOut) {
         sliceTransmit(wave, slice, waveOut);
-        fftwf_execute_dft(m_p, waveOut, waveOut);
         spacePropagate(waveOut, dz, waveOut);
-        fftwf_execute_dft(m_ip, waveOut, waveOut);
     }
 
     void WavePropagator::multiSlicePropagate(fftwf_complex *wave, float *multiSlices, unsigned int nSlices, float dz,

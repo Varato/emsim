@@ -1,4 +1,5 @@
 from typing import Tuple
+from abc import ABCMeta
 import numpy as np
 
 from ..physics import electron_wave_length_angstrom, electron_relativity_gamma
@@ -18,11 +19,17 @@ class WavePropagatorBase:
         wave_in *= np.sqrt(n_e) / np.abs(wave_in)
         return wave_in
 
-    def multislice_propagate(self, wave_in: np.ndarray, slices: np.ndarray, dz: float):
+    def slice_transmit(self, wave, aslice):
         pass
 
-    def singleslice_propagate(self, wave_in: np.ndarray, aslice: np.ndarray, dz: float):
+    def space_propagate(self, wave, dz):
         pass
 
-    def lens_propagate(self, wave_in: np.ndarray, cs_mm: float, defocus: float, aperture: float):
+    def multislice_propagate(self, wave: np.ndarray, slices: np.ndarray, dz: float):
+        pass
+
+    def singleslice_propagate(self, wave: np.ndarray, aslice: np.ndarray, dz: float):
+        pass
+
+    def lens_propagate(self, wave: np.ndarray, cs_mm: float, defocus: float, aperture: float):
         pass

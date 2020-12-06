@@ -15,7 +15,7 @@ namespace emsim {
 
         void sliceTransmit(fftwf_complex *wave,  float const *slice, fftwf_complex *waveOut) const;
 
-        void spacePropagate(fftwf_complex *waveFourier, float dz, fftwf_complex *waveOut) const;
+        void spacePropagate(fftwf_complex *wave, float dz, fftwf_complex *waveOut) const;
 
         void singleSlicePropagate(fftwf_complex *wave, float const *slice, float dz, fftwf_complex *waveOut);
         void multiSlicePropagate(fftwf_complex *wave, float *multiSlices,

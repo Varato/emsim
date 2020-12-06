@@ -39,9 +39,8 @@ class Pipe(object):
 
     # get the exit wave (after specimen, before lens)
     def get_exit_wave(self, mol):
-        wave_propagator_t = wave.get_wave_propagator()
+        wave_propagator = wave.get_wave_propagator(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
         slice_builder = dens.get_slice_builder()
-        wave_propagator = wave_propagator_t(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
         mol = atm.centralize(mol)
         slices = slice_builder(mol,
                                pixel_size=self._pixel_size,
@@ -55,9 +54,8 @@ class Pipe(object):
         return exit_wave
 
     def get_exit_wave_wpo(self, mol):
-        wave_propagator_t = wave.get_wave_propagator()
+        wave_propagator = wave.get_wave_propagator(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
         single_slice_builder = dens.get_single_slice_builder()
-        wave_propagator = wave_propagator_t(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
         mol = atm.centralize(mol)
         aslice = single_slice_builder(mol, 
                                       pixel_size=self._pixel_size,
@@ -78,9 +76,8 @@ class Pipe(object):
     # directly get final image (real valued)
 
     def run_wpo(self, mol):
-        wave_propagator_t = wave.get_wave_propagator()
+        wave_propagator = wave.get_wave_propagator(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
         single_slice_builder = dens.get_single_slice_builder()
-        wave_propagator = wave_propagator_t(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
         mol = atm.centralize(mol)
         aslice = single_slice_builder(mol, 
                                       pixel_size=self._pixel_size,
@@ -99,9 +96,8 @@ class Pipe(object):
         return image
 
     def run(self, mol):
-        wave_propagator_t = wave.get_wave_propagator()
+        wave_propagator = wave.get_wave_propagator(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
         slice_builder = dens.get_slice_builder()
-        wave_propagator = wave_propagator_t(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
         mol = atm.centralize(mol)
         slices = slice_builder(mol,
                                pixel_size=self._pixel_size,
