@@ -11,7 +11,7 @@ try:
 except ImportError:
     raise ImportError("cuda extension cannot be found. Compile it first")
 
-from .slice_builder_base import SliceBuilderBatchBase
+from .slice_builder_base import SliceBuilderBase, SliceBuilderBatchBase
 from ..physics import water_num_dens
 
 

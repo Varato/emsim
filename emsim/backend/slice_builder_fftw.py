@@ -2,7 +2,7 @@ from typing import List
 import numpy as np
 import logging
 
-from .slice_builder_base import SliceBuilderBatchBase
+from .slice_builder_base import SliceBuilderBase, SliceBuilderBatchBase
 
 try:
     from .fftw_ext import dens_kernel

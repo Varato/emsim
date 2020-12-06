@@ -18,7 +18,7 @@ namespace emsim { namespace cuda {
 
         void sliceTransmit(cufftComplex *wave,  cufftReal const *slice, cufftComplex *waveOut) const;
 
-        void spacePropagate(cufftComplex *waveFourier, float dz, cufftComplex *waveOut) const;
+        void spacePropagate(cufftComplex *wave, float dz, cufftComplex *waveOut) const;
 
         void singleSlicePropagate(cufftComplex *wave, cufftReal const *slice, float dz, cufftComplex *waveOut) const;
         void multiSlicePropagate(cufftComplex *wave, cufftReal *multiSlices,

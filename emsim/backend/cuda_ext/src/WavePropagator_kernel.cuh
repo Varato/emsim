@@ -14,7 +14,7 @@ namespace emsim { namespace cuda {
     void waveSliceTransmit(cufftComplex *wave, cufftReal const *slice, int nPix,
                            float waveLength, float relativityGamma, cufftComplex *waveOut);
 
-    void waveSpacePropagate(cufftComplex *waveFourier,
+    void waveSpacePropagateFourier(cufftComplex *waveFourier,
                             int n1, int n2, float dz,
                             float waveLength, float pixSize, cufftComplex *waveOut);
 

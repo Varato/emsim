@@ -41,10 +41,10 @@ void waveSliceTransmitKernel(cufftComplex *wave,  cufftReal const *slice, unsign
 
 
 __global__
-void waveSpacePropagateKernel(cufftComplex *waveFourier,
-                              int n1, int n2, float dz,
-                              float waveLength, float pixSize,
-                              cufftComplex *waveOut)
+void waveSpacePropagateFourierKernel(cufftComplex *waveFourier,
+                                     int n1, int n2, float dz,
+                                     float waveLength, float pixSize,
+                                     cufftComplex *waveOut)
 {
     unsigned batch = gridDim.x * blockDim.x;
     unsigned nPix = n1 * n2;
@@ -155,7 +155,7 @@ namespace emsim { namespace cuda {
     }
 
 
-    void waveSpacePropagate(cufftComplex *waveFourier,
+    void waveSpacePropagateFourier(cufftComplex *waveFourier,
                             int n1, int n2, float dz,
                             float waveLength, float pixSize,
                             cufftComplex *waveOut) {
@@ -165,7 +165,7 @@ namespace emsim { namespace cuda {
         auto gridDimX = (unsigned) ceilf((float) nPix / (float) blockDimX);
         gridDimX = gridDimX > 2147483647 ? 2147483647 : gridDimX;
 
-        waveSpacePropagateKernel<<<gridDimX, blockDimX>>>(waveFourier, n1, n2,
+        waveSpacePropagateFourierKernel<<<gridDimX, blockDimX>>>(waveFourier, n1, n2,
                                                           dz, waveLength, pixSize,
                                                           waveOut);
     }

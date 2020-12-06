@@ -34,6 +34,30 @@ public:
         cupy = py::module::import("cupy");
     }
 
+    py::object sliceTransmit(py::object const &wave, py::object const &slice) {
+        using namespace pybind11::literals;
+        py::tuple shape = py::make_tuple(m_n1, m_n2);
+        py::object waveOut = cupy.attr("empty")("shape"_a = shape, "dtype"_a = cupy.attr("complex64"));
+
+        size_t wavePtr = cupyGetMemPtr(wave);
+        size_t slicePtr = cupyGetMemPtr(slice);
+        size_t waveOutPtr = cupyGetMemPtr(waveOut);
+
+        m_wp->sliceTransmit((cufftComplex *)wavePtr, (cufftReal *)slicePtr, (cufftComplex *)waveOutPtr);
+        return waveOut;
+    }
+
+    py::object spacePropagate(py::object const &wave, float dz) {
+        using namespace pybind11::literals;
+        py::tuple shape = py::make_tuple(m_n1, m_n2);
+        py::object waveOut = cupy.attr("empty")("shape"_a = shape, "dtype"_a = cupy.attr("complex64"));
+
+        size_t wavePtr = cupyGetMemPtr(wave);
+        size_t waveOutPtr = cupyGetMemPtr(waveOut);
+        m_wp->spacePropagate((cufftComplex *)wavePtr, dz, (cufftComplex *)waveOutPtr);
+        return waveOut;
+    }
+
     py::object singleSlicePropagate(py::object const &wave, py::object const &slice, float dz) {
         using namespace pybind11::literals;
         py::tuple shape = py::make_tuple(m_n1, m_n2);

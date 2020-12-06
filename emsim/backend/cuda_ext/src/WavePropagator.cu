@@ -28,8 +28,17 @@ namespace emsim { namespace cuda {
         waveSliceTransmit(wave, slice, m_nPix, m_waveLength, m_relativityGamma, waveOut);
     }
 
-    void WavePropagator::spacePropagate(cufftComplex *waveFourier, float dz, cufftComplex *waveOut) const {
-        waveSpacePropagate(waveFourier, m_n1, m_n2, dz, m_waveLength, m_pixelSize, waveOut);
+
+    void WavePropagator::spacePropagate(cufftComplex *wave, float dz, cufftComplex *waveOut) const {
+        if (cufftExecC2C(m_p, wave, waveOut, CUFFT_FORWARD) != CUFFT_SUCCESS) {
+            fprintf(stderr, "CUFFT error: C2C plan forward executation failed\n");
+        }
+        
+        waveSpacePropagateFourier(waveOut, m_n1, m_n2, dz, m_waveLength, m_pixelSize, waveOut);
+
+        if (cufftExecC2C(m_p, waveOut, waveOut, CUFFT_INVERSE) != CUFFT_SUCCESS) {
+            fprintf(stderr, "CUFFT error: C2C plan backward executation failed\n");
+        }
     }
 
     void WavePropagator::lensPropagate(cufftComplex *wave, float cs_mm, float defocus, float aperture,
@@ -47,14 +56,7 @@ namespace emsim { namespace cuda {
     void WavePropagator::singleSlicePropagate(cufftComplex *wave, cufftReal const *slice,
                                               float dz, cufftComplex *waveOut) const {
         sliceTransmit(wave, slice, waveOut);
-        if (cufftExecC2C(m_p, waveOut, waveOut, CUFFT_FORWARD) != CUFFT_SUCCESS) {
-            fprintf(stderr, "CUFFT error: C2C plan forward executation failed\n");
-        }
         spacePropagate(waveOut, dz, waveOut);
-
-        if (cufftExecC2C(m_p, waveOut, waveOut, CUFFT_INVERSE) != CUFFT_SUCCESS) {
-            fprintf(stderr, "CUFFT error: C2C plan backward executation failed\n");
-        }
     }
 
     void WavePropagator::multiSlicePropagate(cufftComplex *wave, cufftReal *multiSlices, unsigned int nSlices, float dz,
