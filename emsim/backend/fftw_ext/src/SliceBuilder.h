@@ -8,6 +8,7 @@
 #include <fftw3.h>
 
 namespace emsim {
+    //TODO: SliceBuilder
     class SliceBuilderBatch {
     public:
         SliceBuilderBatch(float *scatteringFactors, int nElems,

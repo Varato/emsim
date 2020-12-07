@@ -3,6 +3,7 @@
 ////
 
 #include <cufft.h>
+#include <cstdio>
 #include "common.cuh"
 
 
@@ -27,6 +28,8 @@ void waveSliceTransmitKernel(cufftComplex *wave,  cufftReal const *slice, unsign
     unsigned gridStartIdx = 0;
     while(gridStartIdx < nPix) {
         ii = gridStartIdx + blockDim.x * blockIdx.x + threadIdx.x;
+        if (gridStartIdx > 0)
+            printf("ii = %d\n", ii);
         if (ii < nPix) {
             t_real = cosf(slice[ii] * factor);
             t_imag = sinf(slice[ii] * factor);
@@ -150,6 +153,8 @@ namespace emsim { namespace cuda {
         if (blockDimX > nPix) blockDimX = nPix;
         auto gridDimX = (unsigned) ceilf((float) nPix / (float) blockDimX);
         gridDimX = gridDimX > 2147483647 ? 2147483647 : gridDimX;
+        printf("waveSliceTransmit in WavePropagator_kernel.cu: \n");
+        printf("blockDimX = %d, gridDimX = %d\n", blockDimX, gridDimX);
 
         waveSliceTransmitKernel<<<gridDimX, blockDimX>>>(wave, slice, nPix, waveLength, relativityGamma, waveOut);
     }

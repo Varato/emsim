@@ -5,6 +5,7 @@ except ImportError:
 
 from typing import Tuple
 import cupy as cp
+import numpy as np
 import logging
 
 from .wave_propagator_base import WavePropagatorBase
@@ -12,6 +13,11 @@ from .wave_propagator_base import WavePropagatorBase
 
 logger = logging.getLogger(__name__)
 
+def assure_cupy_array(arr):
+    xp = cp.get_array_module(arr)
+    if xp is np:
+        return cp.asarray(arr)
+    return arr
 
 class WavePropagator(WavePropagatorBase):
     def __init__(self, shape: Tuple[int, int], pixel_size: float, beam_energy_key: float):
@@ -27,16 +33,24 @@ class WavePropagator(WavePropagatorBase):
         return wave
 
     def slice_transmit(self, wave: cp.ndarray, aslice: cp.ndarray):
+        wave = assure_cupy_array(wave)
+        aslice = assure_cupy_array(aslice)
         return self.backend.slice_transmit(wave, aslice)
 
     def space_propagate(self, wave: cp.ndarray, dz: float):
+        wave = assure_cupy_array(wave)
         return self.backend.space_propagate(wave, dz)
 
     def singleslice_propagate(self, wave: cp.ndarray, aslice: cp.ndarray, dz: float):
+        wave = assure_cupy_array(wave)
+        aslice = assure_cupy_array(aslice)
         return self.backend.singleslice_propagate(wave, aslice, dz)
 
     def multislice_propagate(self, wave: cp.ndarray, slices: cp.ndarray, dz: float):
+        wave = assure_cupy_array(wave)
+        aslice = assure_cupy_array(slices)
         return self.backend.multislice_propagate(wave, slices, dz)
 
     def lens_propagate(self, wave: cp.ndarray, cs_mm: float, defocus: float, aperture: float):
+        wave = assure_cupy_array(wave)
         return self.backend.lens_propagate(wave, cs_mm, defocus, aperture)

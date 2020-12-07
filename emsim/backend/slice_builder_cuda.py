@@ -1,5 +1,6 @@
 from typing import List
 import logging
+import numpy as np
 
 try:
     import cupy as cp
@@ -20,20 +21,31 @@ logger = logging.getLogger(__name__)
 cupy_mempool = cp.get_default_memory_pool()
 
 
+def assure_cupy_array(arr):
+    xp = cp.get_array_module(arr)
+    if xp is np:
+        return cp.asarray(arr)
+    return arr
+
+
 class SliceBuilder(SliceBuilderBase):
     def __init__(self, unique_elements: List[int], 
                  n1: int, n2: int,
                  pixel_size: float):
         logger.debug("using cuda SliceBuilder")
         super(SliceBuilder, self).__init__(unique_elements, n1, n2, pixel_size)
+        scattering_factors = cp.asarray(self.scattering_factors, dtype=cp.float32)
+        self.backend = dens_kernel_cuda.SliceBuilder(scattering_factors, n1, n2, pixel_size)
 
-    def slice_gen(self, atom_histograms):
-        # atom_histograms (n_elems, n1, n2)
-        location_phase = rfft2(atom_histograms, axes=(-2, -1))  # (n_elems, n1, n2//2+1)
-        location_phase *= self.scattering_factors               # (n_elems, n1, n2//2+1)
-        slice_ = irfft2(np.sum(location_phase, axis=0), s=(self.n1, self.n2))
-        np.clip(slice_, a_min=1e-7, a_max=None, out=slice_)
-        return slice_
+    def bin_atoms_within_slice(self, atom_coordinates_sorted_by_elems, unique_elements_count):
+        atom_coordinates_sorted_by_elems_gpu = assure_cupy_array(atom_coordinates_sorted_by_elems)
+        unique_elements_count_gpu = assure_cupy_array(unique_elements_count)
+        atmv_gpu = self.backend.bin_atoms_within_slice(atom_coordinates_sorted_by_elems_gpu, unique_elements_count_gpu)
+        return atmv_gpu
+
+    def slice_gen(self, slice_atom_histograms):
+        aslice = self.backend.slice_gen(slice_atom_histograms)
+        return aslice
 
 
 

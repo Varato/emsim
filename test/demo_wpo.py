@@ -5,6 +5,10 @@ import time
 
 import emsim
 
+def assure_numpy_array(arr):
+    if type(arr) is np.ndarray:
+        return arr
+    return arr.get()
 
 microscope = emsim.em.EM(
     electron_dose=20,
@@ -22,11 +26,12 @@ image_pipe = emsim.pipe.Pipe(
     add_water=True,
 )
 
+emsim.config.set_backend('cuda')
 
 mol = emsim.atoms.AtomList(
     elements=np.array([6], dtype=np.int), 
     coordinates=np.array([[0,0,0]], dtype=np.float32))
 
 img = image_pipe.run_wpo(mol)
-plt.imshow(img, cmap='Greys')
+plt.imshow(assure_numpy_array(img), cmap='Greys')
 plt.show()

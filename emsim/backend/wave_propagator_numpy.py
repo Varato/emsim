@@ -13,16 +13,11 @@ class WavePropagator(WavePropagatorBase):
     def __init__(self, shape: Tuple[int, int], pixel_size: float, beam_energy_key: float):
         logger.debug("using numpy WavePropagator")
         super(WavePropagator, self).__init__(shape, pixel_size, beam_energy_key)
-        qx, qy = WavePropagator._make_mesh_grid_fourier_space(pixel_size, self.wave_shape)
-        self.q_mgrid = np.sqrt(qx * qx + qy * qy)
-
-        # 1/3 filtering
-        q_max = 0.5 / self.pixel_size
-        self.fil = ifftshift(np.where(self.q_mgrid <= q_max * 0.6667, 1., 0.))
+        
 
     def slice_transmit(self, wave: np.ndarray, aslice: np.ndarray):
-        transmission_functions = np.exp(1j * self.relativity_gamma * self.wave_length * aslice)
-        t = ifft2(fft2(transmission_functions) * self.fil)
+        t = np.exp(1j * self.relativity_gamma * self.wave_length * aslice)
+        # t = ifft2(fft2(transmission_functions) * self.fil)
         return wave * t
     
     def space_propagate(self, wave: np.ndarray, dz: float):
@@ -50,10 +45,4 @@ class WavePropagator(WavePropagatorBase):
         aper = np.where(self.q_mgrid < aperture / self.wave_length, 1., 0.)
         return ifft2(ifftshift(h) * fft2(wave_in) * ifftshift(aper))
 
-    @staticmethod
-    def _make_mesh_grid_fourier_space(pixel_size: float, size: Tuple[int, int]):
-        q_max = 0.5/pixel_size
-        qx_range = np.linspace(-q_max, q_max, size[0])
-        qy_range = np.linspace(-q_max, q_max, size[1])
-        qx, qy = np.meshgrid(qx_range, qy_range, indexing="ij")
-        return qx, qy
+    

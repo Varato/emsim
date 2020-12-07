@@ -25,6 +25,8 @@ namespace emsim { namespace cuda {
     }
 
     void WavePropagator::sliceTransmit(cufftComplex *wave, const cufftReal *slice, cufftComplex *waveOut) const {
+        printf("waveLength = %f, gamma = %f\n", m_waveLength, m_relativityGamma);
+        printf("n_pix = %d\n", m_nPix);
         waveSliceTransmit(wave, slice, m_nPix, m_waveLength, m_relativityGamma, waveOut);
     }
 
