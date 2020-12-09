@@ -11,6 +11,10 @@ typedef float2 cufftComplex;
 typedef float cufftReal;
 
 namespace emsim { namespace cuda {
+    /*
+     * The wave propagator in C++ side.
+     * It majorly functions for RAII of cufft.
+     */
     class WavePropagator {
     public:
         WavePropagator(int n1, int n2, float pixelSize, float waveLength, float relativityGamma);

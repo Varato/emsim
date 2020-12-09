@@ -24,7 +24,7 @@ class ResultHandler:
         self.images = []
 
     def __call__(self, result, label):
-        # print(f"got image for label = {label}")
+        print(f"got image for label = {label}")
         self.images.append(result)
 
 
@@ -32,8 +32,8 @@ microscope = emsim.em.EM(
     electron_dose=20,
     beam_energy_kev=200,
     cs_mm=1.3,
-    defocus=7000,
-    aperture=math.pi/2
+    defocus=700,
+    aperture=10.72e-3
 )
 
 image_pipe = emsim.pipe.Pipe(
@@ -41,7 +41,7 @@ image_pipe = emsim.pipe.Pipe(
     resolution=3,
     slice_thickness=2,
     roi=256,
-    add_water=True,
+    add_water=False,
 )
 
 
@@ -56,6 +56,7 @@ if __name__ == "__main__":
     time_elapsed = time.time() - start
 
     print(f"time elaplsed: {time_elapsed:.4f}")
+
 
     _, axes = plt.subplots(ncols=len(result_handler.images))
     for i, ax in enumerate(axes):

@@ -54,7 +54,7 @@ class SliceBuilderBatch(SliceBuilderBatchBase):
                  n_slices: int, n1: int, n2: int,
                  dz: float, pixel_size: float):
         logger.debug("using cuda SliceBuilderBatch")
-        logger.info(f"cupy mempool limit: {cupy_mempool.get_limit()/1024**2:.2f}MB")
+        # logger.info(f"cupy mempool limit: {cupy_mempool.get_limit()/1024**2:.2f}MB")
         super(SliceBuilderBatch, self).__init__(unique_elements, n_slices, n1, n2, dz, pixel_size)
         scattering_factors = cp.asarray(self.scattering_factors, dtype=cp.float32)
         self.backend = dens_kernel_cuda.SliceBuilderBatch(scattering_factors, n_slices, n1, n2, dz, pixel_size)
@@ -82,6 +82,6 @@ class SliceBuilderBatch(SliceBuilderBatchBase):
 
     def slice_gen_batch(self, atom_histograms):
         slices = self.backend.slice_gen_batch(atom_histograms)
-        logger.info("cupy allocated: {:.2f}MB".format(cupy_mempool.total_bytes()/1024**2))
-        logger.info("cupy used total: {:.2f}MB".format(cupy_mempool.used_bytes()/1024**2))
+        # logger.info("cupy allocated: {:.2f}MB".format(cupy_mempool.total_bytes()/1024**2))
+        # logger.info("cupy used total: {:.2f}MB".format(cupy_mempool.used_bytes()/1024**2))
         return slices

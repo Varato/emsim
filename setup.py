@@ -76,7 +76,7 @@ class CMakeBuild(build_ext):
 ext_modules = [CMakeExtension('emsim.backend.fftw_ext.dens_kernel'),
                CMakeExtension('emsim.backend.fftw_ext.em_kernel'),
                CMakeExtension('emsim.backend.cuda_ext.dens_kernel_cuda'),
-               CMakeExtension('emsim.backend.cuda_ext.em_kernel_cuda')]
+               CMakeExtension('emsim.backend.cuda_ext.wave_kernel_cuda')]
 
 
 package_data = {"emsim.assets": ["atom_mass.txt", "atom_params.txt"]}

@@ -106,7 +106,7 @@ private:
 };
 
 
-PYBIND11_MODULE(em_kernel_cuda, m) {
+PYBIND11_MODULE(wave_kernel_cuda, m) {
     py::class_<WavePropagatorCuPyWrapper>(m, "WavePropagator", py::module_local())
             .def(py::init<unsigned, unsigned, float, float, float>(),
                  py::arg("n1"), py::arg("n2"),

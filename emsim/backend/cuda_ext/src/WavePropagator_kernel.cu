@@ -153,9 +153,6 @@ namespace emsim { namespace cuda {
         if (blockDimX > nPix) blockDimX = nPix;
         auto gridDimX = (unsigned) ceilf((float) nPix / (float) blockDimX);
         gridDimX = gridDimX > 2147483647 ? 2147483647 : gridDimX;
-        printf("waveSliceTransmit in WavePropagator_kernel.cu: \n");
-        printf("blockDimX = %d, gridDimX = %d\n", blockDimX, gridDimX);
-
         waveSliceTransmitKernel<<<gridDimX, blockDimX>>>(wave, slice, nPix, waveLength, relativityGamma, waveOut);
     }
 
