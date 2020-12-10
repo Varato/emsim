@@ -1,6 +1,6 @@
 from typing import Tuple, Optional, Union
 
-from . import dens
+from . import pot
 from . import em
 from . import wave
 from . import atoms as atm

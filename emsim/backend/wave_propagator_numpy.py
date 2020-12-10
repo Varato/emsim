@@ -41,7 +41,6 @@ class WavePropagator(WavePropagatorBase):
         return ifft2(ifftshift(spatial_propagator) * fft2(wave_in * transmission_functions) * self.fil)
 
     def lens_propagate(self, wave_in, cs_mm, defocus, aperture):
-        print("here")
         h = mtf(self.wave_length, cs_mm, defocus)(self.q_mgrid)
         aper = np.where(self.q_mgrid < aperture / self.wave_length, 1., 0.)
         h *= aper

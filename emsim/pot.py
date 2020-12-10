@@ -1,5 +1,5 @@
 """
-The functions to build electron density / atomic potential for bio molecules
+The functions to build atomic potential for bio molecules
 """
 from typing import Union, Optional, Tuple
 import numpy as np
@@ -10,44 +10,35 @@ from . import atoms as atm
 float_type = np.float32
 
 
-def get_single_slice_builder():
-    backend = config.get_current_backend()
-    single_slice_builder = backend.single_slice_builder
+def build_one_slice(mol: atm.AtomList, pixel_size: float,
+                    lateral_size: Optional[Union[int, Tuple[int, int]]] = None):
 
-    def build_slice_single(mol: atm.AtomList,
-                           pixel_size: float,
-                           lateral_size: Optional[Union[int, Tuple[int, int]]] = None):
-        mol, unique_elements, unique_elements_counts = atm.sort_elements_and_count(mol)
-        _, n1, n2 = finalize_slice_size(tuple(mol.space), pixel_size, 5.0, lateral_size, 1)
-        sb = single_slice_builder(unique_elements, n1, n2, pixel_size)
-        atmv = sb.bin_atoms_within_slice(mol.coordinates, unique_elements_counts)
-        return sb.slice_gen(atmv)
+    one_slice_builder = config.get_current_backend().one_slice_builder
 
-    return build_slice_single
+    mol, unique_elements, unique_elements_counts = atm.sort_elements_and_count(mol)
+    _, n1, n2 = finalize_slice_size(tuple(mol.space), pixel_size, 5.0, lateral_size, 1)
+    sb = one_slice_builder(unique_elements, n1, n2, pixel_size)
+    atmv = sb.bin_atoms_one_slice(mol.coordinates, unique_elements_counts)
+    return sb.make_one_slice(atmv)
 
 
-def get_slice_builder():
-    backend = config.get_current_backend()
-    slice_builder = backend.slice_builder
-
-    def build_slices_batch(mol: atm.AtomList,
-                           pixel_size: float,
-                           dz: float,
-                           lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
-                           n_slices: Optional[int] = None,
-                           add_water: bool = False):
-        must_include_elems = []
-        if add_water:
-            must_include_elems.extend([1, 8])
-        mol, unique_elements, unique_elements_counts = atm.sort_elements_and_count(mol, must_include_elems)
-        n_slices, n1, n2 = finalize_slice_size(tuple(mol.space), pixel_size, dz, lateral_size, n_slices)
-        sb = slice_builder(unique_elements, n_slices, n1, n2, dz, pixel_size)
-        atmv = sb.bin_atoms(mol.coordinates, unique_elements_counts)
-        if add_water:
-            atmv = sb.add_water(atmv)
-        return sb.slice_gen_batch(atmv)
-
-    return build_slices_batch
+def build_slices_batch(mol: atm.AtomList,
+                       pixel_size: float,
+                       dz: float,
+                       lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
+                       n_slices: Optional[int] = None,
+                       add_water: bool = False):
+    multi_slices_builder = config.get_current_backend().multi_slices_builder
+    must_include_elems = []
+    if add_water:
+        must_include_elems.extend([1, 8])
+    mol, unique_elements, unique_elements_counts = atm.sort_elements_and_count(mol, must_include_elems)
+    n_slices, n1, n2 = finalize_slice_size(tuple(mol.space), pixel_size, dz, lateral_size, n_slices)
+    sb = multi_slices_builder(unique_elements, n_slices, n1, n2, dz, pixel_size)
+    atmv = sb.bin_atoms_multi_slices(mol.coordinates, unique_elements_counts)
+    if add_water:
+        atmv = sb.add_water(atmv)
+    return sb.make_multi_slices(atmv)
 
 
 def finalize_slice_size(mol_space: Tuple[int, int, int],

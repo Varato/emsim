@@ -12,7 +12,7 @@ try:
 except ImportError:
     raise ImportError("cuda extension cannot be found. Compile it first")
 
-from .slice_builder_base import SliceBuilderBase, SliceBuilderBatchBase
+from .slice_builder_base import OneSliceBuilderBase, MultiSlicesBuilderBase
 from ..physics import water_num_dens
 
 
@@ -21,49 +21,49 @@ logger = logging.getLogger(__name__)
 cupy_mempool = cp.get_default_memory_pool()
 
 
-def assure_cupy_array(arr):
-    xp = cp.get_array_module(arr)
-    if xp is np:
-        return cp.asarray(arr)
-    return arr
-
-
-class SliceBuilder(SliceBuilderBase):
+class OneSliceBuilder(OneSliceBuilderBase):
     def __init__(self, unique_elements: List[int], 
                  n1: int, n2: int,
                  pixel_size: float):
         logger.debug("using cuda OneSliceBuilder")
-        super(SliceBuilder, self).__init__(unique_elements, n1, n2, pixel_size)
+        super(OneSliceBuilder, self).__init__(unique_elements, n1, n2, pixel_size)
         scattering_factors = cp.asarray(self.scattering_factors, dtype=cp.float32)
         self.backend = slice_kernel_cuda.OneSliceBuilder(scattering_factors, n1, n2, pixel_size)
 
-    def bin_atoms_within_slice(self, atom_coordinates_sorted_by_elems, unique_elements_count):
+    def bin_atoms_one_slice(self, atom_coordinates_sorted_by_elems, unique_elements_count):
         elems_count_gpu = cp.asarray(unique_elements_count, dtype=cp.uint32)
         atom_coords_gpu = cp.asarray(atom_coordinates_sorted_by_elems, dtype=cp.float32)
         atmv_gpu = self.backend.bin_atoms_one_slice(atom_coords_gpu, elems_count_gpu)
         return atmv_gpu
 
-    def slice_gen(self, slice_atom_histograms):
-        aslice = self.backend.make_one_slice(slice_atom_histograms)
-        return aslice
+    def make_one_slice(self, atom_histograms_one_slice_gpu):
+        aslice_gpu = self.backend.make_one_slice(atom_histograms_one_slice_gpu)
+        cp.clip(aslice_gpu, a_min=1e-7, a_max=None, out=aslice_gpu)
+        return aslice_gpu
 
 
-
-class SliceBuilderBatch(SliceBuilderBatchBase):
+class MultiSlicesBuilder(MultiSlicesBuilderBase):
     def __init__(self, unique_elements: List[int],
                  n_slices: int, n1: int, n2: int,
                  dz: float, pixel_size: float):
         logger.debug("using cuda SliceBuilderBatch")
-        # logger.info(f"cupy mempool limit: {cupy_mempool.get_limit()/1024**2:.2f}MB")
-        super(SliceBuilderBatch, self).__init__(unique_elements, n_slices, n1, n2, dz, pixel_size)
+        logger.debug(f"cupy mempool limit: {cupy_mempool.get_limit()/1024**2:.2f}MB")
+        super(MultiSlicesBuilder, self).__init__(unique_elements, n_slices, n1, n2, dz, pixel_size)
         scattering_factors = cp.asarray(self.scattering_factors, dtype=cp.float32)
         self.backend = slice_kernel_cuda.MultiSlicesBuilder(scattering_factors, n_slices, n1, n2, dz, pixel_size)
 
-    def bin_atoms(self, atom_coordinates_sorted_by_elems, unique_elements_count):
+    def bin_atoms_multi_slices(self, atom_coordinates_sorted_by_elems, unique_elements_count):
         elems_count_gpu = cp.asarray(unique_elements_count, dtype=cp.uint32)
         atom_coords_gpu = cp.asarray(atom_coordinates_sorted_by_elems, dtype=cp.float32)
         atmv_gpu = self.backend.bin_atoms_multi_slices(atom_coords_gpu, elems_count_gpu)
         return atmv_gpu
+
+    def make_multi_slices(self, atom_histograms):
+        slices_gpu = self.backend.make_multi_slices(atom_histograms)
+        logger.debug("cupy allocated: {:.2f}MB".format(cupy_mempool.total_bytes()/1024**2))
+        logger.debug("cupy used total: {:.2f}MB".format(cupy_mempool.used_bytes()/1024**2))
+        cp.clip(slices_gpu, a_min=1e-7, a_max=None, out=slices_gpu)
+        return slices_gpu
 
     def add_water(self, atom_histograms_gpu):
         vacs = cp.prod(cp.where(atom_histograms_gpu == 0, True, False), axis=0)
@@ -80,8 +80,4 @@ class SliceBuilderBatch(SliceBuilderBatchBase):
             atom_histograms_gpu[idx] += hist
         return atom_histograms_gpu
 
-    def slice_gen_batch(self, atom_histograms):
-        slices = self.backend.make_multi_slices(atom_histograms)
-        # logger.info("cupy allocated: {:.2f}MB".format(cupy_mempool.total_bytes()/1024**2))
-        # logger.info("cupy used total: {:.2f}MB".format(cupy_mempool.used_bytes()/1024**2))
-        return slices
+    

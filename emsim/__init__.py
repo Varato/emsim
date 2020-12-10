@@ -6,6 +6,8 @@ from . import em
 from . import pipe
 from . import simulator
 from . import io
+from . import pot
+from . import wave
 
 import logging as _logging
 
