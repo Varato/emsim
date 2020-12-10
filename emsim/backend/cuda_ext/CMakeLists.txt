@@ -8,8 +8,7 @@ find_package(CUDAToolkit REQUIRED)
 
 add_library(libSliceCuda STATIC
     src/SliceBuilder.cu
-    src/SliceBuilder_kernel.cu
-    src/utils.cu)
+    src/SliceBuilder_kernel.cu)
 
 target_link_libraries(libSliceCuda PRIVATE CUDA::cufft)
 set_target_properties(libSliceCuda PROPERTIES

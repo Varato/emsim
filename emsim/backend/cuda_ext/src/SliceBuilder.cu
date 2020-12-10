@@ -4,7 +4,6 @@
 
 #include "SliceBuilder.h"
 #include "SliceBuilder_kernel.h"
-#include "utils.h"
 
 namespace emsim { namespace cuda {
     /*
