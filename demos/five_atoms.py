@@ -52,11 +52,11 @@ image_shape_ = (512, 512)
 pixel_size_ = 50/512
 
 
-sb = emsim.dens.get_slice_builder()
+sb = emsim.dens.get_single_slice_builder()
 wp = emsim.wave.get_wave_propagator(
     shape=image_shape_, pixel_size=pixel_size_, beam_energy_kev=microscope.beam_energy_kev)
 
-aslice = sb(mol, pixel_size=pixel_size_, dz=3, lateral_size=image_shape_, n_slices=1).astype(np.float32)[0]
+aslice = sb(mol, pixel_size=pixel_size_, lateral_size=image_shape_)
 
 wave = wp.init_wave(microscope.electron_dose)
 wave = wp.slice_transmit(wave, aslice)

@@ -13,11 +13,11 @@ namespace emsim { namespace cuda {
     /*
      * For single slice build
      */
-    class SliceBuilder {
+    class OneSliceBuilder {
     public:
-        SliceBuilder(float *scatteringFactors, int nElems,
-                     int n1, int n2, float pixelSize);
-        ~SliceBuilder();
+        OneSliceBuilder(float *scatteringFactors, int nElems,
+                        int n1, int n2, float pixelSize);
+        ~OneSliceBuilder();
 
         /*
          * This method generates a single potential slice given all coordinates of atoms within the slice.
@@ -30,11 +30,11 @@ namespace emsim { namespace cuda {
          * m_scatteringFactors provides. In this case, the correspoinding portion of the slcAtomHist must
          * be filled with zeros.
          * */
-        void sliceGen(float const slcAtomHist[], float output[]) const;
+        void makeOneSlice(float const slcAtomHist[], float output[]) const;
 
-        void binAtomsWithinSlice(float const atomCoordinates[], unsigned nAtoms,
-                                 uint32_t const uniqueElemsCount[],
-                                 float output[]) const;
+        void binAtomsOneSlice(float const atomCoordinates[], unsigned nAtoms, 
+                              uint32_t const uniqueElemsCount[],
+                              float output[]) const;
         std::tuple<int, int> getDims() const {return {m_n1, m_n2};}
         float getPixSize() const {return m_pixelSize;}
         int getNElems() const {return m_nElems;}
@@ -58,18 +58,18 @@ namespace emsim { namespace cuda {
 
 
     /*
-     * For batch slice build
+     * For multi-slices build
      * */
-    class SliceBuilderBatch {
+    class MultiSlicesBuilder {
     public:
-        SliceBuilderBatch(float *scatteringFactors, int nElems,
+        MultiSlicesBuilder(float *scatteringFactors, int nElems,
                           int nSlices, int n1, int n2, float dz, float pixelSize);
-        ~SliceBuilderBatch();
+        ~MultiSlicesBuilder();
 
-        void sliceGenBatch(float atomHist[], float output[]) const;
-        void binAtoms(float const atomCoordinates[], unsigned nAtoms,
-                      uint32_t const uniqueElemsCount[],
-                      float output[]) const;
+        void makeMultiSlices(float atomHist[], float output[]) const;
+        void binAtomsMultiSlices(float const atomCoordinates[], unsigned nAtoms,
+                                 uint32_t const uniqueElemsCount[],
+                                 float output[]) const;
 
     private:
         cufftHandle m_p, m_ip;
@@ -77,10 +77,16 @@ namespace emsim { namespace cuda {
         int m_n1, m_n2;  // dimensions of the slice
         float m_pixelSize, m_dz;    // pixel size of the slice
         int m_n2Half, m_nPix, m_nPixHalf;
+        int m_nElems;                // the length of m_uniqueElements
 
         /* SliceBuilder does not own the following data */
         float* m_scatteringFactors;  // pre-computed scattering factors for all elements needed
-        int m_nElems;                // the length of m_uniqueElements
+
+        /*
+         * m_scatteringFactors is a c-contiguous 3D array in logical dimension (m_nElems, m_n1, m_n2 / 2 + 1).
+         * The last dimension is halved because CUFFT_R2C is used here, so that we only need halved array in Fourier
+         * space.
+         * */
     };
 } }
 

@@ -7,10 +7,10 @@
 
 namespace emsim { namespace cuda {
     /*
-     * SliceBuilder
+     * ---- OneSliceBuilder ----
      */
-    SliceBuilder::SliceBuilder(float *scatteringFactors, int nElems,
-                               int n1, int n2, float pixelSize)
+     OneSliceBuilder::OneSliceBuilder(float *scatteringFactors, int nElems,
+                                      int n1, int n2, float pixelSize)
         : m_scatteringFactors(scatteringFactors), m_nElems(nElems),
           m_pixelSize(pixelSize), m_n1(n1), m_n2(n2), m_n2Half(n2/2+1), m_nPix(n1*n2),
           m_p(0), m_ip(0)
@@ -31,12 +31,12 @@ namespace emsim { namespace cuda {
         }
     }
 
-    SliceBuilder::~SliceBuilder() {
+    OneSliceBuilder::~OneSliceBuilder() {
         cufftDestroy(m_p);
         cufftDestroy(m_ip);
     }
 
-    void SliceBuilder::sliceGen(float const slcAtomHist[], float output[]) const
+    void OneSliceBuilder::makeOneSlice(float const slcAtomHist[], float output[]) const
     {
 
         thrust::device_vector<cufftComplex> locationPhase(m_nElems * m_nPixHalf);
@@ -45,12 +45,12 @@ namespace emsim { namespace cuda {
             fprintf(stderr, "SliceBuilder::sliceGen: CUFFT error: R2C execution failed\n");
         }
 
-        broadCastMul(locationPhasePtr, m_scatteringFactors,
+        broadCastMul_(locationPhasePtr, m_scatteringFactors,
                      1.0f/(float)m_nPix, m_nElems, 1, m_nPixHalf);
         if (cudaGetLastError() != cudaSuccess) {
             fprintf(stderr, "CUDA error: %s\n", cudaGetErrorString(cudaGetLastError()));
         }
-        rowReduceSum(locationPhasePtr, m_nElems, m_nPixHalf, locationPhasePtr);
+        rowReduceSum_(locationPhasePtr, m_nElems, m_nPixHalf, locationPhasePtr);
         if (cudaGetLastError() != cudaSuccess) {
             fprintf(stderr, "CUDA error: %s\n", cudaGetErrorString(cudaGetLastError()));
         }
@@ -60,20 +60,20 @@ namespace emsim { namespace cuda {
         }
     }
 
-    void SliceBuilder::binAtomsWithinSlice(float const atomCoordinates[], unsigned nAtoms,
-                                           uint32_t const uniqueElemsCount[],
-                                           float output[]) const
+    void OneSliceBuilder::binAtomsOneSlice(float const atomCoordinates[], unsigned nAtoms,
+                                              uint32_t const uniqueElemsCount[],
+                                              float output[]) const
     {
 
-        binAtomsWithinSlice_(atomCoordinates, nAtoms, uniqueElemsCount, m_nElems, m_n1, m_n2, m_pixelSize,output);
+        binAtomsOneSlice_(atomCoordinates, nAtoms, uniqueElemsCount, m_nElems, m_n1, m_n2, m_pixelSize, m_pixelSize, output);
     }
 
 
     /*
-     * SliceBuilderBatch
+     * ---- MultiSlicesBuilder ----
      */
-    SliceBuilderBatch::SliceBuilderBatch(float *scatteringFactors, int nElems,
-                                         int nSlices, int n1, int n2, float dz, float pixelSize)
+     MultiSlicesBuilder::MultiSlicesBuilder(float *scatteringFactors, int nElems,
+                                            int nSlices, int n1, int n2, float dz, float pixelSize)
         : m_scatteringFactors(scatteringFactors), m_nElems(nElems),
           m_nSlices(nSlices), m_n1(n1), m_n2(n2), m_n2Half(n2/2+1), m_nPix(n1*n2), m_dz(dz), m_pixelSize(pixelSize),
           m_p(0), m_ip(0)
@@ -97,12 +97,12 @@ namespace emsim { namespace cuda {
     }
 
 
-    SliceBuilderBatch::~SliceBuilderBatch() {
+    MultiSlicesBuilder::~MultiSlicesBuilder() {
         cufftDestroy(m_p);
         cufftDestroy(m_ip);
     }
 
-    void SliceBuilderBatch::sliceGenBatch(float *atomHist, float *output) const {
+    void MultiSlicesBuilder::makeMultiSlices(float *atomHist, float *output) const {
 
         thrust::device_vector<cufftComplex> locationPhase(m_nElems * m_nSlices * m_nPixHalf);
         cufftComplex* locationPhasePtr = thrust::raw_pointer_cast(&locationPhase[0]);
@@ -111,12 +111,12 @@ namespace emsim { namespace cuda {
             fprintf(stderr, "SliceBuilderBatch: CUFFT error: R2C plan executation failed\n");
         }
 
-        broadCastMul(locationPhasePtr, thrust::raw_pointer_cast(m_scatteringFactors),
+        broadCastMul_(locationPhasePtr, thrust::raw_pointer_cast(m_scatteringFactors),
                      1.0f/(float)m_nPix, m_nElems, m_nSlices, m_nPixHalf);
         if (cudaGetLastError() != cudaSuccess) {
             fprintf(stderr, "SliceBuilderBatch: CUDA error: %s\n", cudaGetErrorString(cudaGetLastError()));
         }
-        rowReduceSum(locationPhasePtr, m_nElems, m_nSlices*m_nPixHalf, locationPhasePtr);
+        rowReduceSum_(locationPhasePtr, m_nElems, m_nSlices*m_nPixHalf, locationPhasePtr);
         if (cudaGetLastError() != cudaSuccess) {
             fprintf(stderr, "SliceBuilderBatch: CUDA error: %s\n", cudaGetErrorString(cudaGetLastError()));
         }
@@ -126,13 +126,13 @@ namespace emsim { namespace cuda {
         }
     }
 
-    void SliceBuilderBatch::binAtoms(const float *atomCoordinates, unsigned int nAtoms,
-                                     const uint32_t *uniqueElemsCount, float *output) const
+    void MultiSlicesBuilder::binAtomsMultiSlices(const float *atomCoordinates, unsigned int nAtoms,
+                                                 const uint32_t *uniqueElemsCount, float *output) const
     {
-        binAtoms_(atomCoordinates, nAtoms,
-                  uniqueElemsCount, m_nElems,
-                  m_nSlices, m_n1, m_n2,
-                  m_dz, m_pixelSize, m_pixelSize,
-                  output);
+        binAtomsMultiSlices_(atomCoordinates, nAtoms,
+                             uniqueElemsCount, m_nElems,
+                             m_nSlices, m_n1, m_n2,
+                             m_dz, m_pixelSize, m_pixelSize,
+                             output);
     }
 } }

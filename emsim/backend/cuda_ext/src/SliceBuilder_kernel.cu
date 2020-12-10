@@ -7,9 +7,9 @@
 
 
 __global__
-void binAtomsWithinSliceKernel(float const atomCoordinates[], unsigned nAtoms,
+void binAtomsOneSliceKernel(float const atomCoordinates[], unsigned nAtoms,
                                uint32_t const uniqueElemsCount[], unsigned nElems,
-                               unsigned n1, unsigned n2, float pixSize,
+                               unsigned n1, unsigned n2, float d1, float d2,
                                float output[])
 /*
  * Given atom coordinates within one single slice, bin the coordinates into 2D histograms
@@ -27,11 +27,11 @@ void binAtomsWithinSliceKernel(float const atomCoordinates[], unsigned nAtoms,
     unsigned batch = gridDim.x * blockDim.x;
     unsigned row;
 
-    float start_coord[2] = {-pixSize * floorf((float)(n1 + 1)/2.0f), // plus for number of bin edges
-                            -pixSize * floorf((float)(n2 + 1)/2.0f)};
+    float start_coord[2] = {-d1 * floorf((float)(n1 + 1)/2.0f), // plus for number of bin edges
+                            -d2 * floorf((float)(n2 + 1)/2.0f)};
 
-    float end_coord[2] = {start_coord[0] + (float)n1 * pixSize,
-                          start_coord[1] + (float)n2 * pixSize};
+    float end_coord[2] = {start_coord[0] + (float)n1 * d1,
+                          start_coord[1] + (float)n2 * d2};
 
     int e, accumulatedCount;
     float x, y;
@@ -51,8 +51,8 @@ void binAtomsWithinSliceKernel(float const atomCoordinates[], unsigned nAtoms,
             y = atomCoordinates[row * 3 + 2];
             if (start_coord[0] <= x && x <= end_coord[0] &&
                 start_coord[1] <= y && y <= end_coord[1]) {
-                    i = LEFT_CLOSE(x, end_coord[0]) ? n1 - 1 : (unsigned)floorf((x - start_coord[0]) / pixSize);
-                    j = LEFT_CLOSE(y, end_coord[1]) ? n2 - 1 : (unsigned)floorf((y - start_coord[1]) / pixSize);
+                    i = LEFT_CLOSE(x, end_coord[0]) ? n1 - 1 : (unsigned)floorf((x - start_coord[0]) / d1);
+                    j = LEFT_CLOSE(y, end_coord[1]) ? n2 - 1 : (unsigned)floorf((y - start_coord[1]) / d2);
                     atomicAdd(output + e*n1*n2 + i*n2 + j, 1.0f);
             }
         }
@@ -62,7 +62,7 @@ void binAtomsWithinSliceKernel(float const atomCoordinates[], unsigned nAtoms,
 
 
 __global__
-void binAtomsKernel(float const atomCoordinates[], unsigned nAtoms,
+void binAtomsMultiSlicesKernel(float const atomCoordinates[], unsigned nAtoms,
                     uint32_t const uniqueElemsCount[], unsigned nElems,
                     unsigned n0, unsigned n1, unsigned n2, float d0, float d1, float d2,
                     float output[])
@@ -287,22 +287,22 @@ void rowReduceSumKernel(cufftComplex *A, unsigned n0, unsigned n1, cufftComplex 
 
 namespace emsim { namespace cuda {
 
-    void binAtomsWithinSlice_(float const atomCoordinates[], unsigned nAtoms,
+    void binAtomsOneSlice_(float const atomCoordinates[], unsigned nAtoms,
                               uint32_t const uniqueElemsCount[], unsigned nElems,
-                              unsigned n1, unsigned n2, float pixSize,
+                              unsigned n1, unsigned n2, float d1, float d2,
                               float output[]) {
         unsigned blockDimX = maxThreadsPerBlock;
         if (blockDimX > nAtoms) blockDimX = nAtoms;
         unsigned gridDimX = (int) ceilf((float) nAtoms / (float) blockDimX);
 
-        binAtomsWithinSliceKernel<<<gridDimX, blockDimX>>>(atomCoordinates, nAtoms,
+        binAtomsOneSliceKernel<<<gridDimX, blockDimX>>>(atomCoordinates, nAtoms,
                                                            uniqueElemsCount, nElems,
-                                                           n1, n2, pixSize,
+                                                           n1, n2, d1, d2,
                                                            output);
     }
 
 
-    void binAtoms_(float const atomCoordinates[], unsigned nAtoms,
+    void binAtomsMultiSlices_(float const atomCoordinates[], unsigned nAtoms,
                    uint32_t const uniqueElemsCount[], unsigned nElems,
                    unsigned n0, unsigned n1, unsigned n2, float d0, float d1, float d2,
                    float output[]) {
@@ -310,13 +310,13 @@ namespace emsim { namespace cuda {
         if (blockDimX > nAtoms) blockDimX = nAtoms;
         unsigned gridDimX = (int) ceilf((float) nAtoms / (float) blockDimX);
 
-        binAtomsKernel<<<gridDimX, blockDimX>>>(atomCoordinates, nAtoms,
+        binAtomsMultiSlicesKernel<<<gridDimX, blockDimX>>>(atomCoordinates, nAtoms,
                                                 uniqueElemsCount, nElems,
                                                 n0, n1, n2, d0, d1, d2,
                                                 output);
     }
 
-    void broadCastMul(cufftComplex *A_d, cufftReal *v_d, cufftReal a, unsigned n0, unsigned n1, unsigned n2) {
+    void broadCastMul_(cufftComplex *A_d, cufftReal *v_d, cufftReal a, unsigned n0, unsigned n1, unsigned n2) {
 
         unsigned nCols = n0 * n2;
         unsigned nRows = n1;
@@ -337,7 +337,7 @@ namespace emsim { namespace cuda {
     }
 
 
-    void rowReduceSum(cufftComplex *A_d, unsigned n0, unsigned n1, cufftComplex *output_d) {
+    void rowReduceSum_(cufftComplex *A_d, unsigned n0, unsigned n1, cufftComplex *output_d) {
 
         unsigned nRows = n0;
         cufftComplex *inputPtr = A_d;

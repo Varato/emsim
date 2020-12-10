@@ -32,19 +32,19 @@ class SliceBuilder(SliceBuilderBase):
     def __init__(self, unique_elements: List[int], 
                  n1: int, n2: int,
                  pixel_size: float):
-        logger.debug("using cuda SliceBuilder")
+        logger.debug("using cuda OneSliceBuilder")
         super(SliceBuilder, self).__init__(unique_elements, n1, n2, pixel_size)
         scattering_factors = cp.asarray(self.scattering_factors, dtype=cp.float32)
-        self.backend = slice_kernel_cuda.SliceBuilder(scattering_factors, n1, n2, pixel_size)
+        self.backend = slice_kernel_cuda.OneSliceBuilder(scattering_factors, n1, n2, pixel_size)
 
     def bin_atoms_within_slice(self, atom_coordinates_sorted_by_elems, unique_elements_count):
-        atom_coordinates_sorted_by_elems_gpu = assure_cupy_array(atom_coordinates_sorted_by_elems)
-        unique_elements_count_gpu = assure_cupy_array(unique_elements_count)
-        atmv_gpu = self.backend.bin_atoms_within_slice(atom_coordinates_sorted_by_elems_gpu, unique_elements_count_gpu)
+        elems_count_gpu = cp.asarray(unique_elements_count, dtype=cp.uint32)
+        atom_coords_gpu = cp.asarray(atom_coordinates_sorted_by_elems, dtype=cp.float32)
+        atmv_gpu = self.backend.bin_atoms_one_slice(atom_coords_gpu, elems_count_gpu)
         return atmv_gpu
 
     def slice_gen(self, slice_atom_histograms):
-        aslice = self.backend.slice_gen(slice_atom_histograms)
+        aslice = self.backend.make_one_slice(slice_atom_histograms)
         return aslice
 
 
@@ -57,12 +57,12 @@ class SliceBuilderBatch(SliceBuilderBatchBase):
         # logger.info(f"cupy mempool limit: {cupy_mempool.get_limit()/1024**2:.2f}MB")
         super(SliceBuilderBatch, self).__init__(unique_elements, n_slices, n1, n2, dz, pixel_size)
         scattering_factors = cp.asarray(self.scattering_factors, dtype=cp.float32)
-        self.backend = slice_kernel_cuda.SliceBuilderBatch(scattering_factors, n_slices, n1, n2, dz, pixel_size)
+        self.backend = slice_kernel_cuda.MultiSlicesBuilder(scattering_factors, n_slices, n1, n2, dz, pixel_size)
 
     def bin_atoms(self, atom_coordinates_sorted_by_elems, unique_elements_count):
         elems_count_gpu = cp.asarray(unique_elements_count, dtype=cp.uint32)
         atom_coords_gpu = cp.asarray(atom_coordinates_sorted_by_elems, dtype=cp.float32)
-        atmv_gpu = self.backend.bin_atoms(atom_coords_gpu, elems_count_gpu)
+        atmv_gpu = self.backend.bin_atoms_multi_slices(atom_coords_gpu, elems_count_gpu)
         return atmv_gpu
 
     def add_water(self, atom_histograms_gpu):
@@ -81,7 +81,7 @@ class SliceBuilderBatch(SliceBuilderBatchBase):
         return atom_histograms_gpu
 
     def slice_gen_batch(self, atom_histograms):
-        slices = self.backend.slice_gen_batch(atom_histograms)
+        slices = self.backend.make_multi_slices(atom_histograms)
         # logger.info("cupy allocated: {:.2f}MB".format(cupy_mempool.total_bytes()/1024**2))
         # logger.info("cupy used total: {:.2f}MB".format(cupy_mempool.used_bytes()/1024**2))
         return slices

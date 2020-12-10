@@ -21,7 +21,6 @@ def get_single_slice_builder():
         _, n1, n2 = finalize_slice_size(tuple(mol.space), pixel_size, 5.0, lateral_size, 1)
         sb = single_slice_builder(unique_elements, n1, n2, pixel_size)
         atmv = sb.bin_atoms_within_slice(mol.coordinates, unique_elements_counts)
-
         return sb.slice_gen(atmv)
 
     return build_slice_single
