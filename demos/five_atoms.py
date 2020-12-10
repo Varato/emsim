@@ -47,7 +47,7 @@ mol = emsim.atoms.AtomList(
 mol = emsim.atoms.centralize(mol)
 
 
-emsim.config.set_backend('numpy')
+emsim.config.set_backend('cuda')
 image_shape_ = (512, 512)
 pixel_size_ = 50/512
 
@@ -60,8 +60,8 @@ aslice = sb(mol, pixel_size=pixel_size_, dz=3, lateral_size=image_shape_, n_slic
 
 wave = wp.init_wave(microscope.electron_dose)
 wave = wp.slice_transmit(wave, aslice)
-wave = symmetric_band_limit(wave)
-line = wave[512//2,:]
+# wave = symmetric_band_limit(wave)
+line = assure_numpy_array(wave[512//2,:])
 wave = wp.lens_propagate(wave, microscope.cs_mm, microscope.defocus, microscope.aperture)
 
 image = make_intensity(wave)

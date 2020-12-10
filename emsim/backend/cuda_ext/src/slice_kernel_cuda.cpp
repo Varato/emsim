@@ -148,7 +148,7 @@ private:
 
 
 
-PYBIND11_MODULE(dens_kernel_cuda, m) {
+PYBIND11_MODULE(slice_kernel_cuda, m) {
     py::class_<SliceBuilderCuPyWrapper>(m, "SliceBuilder", py::module_local())
             .def(py::init<py::object, int, int, float>(),
                  py::arg("scattering_factors"), py::arg("n1"), py::arg("n1"), py::arg("pixel_size"))

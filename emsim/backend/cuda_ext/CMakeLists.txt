@@ -26,9 +26,9 @@ set_target_properties(libWaveCuda PROPERTIES
 
 
 # --- dens_kernel_cuda ---
-pybind11_add_module(dens_kernel_cuda src/dens_kernel_cuda.cpp)
-target_link_libraries(dens_kernel_cuda PRIVATE libSliceCuda)
-set_target_properties(dens_kernel_cuda PROPERTIES
+pybind11_add_module(slice_kernel_cuda src/slice_kernel_cuda.cpp)
+target_link_libraries(slice_kernel_cuda PRIVATE libSliceCuda)
+set_target_properties(slice_kernel_cuda PROPERTIES
         CUDA_ARCHITECTURES 61
         CUDA_SEPARABLE_COMPILATION ON)
 

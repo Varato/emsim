@@ -8,7 +8,7 @@ except ImportError:
     raise ImportError("the module require cupy")
 
 try:
-    from .cuda_ext import dens_kernel_cuda
+    from .cuda_ext import slice_kernel_cuda
 except ImportError:
     raise ImportError("cuda extension cannot be found. Compile it first")
 
@@ -35,7 +35,7 @@ class SliceBuilder(SliceBuilderBase):
         logger.debug("using cuda SliceBuilder")
         super(SliceBuilder, self).__init__(unique_elements, n1, n2, pixel_size)
         scattering_factors = cp.asarray(self.scattering_factors, dtype=cp.float32)
-        self.backend = dens_kernel_cuda.SliceBuilder(scattering_factors, n1, n2, pixel_size)
+        self.backend = slice_kernel_cuda.SliceBuilder(scattering_factors, n1, n2, pixel_size)
 
     def bin_atoms_within_slice(self, atom_coordinates_sorted_by_elems, unique_elements_count):
         atom_coordinates_sorted_by_elems_gpu = assure_cupy_array(atom_coordinates_sorted_by_elems)
@@ -57,7 +57,7 @@ class SliceBuilderBatch(SliceBuilderBatchBase):
         # logger.info(f"cupy mempool limit: {cupy_mempool.get_limit()/1024**2:.2f}MB")
         super(SliceBuilderBatch, self).__init__(unique_elements, n_slices, n1, n2, dz, pixel_size)
         scattering_factors = cp.asarray(self.scattering_factors, dtype=cp.float32)
-        self.backend = dens_kernel_cuda.SliceBuilderBatch(scattering_factors, n_slices, n1, n2, dz, pixel_size)
+        self.backend = slice_kernel_cuda.SliceBuilderBatch(scattering_factors, n_slices, n1, n2, dz, pixel_size)
 
     def bin_atoms(self, atom_coordinates_sorted_by_elems, unique_elements_count):
         elems_count_gpu = cp.asarray(unique_elements_count, dtype=cp.uint32)
