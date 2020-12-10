@@ -10,12 +10,12 @@
 
 namespace emsim {
 
-    class MultiSliceBuilder {
+    class MultiSlicesBuilder {
     public:
-        MultiSliceBuilder(float *scatteringFactors, int nElems,
+        MultiSlicesBuilder(float *scatteringFactors, int nElems,
                           int nSlices, int n1, int n2, float dz, float pixelSize);
 
-        ~MultiSliceBuilder();
+        ~MultiSlicesBuilder();
 
         void makeMultiSlices(float atomHist[], float output[]);
 

@@ -22,7 +22,7 @@ def build_one_slice(mol: atm.AtomList, pixel_size: float,
     return sb.make_one_slice(atmv)
 
 
-def build_slices_batch(mol: atm.AtomList,
+def build_multi_slices(mol: atm.AtomList,
                        pixel_size: float,
                        dz: float,
                        lateral_size: Optional[Union[int, Tuple[int, int]]] = None,

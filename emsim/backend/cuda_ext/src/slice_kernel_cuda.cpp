@@ -188,7 +188,7 @@ PYBIND11_MODULE(slice_kernel_cuda, m) {
                  py::arg("atom_histograms_one_slice"));
 
 
-    py::class_<MultiSlicesBuilderCuPyWrapper>(m, "MultiSliceBuilder", py::module_local())
+    py::class_<MultiSlicesBuilderCuPyWrapper>(m, "MultiSlicesBuilder", py::module_local())
             .def(py::init<py::object, int, int, int, float, float>(),
                  py::arg("scattering_factors"),
                  py::arg("n_slices"), py::arg("n1"), py::arg("n2"),
