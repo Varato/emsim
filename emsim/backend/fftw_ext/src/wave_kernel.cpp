@@ -16,7 +16,7 @@ typedef py::array_t<std::complex<float>, py::array::c_style | py::array::forceca
 typedef float fftwf_complex[2];
 
 
-PYBIND11_MODULE(em_kernel, m) {
+PYBIND11_MODULE(wave_kernel, m) {
     py::class_<emsim::WavePropagator>(m, "WavePropagator", py::module_local())
         .def(py::init<int, int, float, float, float>(),
              py::arg("n1"), py::arg("n2"), py::arg("pixel_size"),

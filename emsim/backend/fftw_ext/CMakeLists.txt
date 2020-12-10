@@ -50,8 +50,8 @@ else()
     target_link_libraries(libWave PUBLIC FFTW::FloatThreads)
 endif(WIN32)
 
-pybind11_add_module(dens_kernel src/dens_kernel.cpp)
-target_link_libraries(dens_kernel PRIVATE libSlice)
+pybind11_add_module(slice_kernel src/slice_kernel.cpp)
+target_link_libraries(slice_kernel PRIVATE libSlice)
 
-pybind11_add_module(em_kernel src/em_kernel.cpp)
-target_link_libraries(em_kernel PRIVATE libWave)
+pybind11_add_module(wave_kernel src/wave_kernel.cpp)
+target_link_libraries(wave_kernel PRIVATE libWave)

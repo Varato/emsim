@@ -10,7 +10,7 @@
 
 namespace emsim {
 
-    SliceBuilderBatch::SliceBuilderBatch(float *scatteringFactors, int nElems, int nSlices,
+    MultiSliceBuilder::MultiSliceBuilder(float *scatteringFactors, int nElems, int nSlices,
                                          int n1, int n2, float dz, float pixelSize)
         : m_scatteringFactors(scatteringFactors), m_nElems(nElems), m_nSlices(nSlices),
           m_n1(n1), m_n2(n2), m_n2Half(n2/2+1), m_nPix(n1*n2), m_dz(dz), m_pixelSize(pixelSize)
@@ -18,9 +18,9 @@ namespace emsim {
         m_nPixHalf = m_n1 * m_n2Half;
     }
 
-    SliceBuilderBatch::~SliceBuilderBatch() = default;
+    MultiSliceBuilder::~MultiSliceBuilder() = default;
 
-    void SliceBuilderBatch::sliceGenBatch(float *atomHist, float *output) {
+    void MultiSliceBuilder::makeMultiSlices(float *atomHist, float *output) {
         fftwf_plan p, ip;
         fftwf_complex *data;
 

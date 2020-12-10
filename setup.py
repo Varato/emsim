@@ -73,8 +73,8 @@ class CMakeBuild(build_ext):
             self.copy_file(source_path, dest_path)
 
 
-ext_modules = [CMakeExtension('emsim.backend.fftw_ext.dens_kernel'),
-               CMakeExtension('emsim.backend.fftw_ext.em_kernel'),
+ext_modules = [CMakeExtension('emsim.backend.fftw_ext.slice_kernel'),
+               CMakeExtension('emsim.backend.fftw_ext.wave_kernel'),
                CMakeExtension('emsim.backend.cuda_ext.slice_kernel_cuda'),
                CMakeExtension('emsim.backend.cuda_ext.wave_kernel_cuda')]
 

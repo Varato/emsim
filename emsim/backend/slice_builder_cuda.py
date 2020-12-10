@@ -46,7 +46,7 @@ class MultiSlicesBuilder(MultiSlicesBuilderBase):
     def __init__(self, unique_elements: List[int],
                  n_slices: int, n1: int, n2: int,
                  dz: float, pixel_size: float):
-        logger.debug("using cuda SliceBuilderBatch")
+        logger.debug("using cuda MultiSlicesBuilder")
         logger.debug(f"cupy mempool limit: {cupy_mempool.get_limit()/1024**2:.2f}MB")
         super(MultiSlicesBuilder, self).__init__(unique_elements, n_slices, n1, n2, dz, pixel_size)
         scattering_factors = cp.asarray(self.scattering_factors, dtype=cp.float32)

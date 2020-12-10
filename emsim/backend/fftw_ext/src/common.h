@@ -24,7 +24,7 @@ namespace py = pybind11;
 
 template<typename T>
 py::array_t<T> make2dArray(size_t n1, size_t n2) {
-    // construct row majoc (c contiguous) numpy array
+    // construct row major (c contiguous) numpy array
     py::buffer_info info (
             nullptr,
             sizeof(T),

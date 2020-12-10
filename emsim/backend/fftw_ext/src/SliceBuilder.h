@@ -6,21 +6,23 @@
 #define EMSIM_SLICEBUILDER_H
 
 #include <fftw3.h>
+#include <tuple>
 
 namespace emsim {
-    //TODO: SliceBuilder
-    class SliceBuilderBatch {
+
+    class MultiSliceBuilder {
     public:
-        SliceBuilderBatch(float *scatteringFactors, int nElems,
+        MultiSliceBuilder(float *scatteringFactors, int nElems,
                           int nSlices, int n1, int n2, float dz, float pixelSize);
 
-        ~SliceBuilderBatch();
+        ~MultiSliceBuilder();
 
-        void sliceGenBatch(float atomHist[], float output[]);
+        void makeMultiSlices(float atomHist[], float output[]);
 
-//        void binAtoms(float const atomCoordinates[], unsigned nAtoms,
-//                      uint32_t const uniqueElemsCount[],
-//                      float output[]) const;
+        // count on numpy to bin atoms
+        // void binAtoms(float const atomCoordinates[], unsigned nAtoms,
+        //                 uint32_t const uniqueElemsCount[],
+        //                 float output[]) const;
 
         int getNSlice() const {return m_nSlices;}
         int getN1() const {return m_n1;}
@@ -35,6 +37,12 @@ namespace emsim {
         /* SliceBuilder does not own the following data */
         float *m_scatteringFactors;  // pre-computed scattering factors for all elements needed
         int m_nElems;                // the length of m_uniqueElements
+
+        /*
+         * m_scatteringFactors is a c-contiguous 3D array in logical dimension (m_nElems, m_n1, m_n2 / 2 + 1).
+         * The last dimension is halved because CUFFT_R2C is used here, so that we only need halved array in Fourier
+         * space.
+         * */
     };
 }
 
