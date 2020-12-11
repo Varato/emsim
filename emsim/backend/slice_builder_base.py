@@ -163,6 +163,18 @@ class MultiSlicesBuilderBase:
         pass
 
 
+def _symmetric_bandlimit_real(arr):
+    # arr (n0, n1, n2)
+    n1, n2 = arr.shape[-2:]
+    r = min(n1, n2) // 2
+    kx, ky = np.meshgrid(np.arange(-n1//2, -n1//2 + n1), np.arange(-n2//2, -n2//2 + n2))
+    k2 = kx**2 + ky**2
+    fil = np.where(k2 <= r**2, 1, 0)
+    fil = np.fft.ifftshift(fil)  # (n1, n2)
+    ft = np.fft.rfft2(arr, axes=(-2,-1), s=(n1, n2))
+    return np.fft.irfft2(ft * fil[:, :n2//2+1], s=(n1, n2)) # (n0, n1, n2)
+
+
 # ---- numpy-based functions for binning atoms ----
 # used in slice_builder_numpy and slice_builder_fftw
 def _bin_atoms_multi_slices(atom_coordinates_sorted_by_elems, unique_elements_count, n0, n1, n2, d0, d1, d2):

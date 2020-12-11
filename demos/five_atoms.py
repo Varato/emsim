@@ -37,7 +37,7 @@ mol = emsim.atoms.AtomList(
 
 mol = emsim.atoms.centralize(mol)
 
-emsim.config.set_backend('numpy')
+emsim.config.set_backend('cuda')
 image_shape_ = (512, 512)
 pixel_size_ = 50/512
 

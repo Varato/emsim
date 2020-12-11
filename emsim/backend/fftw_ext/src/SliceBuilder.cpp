@@ -16,6 +16,10 @@ namespace emsim {
           m_n1(n1), m_n2(n2), m_n2Half(n2/2+1), m_nPix(n1*n2), m_dz(dz), m_d1(d1), m_d2(d2)
     {
         m_nPixHalf = m_n1 * m_n2Half;
+        m_dfx = 1.0f / m_d1 / (float)m_n1;
+        m_dfy = 1.0f / m_d2 / (float)m_n2;
+        //Nyquist frequency
+        m_fmax = 0.5f / (m_d1 >= m_d2 ? m_d1 : m_d2);
     }
 
     MultiSlicesBuilder::~MultiSlicesBuilder() = default;
@@ -58,18 +62,33 @@ namespace emsim {
             for (int ii = 0; ii < m_nPixHalf; ++ii) {
                 float slices_fourier_real = 0;
                 float slices_fourier_imag = 0;
+                int i = ii / m_n2Half;
+                int j = ii % m_n2Half;
 
-                for (int k = 0; k < m_nElems; ++k){
-                    float phase_real = data[k*m_nSlices*m_nPixHalf + s*m_nPixHalf + ii][0];
-                    float phase_imag = data[k*m_nSlices*m_nPixHalf + s*m_nPixHalf + ii][1];
-                    float scat_fac = m_scatteringFactors[k*m_nPixHalf + ii];
-                    slices_fourier_real += phase_real * scat_fac;
-                    slices_fourier_imag += phase_imag * scat_fac;
+                int is = i + (i<(m_n1+1)/2? m_n1/2: -(m_n1+1)/2);
+                int js = j + (j<(m_n2+1)/2? m_n2/2: -(m_n2+1)/2);
+                float fx = ((float)is - floorf((float)m_n1/2.0f)) * m_dfx;
+                float fy = ((float)js - floorf((float)m_n2/2.0f)) * m_dfy;
+                float f2 = fx*fx + fy*fy;
+
+                // symmetric filtering by f_max
+                if (f2 <= m_fmax * m_fmax) {
+                    for (int k = 0; k < m_nElems; ++k){
+                        float phase_real = data[k*m_nSlices*m_nPixHalf + s*m_nPixHalf + ii][0];
+                        float phase_imag = data[k*m_nSlices*m_nPixHalf + s*m_nPixHalf + ii][1];
+                        float scat_fac = m_scatteringFactors[k*m_nPixHalf + ii];
+                        slices_fourier_real += phase_real * scat_fac;
+                        slices_fourier_imag += phase_imag * scat_fac;
+                    }
+
+                    slices_fourier_real /= (float)m_nPix;
+                    slices_fourier_imag /= (float)m_nPix;
+                    data[s*m_nPixHalf + ii][0] = slices_fourier_real;
+                    data[s*m_nPixHalf + ii][1] = slices_fourier_imag;
+                } else {
+                    data[s*m_nPixHalf + ii][0] = 0.0f;
+                    data[s*m_nPixHalf + ii][1] = 0.0f;
                 }
-                slices_fourier_real /= (float)m_nPix;
-                slices_fourier_imag /= (float)m_nPix;
-                data[s*m_nPixHalf + ii][0] = slices_fourier_real;
-                data[s*m_nPixHalf + ii][1] = slices_fourier_imag;
             }
         }
         fftwf_execute(ip);

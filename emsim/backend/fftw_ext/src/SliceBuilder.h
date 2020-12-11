@@ -34,6 +34,7 @@ namespace emsim {
         float m_dz;          // slice thickness
         float m_d1, m_d2;    // pixel size of the slices
         int m_n2Half, m_nPix, m_nPixHalf;
+        float m_dfx, m_dfy, m_fmax;
 
         /* SliceBuilder does not own the following data */
         float *m_scatteringFactors;  // pre-computed scattering factors for all elements needed

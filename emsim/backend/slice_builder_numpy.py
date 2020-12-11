@@ -3,19 +3,9 @@ import numpy as np
 from numpy.fft import rfft2, irfft2
 import logging
 
-from .slice_builder_base import OneSliceBuilderBase, MultiSlicesBuilderBase
+from .slice_builder_base import OneSliceBuilderBase, MultiSlicesBuilderBase, _symmetric_bandlimit_real
 
 logger = logging.getLogger(__name__)
-
-def _symmetric_bandlimit(arr):
-    # arr (n0, n1, n2)
-    n1, n2 = arr.shape[-2:]
-    r = min(n1, n2) // 2
-    kx, ky = np.meshgrid(np.arange(-n1//2, -n1//2 + n1), np.arange(-n2//2, -n2//2 + n2))
-    k2 = kx**2 + ky**2
-    fil = np.where(k2 <= r**2, 1, 0)
-    fil = np.fft.ifftshift(fil)  # (n1, n2)
-    return np.fft.ifft2(np.fft.fft2(arr, axes=(-2,-1)) * fil) # (n0, n1, n2)
 
 
 class OneSliceBuilder(OneSliceBuilderBase):
@@ -31,7 +21,7 @@ class OneSliceBuilder(OneSliceBuilderBase):
         location_phase *= self.scattering_factors                         # (n_elems, n1, n2//2+1)
         aslice = irfft2(np.sum(location_phase, axis=0), s=(self.n1, self.n2))
         if symmetric_bandlimit:
-            aslice = _symmetric_bandlimit(aslice)
+            aslice = _symmetric_bandlimit_real(aslice)
         np.clip(aslice, a_min=1e-7, a_max=None, out=aslice)
         return aslice
 
@@ -49,6 +39,6 @@ class MultiSlicesBuilder(MultiSlicesBuilderBase):
         location_phase *= self.scattering_factors[:, None, :, :]
         slices = irfft2(np.sum(location_phase, axis=0), s=(self.n1, self.n2))
         if symmetric_bandlimit:
-            slices = _symmetric_bandlimit(slices)
+            slices = _symmetric_bandlimit_real(slices)
         np.clip(slices, a_min=1e-7, a_max=None, out=slices)
         return slices

@@ -45,8 +45,11 @@ namespace emsim { namespace cuda {
             fprintf(stderr, "SliceBuilder::sliceGen: CUFFT error: R2C execution failed\n");
         }
 
+        // locationPhase: (nElems, n1, n2//2+1)
+        // scateringFactors: (nElems, n1, n2//2)
         broadCastMul_(locationPhasePtr, m_scatteringFactors,
                      1.0f/(float)m_nPix, m_nElems, 1, m_nPixHalf);
+        
         if (cudaGetLastError() != cudaSuccess) {
             fprintf(stderr, "CUDA error: %s\n", cudaGetErrorString(cudaGetLastError()));
         }
@@ -111,8 +114,11 @@ namespace emsim { namespace cuda {
             fprintf(stderr, "SliceBuilderBatch: CUFFT error: R2C plan executation failed\n");
         }
 
+        // locationPhase: (nElems, nSlices, n1, n2//2+1)
+        // scateringFactors: (nElems, n1, n2//2)
         broadCastMul_(locationPhasePtr, thrust::raw_pointer_cast(m_scatteringFactors),
                      1.0f/(float)m_nPix, m_nElems, m_nSlices, m_nPixHalf);
+        
         if (cudaGetLastError() != cudaSuccess) {
             fprintf(stderr, "SliceBuilderBatch: CUDA error: %s\n", cudaGetErrorString(cudaGetLastError()));
         }

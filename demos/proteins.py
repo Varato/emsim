@@ -6,7 +6,7 @@ import time
 import emsim
 
 
-emsim.config.set_backend("numpy")
+emsim.config.set_backend("fftw")
 
 
 class Molecules(object):

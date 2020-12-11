@@ -23,7 +23,6 @@ namespace emsim { namespace cuda {
 
     void broadCastMul_(cufftComplex *A_d, cufftReal *v_d, cufftReal a, unsigned n0, unsigned n1, unsigned n2);
     void rowReduceSum_(cufftComplex *A_d, unsigned n0, unsigned n1, cufftComplex *output_d);
-
 } }
 
 #endif //EMSIM_SLICEBUILDER_KERNEL_H
