@@ -22,7 +22,7 @@ class OneSliceBuilder(OneSliceBuilderBase):
         aslice = irfft2(np.sum(location_phase, axis=0), s=(self.n1, self.n2))
         if symmetric_bandlimit:
             aslice = _symmetric_bandlimit_real(aslice)
-        np.clip(aslice, a_min=1e-7, a_max=None, out=aslice)
+        np.clip(aslice, a_min=1e-13, a_max=None, out=aslice)
         return aslice
 
 
@@ -40,5 +40,5 @@ class MultiSlicesBuilder(MultiSlicesBuilderBase):
         slices = irfft2(np.sum(location_phase, axis=0), s=(self.n1, self.n2))
         if symmetric_bandlimit:
             slices = _symmetric_bandlimit_real(slices)
-        np.clip(slices, a_min=1e-7, a_max=None, out=slices)
+        np.clip(slices, a_min=1e-13, a_max=None, out=slices)
         return slices

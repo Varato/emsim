@@ -36,9 +36,11 @@ class OneSliceBuilder(OneSliceBuilderBase):
         atmv_gpu = self.backend.bin_atoms_one_slice(atom_coords_gpu, elems_count_gpu)
         return atmv_gpu
 
-    def make_one_slice(self, atom_histograms_one_slice_gpu):
+    def make_one_slice(self, atom_histograms_one_slice_gpu, symmetric_bandlimit: bool = True):
         aslice_gpu = self.backend.make_one_slice(atom_histograms_one_slice_gpu)
-        cp.clip(aslice_gpu, a_min=1e-7, a_max=None, out=aslice_gpu)
+        if symmetric_bandlimit:
+            aslice_gpu = _symmetric_bandlimit_real_cupy(aslice_gpu)
+        cp.clip(aslice_gpu, a_min=1e-13, a_max=None, out=aslice_gpu)
         return aslice_gpu
 
 
@@ -58,11 +60,13 @@ class MultiSlicesBuilder(MultiSlicesBuilderBase):
         atmv_gpu = self.backend.bin_atoms_multi_slices(atom_coords_gpu, elems_count_gpu)
         return atmv_gpu
 
-    def make_multi_slices(self, atom_histograms):
+    def make_multi_slices(self, atom_histograms, symmetric_bandlimit: bool = True):
         slices_gpu = self.backend.make_multi_slices(atom_histograms)
         logger.debug("cupy allocated: {:.2f}MB".format(cupy_mempool.total_bytes()/1024**2))
         logger.debug("cupy used total: {:.2f}MB".format(cupy_mempool.used_bytes()/1024**2))
-        cp.clip(slices_gpu, a_min=1e-7, a_max=None, out=slices_gpu)
+        if symmetric_bandlimit:
+            slices_gpu = _symmetric_bandlimit_real_cupy(slices_gpu)
+        cp.clip(slices_gpu, a_min=1e-13, a_max=None, out=slices_gpu)
         return slices_gpu
 
     def add_water(self, atom_histograms_gpu):
@@ -80,4 +84,17 @@ class MultiSlicesBuilder(MultiSlicesBuilderBase):
             atom_histograms_gpu[idx] += hist
         return atom_histograms_gpu
 
+
+def _symmetric_bandlimit_real_cupy(arr):
+    # return arr
+    # arr (n0, n1, n2)
+    n1, n2 = arr.shape[-2:]
+    r = min(n1, n2) // 2
+    kx, ky = cp.meshgrid(cp.arange(-n1//2, -n1//2 + n1), cp.arange(-n2//2, -n2//2 + n2))
+    k2 = kx**2 + ky**2
+    fil = cp.where(k2 <= r**2, 1., 0.)
+    fil = cp.fft.ifftshift(fil).astype(cp.float32)  # (n1, n2)
+    ft = cp.fft.rfft2(arr, axes=(-2,-1), s=(n1, n2))
+    ret = cp.fft.irfft2(ft * fil[:, :n2//2+1], s=(n1, n2)) # (n0, n1, n2)
+    return ret
     
