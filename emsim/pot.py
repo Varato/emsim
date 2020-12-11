@@ -17,9 +17,9 @@ def build_one_slice(mol: atm.AtomList, pixel_size: float,
 
     mol, unique_elements, unique_elements_counts = atm.sort_elements_and_count(mol)
     _, n1, n2 = finalize_slice_size(tuple(mol.space), pixel_size, 5.0, lateral_size, 1)
-    sb = one_slice_builder(unique_elements, n1, n2, pixel_size)
-    atmv = sb.bin_atoms_one_slice(mol.coordinates, unique_elements_counts)
-    return sb.make_one_slice(atmv)
+    builder = one_slice_builder(unique_elements, n1, n2, pixel_size)
+    atmv = builder.bin_atoms_one_slice(mol.coordinates, unique_elements_counts)
+    return builder.make_one_slice(atmv)
 
 
 def build_multi_slices(mol: atm.AtomList,
@@ -34,11 +34,11 @@ def build_multi_slices(mol: atm.AtomList,
         must_include_elems.extend([1, 8])
     mol, unique_elements, unique_elements_counts = atm.sort_elements_and_count(mol, must_include_elems)
     n_slices, n1, n2 = finalize_slice_size(tuple(mol.space), pixel_size, dz, lateral_size, n_slices)
-    sb = multi_slices_builder(unique_elements, n_slices, n1, n2, dz, pixel_size)
-    atmv = sb.bin_atoms_multi_slices(mol.coordinates, unique_elements_counts)
+    builder = multi_slices_builder(unique_elements, n_slices, n1, n2, dz, pixel_size)
+    atmv = builder.bin_atoms_multi_slices(mol.coordinates, unique_elements_counts)
     if add_water:
-        atmv = sb.add_water(atmv)
-    return sb.make_multi_slices(atmv)
+        atmv = builder.add_water(atmv)
+    return builder.make_multi_slices(atmv)
 
 
 def finalize_slice_size(mol_space: Tuple[int, int, int],

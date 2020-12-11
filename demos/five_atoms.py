@@ -32,7 +32,7 @@ def symmetric_band_limit(arr):
     return np.fft.ifft2(np.fft.fft2(arr) * fil)
 
 
-microscope = emsim.em.EM(
+tem = emsim.tem.TEM(
     electron_dose=100,
     beam_energy_kev=200,
     cs_mm=1.3,
@@ -46,20 +46,19 @@ mol = emsim.atoms.AtomList(
 
 mol = emsim.atoms.centralize(mol)
 
-emsim.config.set_backend('fftw')
+emsim.config.set_backend('cuda')
 image_shape_ = (512, 512)
 pixel_size_ = 50/512
 
-wp = emsim.wave.get_wave_propagator(
-    shape=image_shape_, pixel_size=pixel_size_, beam_energy_kev=microscope.beam_energy_kev)
+propagator = tem.get_wave_propagator(wave_shape=image_shape_, pixel_size=pixel_size_)
 
 aslice = emsim.pot.build_one_slice(mol, pixel_size=pixel_size_, lateral_size=image_shape_)
 
-wave = wp.init_wave(microscope.electron_dose)
-wave = wp.slice_transmit(wave, aslice)
+wave = propagator.init_wave()
+wave = propagator.slice_transmit(wave, aslice)
 # wave = symmetric_band_limit(wave)
 line = assure_numpy_array(wave[512//2,:])
-wave = wp.lens_propagate(wave, microscope.cs_mm, microscope.defocus, microscope.aperture)
+wave = propagator.lens_propagate(wave)
 
 image = make_intensity(wave)
 image_line = image[512//2,:]

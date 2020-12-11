@@ -1,13 +1,17 @@
 import math
 import matplotlib.pyplot as plt
+import numpy as np
 import time
 
 import emsim
 
 
+emsim.config.set_backend("cuda")
+
+
 class Molecules(object):
     def __init__(self):
-        self.pdbs = ["7ahl", "4bed", "4ear", "1fat"]
+        self.pdbs = ["7ahl", "5l54", "4ear", "1fat"]
 
     def __iter__(self):
         pdb_data_dir = emsim.io.data_dir.get_pdb_data_dir_from_config()
@@ -15,7 +19,7 @@ class Molecules(object):
             pdb_file = emsim.utils.pdb.retrieve_pdb_file(pdb_code, pdb_data_dir)
             mol = emsim.utils.pdb.build_biological_unit(pdb_file)
             mol.label = pdb_code
-            quat = emsim.utils.rot.random_uniform_quaternions(1)
+            quat = np.array([1,0,0,0], dtype=np.float32)  #emsim.utils.rot.random_uniform_quaternions(1)
             yield emsim.atoms.rotate(mol, quat, set_center=True)
 
 
@@ -28,7 +32,7 @@ class ResultHandler:
         self.images.append(result)
 
 
-microscope = emsim.em.EM(
+microscope = emsim.tem.TEM(
     electron_dose=20,
     beam_energy_kev=200,
     cs_mm=1.3,
@@ -38,7 +42,7 @@ microscope = emsim.em.EM(
 
 image_pipe = emsim.pipe.Pipe(
     microscope=microscope,
-    resolution=3,
+    resolution=2,
     slice_thickness=2,
     roi=256,
     add_water=False,
@@ -47,7 +51,6 @@ image_pipe = emsim.pipe.Pipe(
 
 if __name__ == "__main__":
     print(str(image_pipe))
-    emsim.config.set_backend("cuda")
 
     result_handler = ResultHandler()
     sim = emsim.simulator.EMSim(image_pipe, Molecules(), result_handler)

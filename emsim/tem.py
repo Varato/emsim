@@ -1,7 +1,9 @@
+from typing import Tuple, Union
 import numpy as np
 from numpy.fft import fftshift, ifftshift, fft2, ifft2
 
 from .physics import electron_wave_length_angstrom, mtf, aberration, electron_relativity_gamma
+from . import wave
 
 
 class Specimen(object):
@@ -31,7 +33,7 @@ class Specimen(object):
             raise StopIteration
 
 
-class EM(object):
+class TEM(object):
     def __init__(self, electron_dose: float, beam_energy_kev: float, cs_mm: float, defocus: float, aperture: float):
         self.electron_dose = electron_dose
         self.beam_energy_kev = beam_energy_kev
@@ -47,20 +49,33 @@ class EM(object):
     def wave_length(self):
         return electron_wave_length_angstrom(self.beam_energy_kev)
 
-    @property
-    def mtf_function(self):
+    def get_mtf_function(self):
         return mtf(self.wave_length, self.cs_mm, self.defocus)
 
-    @property
-    def ctf_function(self):
+    def get_ctf_function(self):
         return lambda k: -mtf(self.wave_length, self.cs_mm, self.defocus)(k).imag
 
-    @property
-    def aberration_function(self):
+    def get_aberration_function(self):
         return aberration(self.wave_length, self.cs_mm, self.defocus)
 
+    def get_wave_propagator(self, wave_shape: Union[int, Tuple[int, int]], pixel_size: float):
+        """
+        Get a wave propagator instance by giving wave_shape and pixel_size.
+
+        Parameters
+        ----------
+        wave_shape: Union[int, Tuple[int, int]]
+        pixel_size: float
+
+        Returns
+        -------
+        emsim.wave.WavePropagator instance.
+        """
+        return wave.WavePropagator(wave_shape, pixel_size, self.beam_energy_kev, 
+            self.electron_dose, self.cs_mm, self.defocus, self.aperture)
+
     def __repr__(self):
-        return f"{{EM | beam_energy = {self.beam_energy_kev:.2f}keV, " \
+        return f"{{TEM | beam_energy = {self.beam_energy_kev:.2f}keV, " \
                f"cs = {self.cs_mm:.2f}mm, " \
                f"defocus = {0.1*self.defocus:.2f}nm, " \
                f"aperture = {self.aperture/np.pi * 180:.2f} deg}}"

@@ -1,14 +1,14 @@
 from typing import Tuple, Optional, Union
 
 from . import pot
-from . import em
+from . import tem
 from . import wave
 from . import atoms as atm
 
 
 class Pipe(object):
     def __init__(self,
-                 microscope: em.EM,
+                 microscope: tem.TEM,
                  resolution: float,
                  slice_thickness: float,
                  roi: Optional[Union[int, Tuple[int, int]]] = None,
@@ -28,9 +28,11 @@ class Pipe(object):
             self.roi = roi
         self.n_slices = n_slices
 
-        self.wave_propagator = wave.get_wave_propagator(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
-
-
+    @property
+    def wave_propagator(self):
+        # dynamically load wave propagator based on backend
+        return wave.get_raw_wave_propagator(self.roi, self._pixel_size, self.microscope.beam_energy_kev)
+    
     @property
     def resolution(self):
         return self._resolution
@@ -48,7 +50,6 @@ class Pipe(object):
                                         dz=self.slice_thickness,
                                         lateral_size=self.roi,
                                         add_water=self.add_water)
-
         init_wave = self.wave_propagator.init_wave(self.microscope.electron_dose)
         exit_wave = self.wave_propagator.multislice_propagate(init_wave, slices, self.slice_thickness)
         return exit_wave
@@ -80,6 +81,7 @@ class Pipe(object):
         exit_wave = self.get_exit_wave(mol)
         image_wave = self.lens_propagate(exit_wave)
         image = image_wave.real ** 2 + image_wave.imag ** 2
+        
         return image
 
     def __repr__(self):
