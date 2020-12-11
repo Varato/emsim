@@ -24,11 +24,11 @@ cupy_mempool = cp.get_default_memory_pool()
 class OneSliceBuilder(OneSliceBuilderBase):
     def __init__(self, unique_elements: List[int], 
                  n1: int, n2: int,
-                 pixel_size: float):
+                 d1: float, d2: float):
         logger.debug("using cuda OneSliceBuilder")
-        super(OneSliceBuilder, self).__init__(unique_elements, n1, n2, pixel_size)
+        super(OneSliceBuilder, self).__init__(unique_elements, n1, n2, d1, d2)
         scattering_factors = cp.asarray(self.scattering_factors, dtype=cp.float32)
-        self.backend = slice_kernel_cuda.OneSliceBuilder(scattering_factors, n1, n2, pixel_size)
+        self.backend = slice_kernel_cuda.OneSliceBuilder(scattering_factors, n1, n2, d1, d2)
 
     def bin_atoms_one_slice(self, atom_coordinates_sorted_by_elems, unique_elements_count):
         elems_count_gpu = cp.asarray(unique_elements_count, dtype=cp.uint32)
@@ -45,12 +45,12 @@ class OneSliceBuilder(OneSliceBuilderBase):
 class MultiSlicesBuilder(MultiSlicesBuilderBase):
     def __init__(self, unique_elements: List[int],
                  n_slices: int, n1: int, n2: int,
-                 dz: float, pixel_size: float):
+                 dz: float, d1: float, d2: float):
         logger.debug("using cuda MultiSlicesBuilder")
         logger.debug(f"cupy mempool limit: {cupy_mempool.get_limit()/1024**2:.2f}MB")
-        super(MultiSlicesBuilder, self).__init__(unique_elements, n_slices, n1, n2, dz, pixel_size)
+        super(MultiSlicesBuilder, self).__init__(unique_elements, n_slices, n1, n2, dz, d1, d2)
         scattering_factors = cp.asarray(self.scattering_factors, dtype=cp.float32)
-        self.backend = slice_kernel_cuda.MultiSlicesBuilder(scattering_factors, n_slices, n1, n2, dz, pixel_size)
+        self.backend = slice_kernel_cuda.MultiSlicesBuilder(scattering_factors, n_slices, n1, n2, dz, d1, d2)
 
     def bin_atoms_multi_slices(self, atom_coordinates_sorted_by_elems, unique_elements_count):
         elems_count_gpu = cp.asarray(unique_elements_count, dtype=cp.uint32)
@@ -68,7 +68,7 @@ class MultiSlicesBuilder(MultiSlicesBuilderBase):
     def add_water(self, atom_histograms_gpu):
         vacs = cp.prod(cp.where(atom_histograms_gpu == 0, True, False), axis=0)
         # average number of water molecules in a voxel
-        vox_wat_num = water_num_dens * self.pixel_size * self.pixel_size * self.dz
+        vox_wat_num = water_num_dens * self.d1 * self.d2 * self.dz
         box = (self.n_slice, self.n1, self.n2)
 
         oxygens = cp.where(vacs, cp.random.poisson(vox_wat_num, box), 0).astype(cp.int)

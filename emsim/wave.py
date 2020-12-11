@@ -4,22 +4,22 @@ from . import config
 
 
 # dynamically get the backend wave propagator
-def get_raw_wave_propagator(wave_shape: Union[int, Tuple[int, int]], pixel_size: float, beam_energy_kev: float):
+def get_raw_wave_propagator(wave_shape: Union[int, Tuple[int, int]], pixel_size: Union[float, Tuple[float, float]], beam_energy_kev: float):
+    
     if type(wave_shape) is int:
-        wave_shape = (wave_shape, wave_shape)
-    elif type(wave_shape) is tuple:
-        pass
-    else:
-        raise ValueError("shape of wave must be a tuple of ints or an int.")
+        wave_shape = (wave_shape, )*2
+    if type(pixel_size) is float:
+        pixel_size = (pixel_size, )*2
+    
     backend = config.get_current_backend()
-    wave_propagator = backend.wave_propagator(wave_shape, pixel_size, beam_energy_kev)
+    wave_propagator = backend.wave_propagator(wave_shape[0], wave_shape[1], pixel_size[0], pixel_size[1], beam_energy_kev)
     return wave_propagator
 
 
 # the frontend propagator
 class WavePropagator:
-    def __init__(self, wave_shape: Union[int, Tuple[int, int]], pixel_size: float, beam_energy_kev: float,
-                 electron_dose: float, cs_mm: float, defocus: float, aperture: float):
+    def __init__(self, wave_shape: Union[int, Tuple[int, int]], pixel_size: Union[float, Tuple[float, float]],
+                 beam_energy_kev: float, electron_dose: float, cs_mm: float, defocus: float, aperture: float):
 
         self.electron_dose = electron_dose
         self.cs_mm = cs_mm

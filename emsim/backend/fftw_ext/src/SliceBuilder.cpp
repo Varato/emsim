@@ -11,9 +11,9 @@
 namespace emsim {
 
     MultiSlicesBuilder::MultiSlicesBuilder(float *scatteringFactors, int nElems, int nSlices,
-                                         int n1, int n2, float dz, float pixelSize)
+                                         int n1, int n2, float dz, float d1, float d2)
         : m_scatteringFactors(scatteringFactors), m_nElems(nElems), m_nSlices(nSlices),
-          m_n1(n1), m_n2(n2), m_n2Half(n2/2+1), m_nPix(n1*n2), m_dz(dz), m_pixelSize(pixelSize)
+          m_n1(n1), m_n2(n2), m_n2Half(n2/2+1), m_nPix(n1*n2), m_dz(dz), m_d1(d1), m_d2(d2)
     {
         m_nPixHalf = m_n1 * m_n2Half;
     }

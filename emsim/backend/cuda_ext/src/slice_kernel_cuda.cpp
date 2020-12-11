@@ -82,12 +82,12 @@ py::object binAtomsMultiSlicesCupyWrapper(py::object const &atomCoordinates,
  */
 class OneSliceBuilderCuPyWrapper {
 public:
-    OneSliceBuilderCuPyWrapper(py::object scatteringFactor, int n1, int n2, float pixelSize)
+    OneSliceBuilderCuPyWrapper(py::object scatteringFactor, int n1, int n2, float d1, float d2)
         : m_scatteringFactors(std::move(scatteringFactor)), m_n1(n1), m_n2(n2)
     {
         uintptr_t scatFacPtr = cupyGetMemPtr(m_scatteringFactors);
         m_nElems = cupyGetShape(m_scatteringFactors, 0);
-        m_sb = std::make_unique<emsim::cuda::OneSliceBuilder>((float *)scatFacPtr, m_nElems, m_n1, m_n2, pixelSize);
+        m_osb = std::make_unique<emsim::cuda::OneSliceBuilder>((float *)scatFacPtr, m_nElems, m_n1, m_n2, d1, d2);
         m_cupy = py::module::import("cupy");
     }
 
@@ -101,7 +101,7 @@ public:
 
         unsigned nAtoms = cupyGetShape(atomCoordinates, 0);
         py::gil_scoped_release release;
-        m_sb->binAtomsOneSlice((float *)coordPtr, nAtoms, (uint32_t *)elemCntPtr, (float *)outPtr);
+        m_osb->binAtomsOneSlice((float *)coordPtr, nAtoms, (uint32_t *)elemCntPtr, (float *)outPtr);
         py::gil_scoped_acquire acquire;
         
         return output;
@@ -116,7 +116,7 @@ public:
         uintptr_t outPtr = cupyGetMemPtr(output);
 
         py::gil_scoped_release release;
-        m_sb->makeOneSlice((float *)slcAtomHistPtr, (float *)outPtr);
+        m_osb->makeOneSlice((float *)slcAtomHistPtr, (float *)outPtr);
         py::gil_scoped_acquire acquire;
         return output;
     };
@@ -124,7 +124,7 @@ private:
     int m_n1, m_n2, m_nElems;
     py::object m_scatteringFactors;  // to keep this py object alive by holding a reference.
     py::object m_cupy;
-    std::unique_ptr<emsim::cuda::OneSliceBuilder> m_sb;
+    std::unique_ptr<emsim::cuda::OneSliceBuilder> m_osb;
 };
 
 
@@ -133,12 +133,12 @@ private:
  */
 class MultiSlicesBuilderCuPyWrapper {
 public:
-    MultiSlicesBuilderCuPyWrapper(py::object scatteringFactors, int nSlice, int n1, int n2, float dz, float pixelSize)
+    MultiSlicesBuilderCuPyWrapper(py::object scatteringFactors, int nSlice, int n1, int n2, float dz, float d1, float d2)
         : m_scatteringFactors(std::move(scatteringFactors)), m_nSlice(nSlice), m_n1(n1), m_n2(n2)
     {
         uintptr_t scatFacPtr = cupyGetMemPtr(m_scatteringFactors);
         m_nElems = cupyGetShape(m_scatteringFactors, 0);
-        m_msb = std::make_unique<emsim::cuda::MultiSlicesBuilder>((float *)scatFacPtr, m_nElems, nSlice, m_n1, m_n2, dz, pixelSize);
+        m_msb = std::make_unique<emsim::cuda::MultiSlicesBuilder>((float *)scatFacPtr, m_nElems, nSlice, m_n1, m_n2, dz, d1, d2);
         m_cupy = py::module::import("cupy");
     }
 
@@ -178,8 +178,8 @@ private:
 
 PYBIND11_MODULE(slice_kernel_cuda, m) {
     py::class_<OneSliceBuilderCuPyWrapper>(m, "OneSliceBuilder", py::module_local())
-            .def(py::init<py::object, int, int, float>(),
-                 py::arg("scattering_factors"), py::arg("n1"), py::arg("n1"), py::arg("pixel_size"))
+            .def(py::init<py::object, int, int, float, float>(),
+                 py::arg("scattering_factors"), py::arg("n1"), py::arg("n2"), py::arg("d1"), py::arg("d2"))
             .def("bin_atoms_one_slice", 
                  &OneSliceBuilderCuPyWrapper::binAtomsOneSlice, 
                  py::arg("atom_coordinates_sorted_by_elems"), py::arg("unique_elements_count"))
@@ -189,10 +189,10 @@ PYBIND11_MODULE(slice_kernel_cuda, m) {
 
 
     py::class_<MultiSlicesBuilderCuPyWrapper>(m, "MultiSlicesBuilder", py::module_local())
-            .def(py::init<py::object, int, int, int, float, float>(),
+            .def(py::init<py::object, int, int, int, float, float, float>(),
                  py::arg("scattering_factors"),
                  py::arg("n_slices"), py::arg("n1"), py::arg("n2"),
-                 py::arg("dz"), py::arg("pixel_size"))
+                 py::arg("dz"), py::arg("d1"), py::arg("d2"))
             .def("bin_atoms_multi_slices", &MultiSlicesBuilderCuPyWrapper::binAtomsMultiSlices,
                  py::arg("atom_coordinates_sorted_by_elems"), py::arg("unique_elements_counts"))
             .def("make_multi_slices", &MultiSlicesBuilderCuPyWrapper::makeMultiSlices,

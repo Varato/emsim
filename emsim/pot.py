@@ -10,31 +10,38 @@ from . import atoms as atm
 float_type = np.float32
 
 
-def build_one_slice(mol: atm.AtomList, pixel_size: float,
+def build_one_slice(mol: atm.AtomList, pixel_size: Union[float, Tuple[float, float]],
                     lateral_size: Optional[Union[int, Tuple[int, int]]] = None):
 
     one_slice_builder = config.get_current_backend().one_slice_builder
 
+    if type(pixel_size) is float:
+        pixel_size = (pixel_size,)*2
+
     mol, unique_elements, unique_elements_counts = atm.sort_elements_and_count(mol)
     _, n1, n2 = finalize_slice_size(tuple(mol.space), pixel_size, 5.0, lateral_size, 1)
-    builder = one_slice_builder(unique_elements, n1, n2, pixel_size)
+
+    builder = one_slice_builder(unique_elements, n1, n2, pixel_size[0], pixel_size[1])
     atmv = builder.bin_atoms_one_slice(mol.coordinates, unique_elements_counts)
     return builder.make_one_slice(atmv)
 
 
 def build_multi_slices(mol: atm.AtomList,
-                       pixel_size: float,
                        dz: float,
+                       pixel_size: Union[float, Tuple[float, float]],
                        lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
                        n_slices: Optional[int] = None,
                        add_water: bool = False):
+    if type(pixel_size) is float:
+        pixel_size = (pixel_size,)*2
+
     multi_slices_builder = config.get_current_backend().multi_slices_builder
     must_include_elems = []
     if add_water:
         must_include_elems.extend([1, 8])
     mol, unique_elements, unique_elements_counts = atm.sort_elements_and_count(mol, must_include_elems)
     n_slices, n1, n2 = finalize_slice_size(tuple(mol.space), pixel_size, dz, lateral_size, n_slices)
-    builder = multi_slices_builder(unique_elements, n_slices, n1, n2, dz, pixel_size)
+    builder = multi_slices_builder(unique_elements, n_slices, n1, n2, dz, pixel_size[0], pixel_size[1])
     atmv = builder.bin_atoms_multi_slices(mol.coordinates, unique_elements_counts)
     if add_water:
         atmv = builder.add_water(atmv)
@@ -42,7 +49,7 @@ def build_multi_slices(mol: atm.AtomList,
 
 
 def finalize_slice_size(mol_space: Tuple[int, int, int],
-                        pixel_size: float,
+                        pixel_size: Union[float, Tuple[float, float]],
                         thickness: float,
                         lateral_size: Optional[Union[int, Tuple[int, int]]] = None,
                         n_slices: Optional[int] = None):
@@ -58,8 +65,11 @@ def finalize_slice_size(mol_space: Tuple[int, int, int],
     if isinstance(n_slices, int):
         dims[0] = n_slices
 
+    if isinstance(pixel_size, float):
+        pixel_size = (pixel_size, pixel_size)
+
     n_slices, n1, n2 = atm.determine_box_size(tuple(mol_space),
-                                              voxel_size=(thickness, pixel_size, pixel_size),
+                                              voxel_size=(thickness, pixel_size[0], pixel_size[1]),
                                               box_size=(dims[0], dims[1], dims[2]))
     return n_slices, n1, n2
 

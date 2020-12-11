@@ -27,10 +27,10 @@ int cupyGetShape(py::object const &cupyArray, unsigned dim) {
 
 class WavePropagatorCuPyWrapper {
 public:
-    WavePropagatorCuPyWrapper(unsigned n1, unsigned n2, float pixelSize, float waveLength, float relativityGamma)
+    WavePropagatorCuPyWrapper(unsigned n1, unsigned n2, float d1, float d2, float waveLength, float relativityGamma)
         : m_n1(n1), m_n2(n2)
     {
-        m_wp = std::make_unique<emsim::cuda::WavePropagator>(n1, n2, pixelSize, waveLength, relativityGamma);
+        m_wp = std::make_unique<emsim::cuda::WavePropagator>(n1, n2, d1, d2, waveLength, relativityGamma);
         cupy = py::module::import("cupy");
     }
 
@@ -108,9 +108,9 @@ private:
 
 PYBIND11_MODULE(wave_kernel_cuda, m) {
     py::class_<WavePropagatorCuPyWrapper>(m, "WavePropagator", py::module_local())
-            .def(py::init<unsigned, unsigned, float, float, float>(),
+            .def(py::init<unsigned, unsigned, float, float, float, float>(),
                  py::arg("n1"), py::arg("n2"),
-                 py::arg("pixel_size"),
+                 py::arg("d1"), py::arg("d2"),
                  py::arg("wave_length"), py::arg("relativity_gamma"))
             .def("slice_transmit",
                 &WavePropagatorCuPyWrapper::sliceTransmit,

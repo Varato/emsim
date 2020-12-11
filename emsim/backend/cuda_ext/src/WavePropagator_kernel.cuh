@@ -15,10 +15,10 @@ namespace emsim { namespace cuda {
                            float waveLength, float relativityGamma, cufftComplex *waveOut);
 
     void waveSpacePropagateFourier(cufftComplex *waveFourier,
-                            int n1, int n2, float dz,
-                            float waveLength, float pixSize, cufftComplex *waveOut);
+                            int n1, int n2, float dz, float d1, float d2,
+                            float waveLength,  cufftComplex *waveOut);
 
-    void waveLensPropagate(cufftComplex *waveFourier, int n1, int n2, float pixSize,
+    void waveLensPropagate(cufftComplex *waveFourier, int n1, int n2, float d1, float d2,
                            float waveLength, float cs_mm, float defocus, float aperture, cufftComplex *waveOut);
 } }
 

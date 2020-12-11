@@ -8,7 +8,7 @@ from ..physics import water_num_dens
 class OneSliceBuilderBase:
     def __init__(self, unique_elements: List[int], 
                  n1: int, n2: int,
-                 pixel_size: float):
+                 d1: float, d2: float):
         """
         This class holds convenient data and functions for building one single slice of projected potential.
 
@@ -19,16 +19,15 @@ class OneSliceBuilderBase:
             This list is used to pre-compute scattering factors.
         n1, n2: int
             lateral shape of the slice
-        pixel_size: float
+        d1, d2: float
             pixel size for spatial sampling
         """
-        self.n1 = n1
-        self.n2 = n2
-        self.pixel_size = pixel_size
+        self.n1, self.n2 = n1, n2
+        self.d1, self.d2 = d1, d2
 
         self.unique_elements = sorted(unique_elements)
 
-        scattering_factors = elem.scattering_factors2d(self.unique_elements, pixel_size, (self.n1, self.n2))
+        scattering_factors = elem.scattering_factors2d(self.unique_elements, self.n1, self.n2, self.d1, self.d2)
         scattering_factors = np.fft.ifftshift(scattering_factors, axes=(-2, -1))
         scattering_factors = np.ascontiguousarray(scattering_factors[:, :, :self.n2//2 + 1], dtype=np.float32)
         self.scattering_factors = scattering_factors  # (n_elems, n1, n2//2+1)
@@ -54,7 +53,7 @@ class OneSliceBuilderBase:
             shape = (n_elems, n1, n2). Atom histograms for one slice.
         """
         atmh = _bin_atoms_one_slice(atom_coordinates_sorted_by_elems, unique_elements_count, 
-                                    self.n1, self.n2, self.pixel_size, self.pixel_size)
+                                    self.n1, self.n2, self.d1, self.d2)
         return atmh
 
     def make_one_slice(self, atom_histograms_one_slice):
@@ -77,7 +76,7 @@ class OneSliceBuilderBase:
 class MultiSlicesBuilderBase:
     def __init__(self, unique_elements: List[int],
                  n_slices: int, n1: int, n2: int,
-                 dz: float, pixel_size: float):
+                 dz: float, d1: float, d2: float):
         """
         This class holds convenient data and functions for building multiple slices of projected potential.
 
@@ -92,18 +91,17 @@ class MultiSlicesBuilderBase:
             lateral shape of the slices
         dz: float
             slice thickness
-        pixel_size: float
+        d1, d2: float
             pixel size for spatial sampling
         """
         self.n_slice = n_slices
-        self.n1 = n1
-        self.n2 = n2
+        self.n1, self.n2 = n1, n2
         self.dz = dz
-        self.pixel_size = pixel_size
+        self.d1, self.d2 = d1, d2
 
         self.unique_elements = sorted(unique_elements)
 
-        scattering_factors = elem.scattering_factors2d(self.unique_elements, pixel_size, (self.n1, self.n2))
+        scattering_factors = elem.scattering_factors2d(self.unique_elements, self.n1, self.n2, self.d1, self.d2)
         scattering_factors = np.fft.ifftshift(scattering_factors, axes=(-2, -1))
         scattering_factors = np.ascontiguousarray(scattering_factors[:, :, :self.n2//2 + 1], dtype=np.float32)
         self.scattering_factors = scattering_factors
@@ -130,13 +128,13 @@ class MultiSlicesBuilderBase:
         """        
         atmh = _bin_atoms_multi_slices(atom_coordinates_sorted_by_elems, unique_elements_count,
                                        self.n_slice, self.n1, self.n2,
-                                       self.dz, self.pixel_size, self.pixel_size)
+                                       self.dz, self.d1, self.d2)
         return atmh
 
     def add_water(self, atom_histograms):
         vacs = np.logical_and.reduce(np.where(atom_histograms == 0, True, False), axis=0)
         # average number of water molecules in a voxel
-        vox_wat_num = water_num_dens * self.pixel_size*self.pixel_size*self.dz
+        vox_wat_num = water_num_dens * self.d1*self.d2*self.dz
         box = (self.n_slice, self.n1, self.n2)
 
         oxygens = np.where(vacs, np.random.poisson(vox_wat_num, box), 0).astype(np.float32)

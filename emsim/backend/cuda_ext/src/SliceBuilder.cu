@@ -10,9 +10,9 @@ namespace emsim { namespace cuda {
      * ---- OneSliceBuilder ----
      */
      OneSliceBuilder::OneSliceBuilder(float *scatteringFactors, int nElems,
-                                      int n1, int n2, float pixelSize)
+                                      int n1, int n2, float d1, float d2)
         : m_scatteringFactors(scatteringFactors), m_nElems(nElems),
-          m_pixelSize(pixelSize), m_n1(n1), m_n2(n2), m_n2Half(n2/2+1), m_nPix(n1*n2),
+          m_n1(n1), m_n2(n2), m_d1(d1), m_d2(d2), m_n2Half(n2/2+1), m_nPix(n1*n2),
           m_p(0), m_ip(0)
     {
         m_nPixHalf = m_n1 * m_n2Half;
@@ -65,7 +65,7 @@ namespace emsim { namespace cuda {
                                               float output[]) const
     {
 
-        binAtomsOneSlice_(atomCoordinates, nAtoms, uniqueElemsCount, m_nElems, m_n1, m_n2, m_pixelSize, m_pixelSize, output);
+        binAtomsOneSlice_(atomCoordinates, nAtoms, uniqueElemsCount, m_nElems, m_n1, m_n2, m_d1, m_d2, output);
     }
 
 
@@ -73,9 +73,9 @@ namespace emsim { namespace cuda {
      * ---- MultiSlicesBuilder ----
      */
      MultiSlicesBuilder::MultiSlicesBuilder(float *scatteringFactors, int nElems,
-                                            int nSlices, int n1, int n2, float dz, float pixelSize)
+                                            int nSlices, int n1, int n2, float dz, float d1, float d2)
         : m_scatteringFactors(scatteringFactors), m_nElems(nElems),
-          m_nSlices(nSlices), m_n1(n1), m_n2(n2), m_n2Half(n2/2+1), m_nPix(n1*n2), m_dz(dz), m_pixelSize(pixelSize),
+          m_nSlices(nSlices), m_n1(n1), m_n2(n2), m_n2Half(n2/2+1), m_nPix(n1*n2), m_dz(dz), m_d1(d1), m_d2(d2),
           m_p(0), m_ip(0)
     {
         m_nPixHalf = m_n1 * m_n2Half;
@@ -132,7 +132,7 @@ namespace emsim { namespace cuda {
         binAtomsMultiSlices_(atomCoordinates, nAtoms,
                              uniqueElemsCount, m_nElems,
                              m_nSlices, m_n1, m_n2,
-                             m_dz, m_pixelSize, m_pixelSize,
+                             m_dz, m_d1, m_d2,
                              output);
     }
 } }

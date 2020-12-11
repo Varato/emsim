@@ -233,7 +233,7 @@ def projected_potentials(elem_numbers: List[int], pixel_size: float, radius: flo
     return proj_pot_func(r)
 
 
-def scattering_factors(elem_numbers: List[int], voxel_size: float, size: Union[int, Tuple[int, int, int]]):
+def scattering_factors(elem_numbers: List[int], n0: int, n1: int, n2: int, d0: float, d1: float, d2: float):
     """
     pre-calculates 3D atomic scattering factors for 3D potential builder.
     This computation is based on equation (5.17) in Kirkland.
@@ -241,9 +241,10 @@ def scattering_factors(elem_numbers: List[int], voxel_size: float, size: Union[i
     Parameters
     ----------
     elem_numbers: list, atom numbers.
-    voxel_size: float
-    size: int or Tuple[int, int ,int]
-        the size of the meshgrid
+    n0, n2, n2: int
+        number of voxels
+    d0, d1, d2: float
+        voxel sizes
 
     Returns
     -------
@@ -263,7 +264,7 @@ def scattering_factors(elem_numbers: List[int], voxel_size: float, size: Union[i
     return scattering_factor_function(elem_numbers)(f)
 
 
-def scattering_factors2d(elem_numbers: List[int], pixel_size: float, size: Union[int, Tuple[int, int]]):
+def scattering_factors2d(elem_numbers: List[int], n1: int, n2: int, d1: float, d2: float):
     """
     pre-calculates 2D atomic scattering factors for slice builder.
     This computation is based on equation (5.17) in Kirkland.
@@ -271,23 +272,23 @@ def scattering_factors2d(elem_numbers: List[int], pixel_size: float, size: Union
     Parameters
     ----------
     elem_numbers: list, atomic numbers.
-    pixel_size: float
-    size: int or Tuple[int, int]
+    n1, n2: int
+        number of pixels.
+    d1, d2: float
+        pixel sizes.
 
     Returns
     -------
     numpy array
         2D form factor(s) with the first dimension corresponding to elem_nums
     """
-    if type(size) is int:
-        size = (size, size)
+   
+    kx_range = np.fft.fftshift(np.fft.fftfreq(n1, d1))
+    ky_range = np.fft.fftshift(np.fft.fftfreq(n2, d2))
 
-    fx_range = np.fft.fftshift(np.fft.fftfreq(size[0], pixel_size))
-    fy_range = np.fft.fftshift(np.fft.fftfreq(size[1], pixel_size))
-
-    fx, fy = np.meshgrid(fx_range, fy_range, indexing="ij")
-    f = np.sqrt(fx * fx + fy * fy)
-    return scattering_factor_function(elem_numbers)(f)
+    kx, ky = np.meshgrid(kx_range, ky_range, indexing="ij")
+    k = np.sqrt(kx * kx + ky * ky)
+    return scattering_factor_function(elem_numbers)(k)
 
 
 def elem_params(elem_numbers: List[int]) -> np.ndarray:

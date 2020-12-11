@@ -14,11 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 class WavePropagator(WavePropagatorBase):
-    def __init__(self, shape: Tuple[int, int], pixel_size: float, beam_energy_key: float):
+    def __init__(self, n1: int, n2: int, d1: float, d2: float, beam_energy_key: float):
         logger.debug("using fftw WavePropagator")
-        super(WavePropagator, self).__init__(shape, pixel_size, beam_energy_key)
-        self.backend = wave_kernel.WavePropagator(shape[0], shape[1],
-                                                pixel_size, self.wave_length, self.relativity_gamma)
+        super(WavePropagator, self).__init__(n1, n2, d1, d2, beam_energy_key)
+        self.backend = wave_kernel.WavePropagator(n1, n2, d1, d2,
+                                                  self.wave_length, self.relativity_gamma)
 
     def slice_transmit(self, wave: np.ndarray, aslice: np.ndarray):
         return self.backend.slice_transmit(wave, aslice)

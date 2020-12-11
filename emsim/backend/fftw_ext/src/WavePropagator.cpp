@@ -4,6 +4,7 @@
 #include <fftw3.h>
 #include <omp.h>
 #include <cmath>
+#include<algorithm>
 #include "WavePropagator.h"
 
 #define PI 3.14159265358979324f
@@ -11,14 +12,14 @@
 
 namespace emsim {
 
-    WavePropagator::WavePropagator(int n1, int n2, float pixelSize, float waveLength, float relativityGamma)
-        : m_n1(n1), m_n2(n2), m_nPix(n1*n2), m_pixelSize(pixelSize), m_waveLength(waveLength),
+    WavePropagator::WavePropagator(int n1, int n2, float d1, float d2, float waveLength, float relativityGamma)
+        : m_n1(n1), m_n2(n2), m_nPix(n1*n2), m_d1(d1), m_d2(d2), m_waveLength(waveLength),
           m_relativityGamma(relativityGamma), m_p(nullptr), m_ip(nullptr)
     {
-        m_dfx = 1.0f / m_pixelSize / (float)m_n1;
-        m_dfy = 1.0f / m_pixelSize / (float)m_n2;
+        m_dfx = 1.0f / m_d1 / (float)m_n1;
+        m_dfy = 1.0f / m_d2 / (float)m_n2;
         //Nyquist frequency and 1/3 filter
-        m_fmax = 0.5f / m_pixelSize;
+        m_fmax = 0.5f / (m_d1 >= m_d2 ? m_d1 : m_d2);
         m_filter = 0.6667f * m_fmax;
 
         if (!fftwf_init_threads()) {

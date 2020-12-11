@@ -46,8 +46,8 @@ class Pipe(object):
     def get_exit_wave(self, mol):
         mol = atm.centralize(mol)
         slices = pot.build_multi_slices(mol,
-                                        pixel_size=self._pixel_size,
                                         dz=self.slice_thickness,
+                                        pixel_size=self._pixel_size,
                                         lateral_size=self.roi,
                                         add_water=self.add_water)
         init_wave = self.wave_propagator.init_wave(self.microscope.electron_dose)

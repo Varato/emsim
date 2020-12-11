@@ -17,7 +17,7 @@ namespace emsim { namespace cuda {
      */
     class WavePropagator {
     public:
-        WavePropagator(int n1, int n2, float pixelSize, float waveLength, float relativityGamma);
+        WavePropagator(int n1, int n2, float d1, float d2, float waveLength, float relativityGamma);
         ~WavePropagator();
 
         void sliceTransmit(cufftComplex *wave,  cufftReal const *slice, cufftComplex *waveOut) const;
@@ -34,7 +34,7 @@ namespace emsim { namespace cuda {
         cufftHandle m_p;
         int m_n1, m_n2;      // wave shape
         int m_nPix;
-        float m_pixelSize;   // spatial sampling rate in Angstroms
+        float m_d1, m_d2;   // spatial sampling rate in Angstroms
         float m_waveLength;
         float m_relativityGamma;
     };

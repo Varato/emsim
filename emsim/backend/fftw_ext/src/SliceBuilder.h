@@ -13,7 +13,7 @@ namespace emsim {
     class MultiSlicesBuilder {
     public:
         MultiSlicesBuilder(float *scatteringFactors, int nElems,
-                          int nSlices, int n1, int n2, float dz, float pixelSize);
+                          int nSlices, int n1, int n2, float dz, float d1, float d2);
 
         ~MultiSlicesBuilder();
 
@@ -30,8 +30,9 @@ namespace emsim {
         
     private:
         int m_nSlices;
-        int m_n1, m_n2;             // dimensions of the slice
-        float m_pixelSize, m_dz;    // pixel size of the slice
+        int m_n1, m_n2;      // dimensions of the slices
+        float m_dz;          // slice thickness
+        float m_d1, m_d2;    // pixel size of the slices
         int m_n2Half, m_nPix, m_nPixHalf;
 
         /* SliceBuilder does not own the following data */

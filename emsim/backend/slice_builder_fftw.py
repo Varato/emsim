@@ -17,9 +17,9 @@ logger = logging.getLogger(__name__)
 class OneSliceBuilder(OneSliceBuilderBase):
     def __init__(self, unique_elements: List[int], 
                  n1: int, n2: int,
-                 pixel_size: float):
+                 d1: float, d2: float):
         logger.debug("using fftw OneSliceBuilder")
-        super(OneSliceBuilder, self).__init__(unique_elements, n1, n2, pixel_size)
+        super(OneSliceBuilder, self).__init__(unique_elements, n1, n2, d1, d2)
 
     def make_one_slice(self, atom_histograms_one_slice):
         # atom_histograms_one_slice (n_elems, n1, n2)
@@ -33,10 +33,10 @@ class OneSliceBuilder(OneSliceBuilderBase):
 class MultiSliceBuilder(MultiSlicesBuilderBase):
     def __init__(self, unique_elements: List[int],
                  n_slices: int, n1: int, n2: int,
-                 dz: float, pixel_size: float):
+                 dz: float, d1: float, d2: float):
         logger.debug("using fftw MultiSliceBuilder")
-        super(MultiSliceBuilder, self).__init__(unique_elements, n_slices, n1, n2, dz, pixel_size)
-        self.backend = dens_kernel.MultiSliceBuilder(self.scattering_factors, n_slices, n1, n2, dz, pixel_size)
+        super(MultiSliceBuilder, self).__init__(unique_elements, n_slices, n1, n2, dz, d1, d2)
+        self.backend = dens_kernel.MultiSliceBuilder(self.scattering_factors, n_slices, n1, n2, dz, d1, d2)
 
     def make_multi_slices(self, atom_histograms):
         return self.backend.make_multi_slices(atom_histograms.astype(np.float32))

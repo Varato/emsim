@@ -10,7 +10,7 @@
 namespace emsim {
     class WavePropagator {
     public:
-        WavePropagator(int n1, int n2, float pixelSize, float waveLength, float relativityGamma);
+        WavePropagator(int n1, int n2, float d1, float d2, float waveLength, float relativityGamma);
         ~WavePropagator();
 
         void sliceTransmit(fftwf_complex *wave,  float const *slice, fftwf_complex *waveOut) const;
@@ -32,7 +32,7 @@ namespace emsim {
         fftwf_plan m_p, m_ip;
         int m_n1, m_n2; // wave shape
         int m_nPix;
-        float m_pixelSize;   // spatial sampling rate in Angstrom
+        float m_d1, m_d2;   // spatial sampling rate in Angstrom
         float m_waveLength;
         float m_relativityGamma;
         float m_dfx, m_dfy, m_fmax, m_filter;

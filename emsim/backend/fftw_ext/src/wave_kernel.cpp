@@ -18,8 +18,8 @@ typedef float fftwf_complex[2];
 
 PYBIND11_MODULE(wave_kernel, m) {
     py::class_<emsim::WavePropagator>(m, "WavePropagator", py::module_local())
-        .def(py::init<int, int, float, float, float>(),
-             py::arg("n1"), py::arg("n2"), py::arg("pixel_size"),
+        .def(py::init<int, int, float, float, float, float>(),
+             py::arg("n1"), py::arg("n2"), py::arg("d1"), py::arg("d2"),
              py::arg("wave_length"), py::arg("relativity_gamma"))
         .def_property_readonly("n1", &emsim::WavePropagator::getN1)
         .def_property_readonly("n2", &emsim::WavePropagator::getN2)

@@ -45,16 +45,16 @@ void waveSliceTransmitKernel(cufftComplex *wave,  cufftReal const *slice, unsign
 
 __global__
 void waveSpacePropagateFourierKernel(cufftComplex *waveFourier,
-                                     int n1, int n2, float dz,
-                                     float waveLength, float pixSize,
+                                     int n1, int n2, float dz, float d1, float d2,
+                                     float waveLength,
                                      cufftComplex *waveOut)
 {
     unsigned batch = gridDim.x * blockDim.x;
     unsigned nPix = n1 * n2;
-    float dfx = 1.0f / pixSize / float(n1);
-    float dfy = 1.0f / pixSize / float(n2);
+    float dfx = 1.0f / d1 / float(n1);
+    float dfy = 1.0f / d2 / float(n2);
     //Nyquist frequency and 1/3 filter
-    float fMax = 0.5f / pixSize;
+    float fMax = 0.5f / (d1 >= d2 ? d1 : d2);
     float filter = 0.6667f * fMax;
 
     unsigned ii;  // the global index of 2D array
@@ -95,14 +95,14 @@ void waveSpacePropagateFourierKernel(cufftComplex *waveFourier,
 
 
 __global__
-void waveLensPropagateKernel(cufftComplex *waveFourier, int n1, int n2, float pixSize,
+void waveLensPropagateKernel(cufftComplex *waveFourier, int n1, int n2, float d1, float d2,
                              float waveLength, float cs_mm, float defocus, float aperture,
                              cufftComplex *waveOut)
 {
     unsigned batch = gridDim.x * blockDim.x;
     unsigned nPix = n1 * n2;
-    float dfx = 1.0f / pixSize / float(n1);
-    float dfy = 1.0f / pixSize / float(n2);
+    float dfx = 1.0f / d1 / float(n1);
+    float dfy = 1.0f / d2 / float(n2);
     float fAper = aperture / waveLength;
     float c1 = 0.5f * PI * cs_mm * 1e7f * waveLength * waveLength * waveLength;
     float c2 = PI * defocus * waveLength;
@@ -158,8 +158,8 @@ namespace emsim { namespace cuda {
 
 
     void waveSpacePropagateFourier(cufftComplex *waveFourier,
-                            int n1, int n2, float dz,
-                            float waveLength, float pixSize,
+                            int n1, int n2, float dz, float d1, float d2,
+                            float waveLength,
                             cufftComplex *waveOut) {
         unsigned nPix = n1 * n2;
         unsigned blockDimX = maxThreadsPerBlock;
@@ -168,11 +168,11 @@ namespace emsim { namespace cuda {
         gridDimX = gridDimX > 2147483647 ? 2147483647 : gridDimX;
 
         waveSpacePropagateFourierKernel<<<gridDimX, blockDimX>>>(waveFourier, n1, n2,
-                                                          dz, waveLength, pixSize,
+                                                          dz, d1, d2, waveLength,
                                                           waveOut);
     }
 
-    void waveLensPropagate(cufftComplex *waveFourier, int n1, int n2, float pixSize,
+    void waveLensPropagate(cufftComplex *waveFourier, int n1, int n2, float d1, float d2,
                              float waveLength, float cs_mm, float defocus, float aperture,
                              cufftComplex *waveOut) {
         unsigned nPix = n1 * n2;
@@ -182,7 +182,7 @@ namespace emsim { namespace cuda {
         gridDimX = gridDimX > 2147483647 ? 2147483647 : gridDimX;
 
         waveLensPropagateKernel<<<gridDimX, blockDimX>>>(waveFourier, n1, n2,
-                                                         pixSize, waveLength, cs_mm, defocus, aperture,
+                                                         d1, d2, waveLength, cs_mm, defocus, aperture,
                                                          waveOut);
     }
 } }

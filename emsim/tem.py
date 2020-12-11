@@ -58,19 +58,23 @@ class TEM(object):
     def get_aberration_function(self):
         return aberration(self.wave_length, self.cs_mm, self.defocus)
 
-    def get_wave_propagator(self, wave_shape: Union[int, Tuple[int, int]], pixel_size: float):
+    def get_wave_propagator(self, wave_shape: Union[int, Tuple[int, int]], pixel_size: Union[float, Tuple[float, float]]):
         """
         Get a wave propagator instance by giving wave_shape and pixel_size.
 
         Parameters
         ----------
         wave_shape: Union[int, Tuple[int, int]]
-        pixel_size: float
+        pixel_size: Union[float, Tuple[float, float]]
 
         Returns
         -------
         emsim.wave.WavePropagator instance.
         """
+        if type(wave_shape) is int:
+            wave_shape = (wave_shape, )*2
+        if type(pixel_size) is float:
+            pixel_size = (pixel_size, )*2
         return wave.WavePropagator(wave_shape, pixel_size, self.beam_energy_kev, 
             self.electron_dose, self.cs_mm, self.defocus, self.aperture)
 

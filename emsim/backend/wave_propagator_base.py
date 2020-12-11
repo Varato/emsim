@@ -8,22 +8,22 @@ from ..physics import electron_wave_length_angstrom, electron_relativity_gamma
 
 
 class WavePropagatorBase:
-    def __init__(self, shape: Tuple[int, int], pixel_size: float, beam_energy_kev: float):
-        self.wave_shape = shape
-        self.pixel_size = pixel_size
+    def __init__(self, n1: int, n2: int, d1: float, d2: float, beam_energy_kev: float):
+        self.wave_shape = (n1, n2)
+        self.d1, self.d2 = d1, d2
 
         self.wave_length = electron_wave_length_angstrom(beam_energy_kev)
         self.relativity_gamma = electron_relativity_gamma(beam_energy_kev)
 
-        qx, qy = WavePropagatorBase._make_mesh_grid_fourier_space(pixel_size, self.wave_shape)
+        qx, qy = WavePropagatorBase._make_mesh_grid_fourier_space(n1, n2, d1, d2)
         self.q_mgrid = np.sqrt(qx * qx + qy * qy)
 
         # 1/3 filtering
-        q_max = 0.5 / self.pixel_size
+        q_max = 0.5 / max(d1, d2)
         self.fil = ifftshift(np.where(self.q_mgrid <= q_max * 0.6667, 1., 0.))
 
     def init_wave(self, electron_dose: float):
-        n_e = electron_dose * self.pixel_size ** 2
+        n_e = electron_dose * self.d1 * self.d2
         wave_in = np.ones(self.wave_shape, dtype=np.complex64)
         wave_in *= np.sqrt(n_e) / np.abs(wave_in)
         return wave_in
@@ -44,9 +44,10 @@ class WavePropagatorBase:
         pass
 
     @staticmethod
-    def _make_mesh_grid_fourier_space(pixel_size: float, size: Tuple[int, int]):
-        q_max = 0.5/pixel_size
-        qx_range = np.linspace(-q_max, q_max, size[0])
-        qy_range = np.linspace(-q_max, q_max, size[1])
+    def _make_mesh_grid_fourier_space(n1: int, n2: int, d1: float, d2: float):
+        qx_max = 0.5/d1
+        qy_max = 0.5/d2
+        qx_range = np.linspace(-qx_max, qx_max, n1)
+        qy_range = np.linspace(-qy_max, qy_max, n2)
         qx, qy = np.meshgrid(qx_range, qy_range, indexing="ij")
         return qx, qy

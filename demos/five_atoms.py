@@ -51,7 +51,6 @@ image_shape_ = (512, 512)
 pixel_size_ = 50/512
 
 propagator = tem.get_wave_propagator(wave_shape=image_shape_, pixel_size=pixel_size_)
-
 aslice = emsim.pot.build_one_slice(mol, pixel_size=pixel_size_, lateral_size=image_shape_)
 
 wave = propagator.init_wave()
