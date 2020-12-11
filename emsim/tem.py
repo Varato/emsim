@@ -71,10 +71,7 @@ class TEM(object):
         -------
         emsim.wave.WavePropagator instance.
         """
-        if type(wave_shape) is int:
-            wave_shape = (wave_shape, )*2
-        if type(pixel_size) is float:
-            pixel_size = (pixel_size, )*2
+        
         return wave.WavePropagator(wave_shape, pixel_size, self.beam_energy_kev, 
             self.electron_dose, self.cs_mm, self.defocus, self.aperture)
 

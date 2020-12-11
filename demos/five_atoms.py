@@ -22,15 +22,6 @@ def make_intensity(wave):
     else:
         return np.abs(wave)**2
 
-def symmetric_band_limit(arr):
-    m, n = arr.shape
-    r = min(m,n) // 2
-    kx, ky = np.meshgrid(np.arange(-m//2, -m//2 + m), np.arange(-n//2, -n//2 + m))
-    k2 = kx**2 + ky**2
-    fil = np.where(k2 <= r**2, 1, 0)
-    fil = np.fft.ifftshift(fil)
-    return np.fft.ifft2(np.fft.fft2(arr) * fil)
-
 
 tem = emsim.tem.TEM(
     electron_dose=100,
@@ -46,7 +37,7 @@ mol = emsim.atoms.AtomList(
 
 mol = emsim.atoms.centralize(mol)
 
-emsim.config.set_backend('cuda')
+emsim.config.set_backend('numpy')
 image_shape_ = (512, 512)
 pixel_size_ = 50/512
 
@@ -55,7 +46,6 @@ aslice = emsim.pot.build_one_slice(mol, pixel_size=pixel_size_, lateral_size=ima
 
 wave = propagator.init_wave()
 wave = propagator.slice_transmit(wave, aslice)
-# wave = symmetric_band_limit(wave)
 line = assure_numpy_array(wave[512//2,:])
 wave = propagator.lens_propagate(wave)
 
