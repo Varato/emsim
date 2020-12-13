@@ -1,12 +1,12 @@
-import math
 import matplotlib.pyplot as plt
 import numpy as np
 import time
+from pathlib import Path
 
 import emsim
 
 
-emsim.config.set_backend("numpy")
+emsim.config.set_backend("cuda")
 
 
 class Molecules(object):
@@ -19,7 +19,8 @@ class Molecules(object):
             pdb_file = emsim.utils.pdb.retrieve_pdb_file(pdb_code, pdb_data_dir)
             mol = emsim.utils.pdb.build_biological_unit(pdb_file)
             mol.label = pdb_code
-            quat = np.array([1,0,0,0], dtype=np.float32)  #emsim.utils.rot.random_uniform_quaternions(1)
+            # get an orientation for each molecule
+            quat = np.array([1., 0., 0., 0.]) # emsim.utils.rot.random_uniform_quaternions(1)
             yield emsim.atoms.rotate(mol, quat, set_center=True)
 
 
@@ -37,7 +38,7 @@ microscope = emsim.tem.TEM(
     beam_energy_kev=200,
     cs_mm=1.3,
     defocus=700,
-    aperture=10.72e-3
+    aperture=10e-3
 )
 
 image_pipe = emsim.pipe.Pipe(
@@ -49,20 +50,25 @@ image_pipe = emsim.pipe.Pipe(
 )
 
 
-if __name__ == "__main__":
-    print(str(image_pipe))
+print(str(image_pipe))
 
-    result_handler = ResultHandler()
-    sim = emsim.simulator.EMSim(image_pipe, Molecules(), result_handler)
-    start = time.time()
-    sim.run()
-    time_elapsed = time.time() - start
+result_handler = ResultHandler()
+mols = Molecules()
+sim = emsim.simulator.EMSim(image_pipe, mols, result_handler)
+start = time.time()
+sim.run()
+time_elapsed = time.time() - start
 
-    print(f"time elaplsed: {time_elapsed:.4f}")
+print(f"time elaplsed: {time_elapsed:.4f}")
 
+fig, axes = plt.subplots(ncols=len(result_handler.images), figsize=(12, 3))
+for i, ax in enumerate(axes):
+    ax.imshow(result_handler.images[i], cmap="gray")
+    ax.set_title(mols.pdbs[i])
+    ax.axis(False)
 
-    _, axes = plt.subplots(ncols=len(result_handler.images))
-    for i, ax in enumerate(axes):
-        ax.imshow(result_handler.images[i], cmap="gray")
-    plt.show()
+fig.subplots_adjust(wspace=0)
+cur_path = Path(__file__).resolve().parent
+fig.savefig(cur_path / 'images/proteins.png', dpi=120, facecolor='none')
+plt.show()
 

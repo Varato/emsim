@@ -2,7 +2,7 @@ from typing import Tuple, Union
 import numpy as np
 from numpy.fft import fftshift, ifftshift, fft2, ifft2
 
-from .physics import electron_wave_length_angstrom, mtf, aberration, electron_relativity_gamma
+from .physics import electron_wave_length_angstrom, mtf, aberration, electron_relativity_gamma, scherzer_condition
 from . import wave
 
 
@@ -75,11 +75,14 @@ class TEM(object):
         return wave.WavePropagator(wave_shape, pixel_size, self.beam_energy_kev, 
             self.electron_dose, self.cs_mm, self.defocus, self.aperture)
 
+    def set_scherzer_condition(self):
+        self.defocus, self.aperture = scherzer_condition(self.wave_length, self.cs_mm)
+
     def __repr__(self):
         return f"{{TEM | beam_energy = {self.beam_energy_kev:.2f}keV, " \
                f"cs = {self.cs_mm:.2f}mm, " \
                f"defocus = {0.1*self.defocus:.2f}nm, " \
-               f"aperture = {self.aperture/np.pi * 180:.2f} deg}}"
+               f"aperture = {self.aperture:.2f} rad}}"
 
     def __str__(self):
         return self.__repr__()

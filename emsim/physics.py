@@ -83,9 +83,11 @@ def interaction_parameter(beam_energy_kev: float) -> float:
 
 # optics
 def aberration(wave_length_angstrom: float, cs_mm: float, defocus_angstrom: float):
+    cslambda = cs_mm * 1e7 * wave_length_angstrom
+    D = defocus_angstrom / math.sqrt(cslambda)
     def aberration_(k):
-        chi = 0.5 * math.pi * cs_mm * 1e7 * pow(wave_length_angstrom, 3) * pow(k, 4) \
-              - math.pi * defocus_angstrom * wave_length_angstrom * k ** 2
+        K = k * pow(cslambda * wave_length_angstrom**2, 0.25)
+        chi = math.pi * (0.5*K**4 - D*K**2)
         return chi
     return aberration_
 
@@ -108,3 +110,47 @@ def ctf(wave_length_angstrom: float, cs_mm: float, defocus_angstrom: float):
         aberr = aberration(wave_length_angstrom, cs_mm, defocus_angstrom)
         return np.sin(aberr(k))
     return ctf_
+
+def optimal_focus(wave_length_angstrom: float, cs_mm: float, nd: int):
+    """
+    The optimal defocuses
+    df = sqrt( (2nd - 0.5) * cs * lambda ), nd = 1, 2, 3...
+
+    Parameters
+    ----------
+    wave_length_angstrom: float
+        the electron's wave length in Angstroms
+    cs_mm: float
+        the spherical aberration in mm
+    nd: int
+        the index of optimal focuses.
+
+    Returns
+    -------
+    float
+        the optimal defocus value
+    """
+    cslambda = cs_mm * 1e7 * wave_length_angstrom
+    return math.sqrt((2*nd - 0.5)* cslambda)
+
+def scherzer_condition(wave_length_angstrom: float, cs_mm: float):
+    """
+    Compute Scherzer focus and aperture.
+
+    Parameters
+    ----------
+    wave_length_angstrom: float
+        the electron's wave length in Angstroms
+    cs_mm: float
+        the spherical aberration in mm
+
+    Returns
+    -------
+    df: float
+        the Scherzer focus value in Angstroms
+    aper: float
+        the Scherzer aperture value in rad
+    """
+    df = optimal_focus(wave_length_angstrom, cs_mm, 1)
+    aper = pow(6*wave_length_angstrom/(cs_mm * 1e7), 0.25)
+    return df, aper

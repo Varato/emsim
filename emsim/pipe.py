@@ -70,7 +70,6 @@ class Pipe(object):
                                                    self.microscope.aperture)
 
     # directly get final image (real valued)
-
     def run_wpo(self, mol):
         exit_wave = self.get_exit_wave_wpo(mol)
         image_wave = self.lens_propagate(exit_wave)

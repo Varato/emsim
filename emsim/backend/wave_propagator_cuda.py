@@ -3,8 +3,12 @@ try:
 except ImportError:
     raise ImportError("cannot import cpp extension em_kernel.*.pyd")
 
+try:
+    import cupy as cp
+except ImportError:
+    raise ImportError("the module require cupy")
+
 from typing import Tuple
-import cupy as cp
 import numpy as np
 import logging
 
