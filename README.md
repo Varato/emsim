@@ -138,7 +138,7 @@ image_pipe = emsim.pipe.Pipe(
     resolution=2,
     slice_thickness=2,
     roi=256,
-    add_water=True,
+    add_water=False,
 )
 
 
@@ -148,7 +148,7 @@ sim = emsim.simulator.EMSim(image_pipe, mols, result_handler)
 sim.run()
 ```
 
-![proteins](demos/images/proteinsWithIce.png)
+![proteins](demos/images/proteins.png)
 
 In this example, the `emsim.tem.TEM` instance specifies optical parameters, electron dose and beam energy. The `emsim.pipe.Pipe` instalce further specifies the imaging conditions including image size (`roi`), `slice_thickness` (in Angstroms. It affects accuracy of the multi-slice algorithm), `resolution` (double of pixel size in Angstroms) and whether the proteins are embedded within amorphous ice (`add_water`). The `emsim.simulator.EMSim` also takes a user defined callable `result_handler`, where one can define how the resulted images are dealt with. In this example the images are simply stored in memory.
 
